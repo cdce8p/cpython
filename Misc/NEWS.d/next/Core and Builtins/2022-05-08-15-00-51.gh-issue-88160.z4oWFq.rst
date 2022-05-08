@@ -2,3 +2,5 @@ Changed representation of :class:`ast.MatchMapping` ``rest``,
 :class:`ast.MatchStar` ``name``, and :class:`MatchAs` ``name``
 to :class:`ast.Name`.
 Patch by Marc Mueller.
+
+https://github.com/python/cpython/issues/88160
