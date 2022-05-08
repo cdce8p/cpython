@@ -126,6 +126,12 @@ Node classes
    Simple indices are represented by their value, extended slices are
    represented as tuples.
 
+.. versionchanged:: 3.12
+
+   Changed representation of :class:`ast.MatchMapping` ``rest``,
+   :class:`ast.MatchStar` ``name``, and :class:`MatchAs` ``name``
+   to :class:`ast.Name`.
+
 .. deprecated:: 3.8
 
    Old classes :class:`ast.Num`, :class:`ast.Str`, :class:`ast.Bytes`,
@@ -1447,7 +1453,8 @@ Pattern matching
                                         value=Constant(value=1)),
                                     MatchValue(
                                         value=Constant(value=2)),
-                                    MatchStar(name='rest')]),
+                                    MatchStar(
+                                        name=Name(id='rest', ctx=Store()))]),
                             body=[
                                 Expr(
                                     value=Constant(value=Ellipsis))]),
@@ -1500,7 +1507,10 @@ Pattern matching
                                 Expr(
                                     value=Constant(value=Ellipsis))]),
                         match_case(
-                            pattern=MatchMapping(keys=[], patterns=[], rest='rest'),
+                            pattern=MatchMapping(
+                                keys=[],
+                                patterns=[],
+                                rest=Name(id='rest', ctx=Store())),
                             body=[
                                 Expr(
                                     value=Constant(value=Ellipsis))])])],
@@ -1600,7 +1610,7 @@ Pattern matching
                                 pattern=MatchSequence(
                                     patterns=[
                                         MatchAs(name='x')]),
-                                name='y'),
+                                name=Name(id='y', ctx=Store())),
                             body=[
                                 Expr(
                                     value=Constant(value=Ellipsis))]),
@@ -1636,7 +1646,8 @@ Pattern matching
                                 patterns=[
                                     MatchSequence(
                                         patterns=[
-                                            MatchAs(name='x')]),
+                                            MatchAs(
+                                                Name(name='x', id=Store()))]),
                                     MatchAs(name='y')]),
                             body=[
                                 Expr(

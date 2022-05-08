@@ -6318,27 +6318,27 @@ pattern_helper_rotate(struct compiler *c, Py_ssize_t count)
 }
 
 static int
-pattern_helper_store_name(struct compiler *c, identifier n, pattern_context *pc)
+pattern_helper_store_name(struct compiler *c, expr_ty n, pattern_context *pc)
 {
-    if (n == NULL) {
+    if (n == NULL || n->v.Name.id == NULL) {
         ADDOP(c, POP_TOP);
         return 1;
     }
-    if (forbidden_name(c, n, Store)) {
+    if (forbidden_name(c, n->v.Name.id, Store)) {
         return 0;
     }
     // Can't assign to the same name twice:
-    int duplicate = PySequence_Contains(pc->stores, n);
+    int duplicate = PySequence_Contains(pc->stores, n->v.Name.id);
     if (duplicate < 0) {
         return 0;
     }
     if (duplicate) {
-        return compiler_error_duplicate_store(c, n);
+        return compiler_error_duplicate_store(c, n->v.Name.id);
     }
     // Rotate this object underneath any items we need to preserve:
     Py_ssize_t rotations = pc->on_top + PyList_GET_SIZE(pc->stores) + 1;
     RETURN_IF_FALSE(pattern_helper_rotate(c, rotations));
-    return !PyList_Append(pc->stores, n);
+    return !PyList_Append(pc->stores, n->v.Name.id);
 }
 
 
@@ -6574,7 +6574,7 @@ compiler_pattern_mapping(struct compiler *c, pattern_ty p, pattern_context *pc)
         return compiler_error(c, e, size, npatterns);
     }
     // We have a double-star target if "rest" is set
-    PyObject *star_target = p->v.MatchMapping.rest;
+    expr_ty star_target = p->v.MatchMapping.rest;
     // We need to keep the subject on top during the mapping and length checks:
     pc->on_top++;
     ADDOP(c, MATCH_MAPPING);

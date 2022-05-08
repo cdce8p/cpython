@@ -1751,14 +1751,14 @@ symtable_visit_pattern(struct symtable *st, pattern_ty p)
         break;
     case MatchStar_kind:
         if (p->v.MatchStar.name) {
-            symtable_add_def(st, p->v.MatchStar.name, DEF_LOCAL, LOCATION(p));
+            VISIT(st, expr, p->v.MatchStar.name);
         }
         break;
     case MatchMapping_kind:
         VISIT_SEQ(st, expr, p->v.MatchMapping.keys);
         VISIT_SEQ(st, pattern, p->v.MatchMapping.patterns);
         if (p->v.MatchMapping.rest) {
-            symtable_add_def(st, p->v.MatchMapping.rest, DEF_LOCAL, LOCATION(p));
+            VISIT(st, expr, p->v.MatchMapping.rest);
         }
         break;
     case MatchClass_kind:
@@ -1771,7 +1771,7 @@ symtable_visit_pattern(struct symtable *st, pattern_ty p)
             VISIT(st, pattern, p->v.MatchAs.pattern);
         }
         if (p->v.MatchAs.name) {
-            symtable_add_def(st, p->v.MatchAs.name, DEF_LOCAL, LOCATION(p));
+            VISIT(st, expr, p->v.MatchAs.name);
         }
         break;
     case MatchOr_kind:
