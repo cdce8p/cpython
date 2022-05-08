@@ -620,7 +620,7 @@ struct _pattern {
         struct {
             asdl_expr_seq *keys;
             asdl_pattern_seq *patterns;
-            identifier rest;
+            expr_ty rest;
         } MatchMapping;
 
         struct {
@@ -631,12 +631,12 @@ struct _pattern {
         } MatchClass;
 
         struct {
-            identifier name;
+            expr_ty name;
         } MatchStar;
 
         struct {
             pattern_ty pattern;
-            identifier name;
+            expr_ty name;
         } MatchAs;
 
         struct {
@@ -897,16 +897,16 @@ pattern_ty _PyAST_MatchSequence(asdl_pattern_seq * patterns, int lineno, int
                                 col_offset, int end_lineno, int end_col_offset,
                                 PyArena *arena);
 pattern_ty _PyAST_MatchMapping(asdl_expr_seq * keys, asdl_pattern_seq *
-                               patterns, identifier rest, int lineno, int
+                               patterns, expr_ty rest, int lineno, int
                                col_offset, int end_lineno, int end_col_offset,
                                PyArena *arena);
 pattern_ty _PyAST_MatchClass(expr_ty cls, asdl_pattern_seq * patterns,
                              asdl_identifier_seq * kwd_attrs, asdl_pattern_seq
                              * kwd_patterns, int lineno, int col_offset, int
                              end_lineno, int end_col_offset, PyArena *arena);
-pattern_ty _PyAST_MatchStar(identifier name, int lineno, int col_offset, int
+pattern_ty _PyAST_MatchStar(expr_ty name, int lineno, int col_offset, int
                             end_lineno, int end_col_offset, PyArena *arena);
-pattern_ty _PyAST_MatchAs(pattern_ty pattern, identifier name, int lineno, int
+pattern_ty _PyAST_MatchAs(pattern_ty pattern, expr_ty name, int lineno, int
                           col_offset, int end_lineno, int end_col_offset,
                           PyArena *arena);
 pattern_ty _PyAST_MatchOr(asdl_pattern_seq * patterns, int lineno, int

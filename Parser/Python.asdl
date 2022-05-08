@@ -134,13 +134,13 @@ module Python
     pattern = MatchValue(expr value)
             | MatchSingleton(constant value)
             | MatchSequence(pattern* patterns)
-            | MatchMapping(expr* keys, pattern* patterns, identifier? rest)
+            | MatchMapping(expr* keys, pattern* patterns, expr? rest)
             | MatchClass(expr cls, pattern* patterns, identifier* kwd_attrs, pattern* kwd_patterns)
 
-            | MatchStar(identifier? name)
+            | MatchStar(expr? name)
             -- The optional "rest" MatchMapping parameter handles capturing extra mapping keys
 
-            | MatchAs(pattern? pattern, identifier? name)
+            | MatchAs(pattern? pattern, expr? name)
             | MatchOr(pattern* patterns)
 
              attributes (int lineno, int col_offset, int end_lineno, int end_col_offset)

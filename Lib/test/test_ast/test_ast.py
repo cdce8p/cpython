@@ -2474,12 +2474,12 @@ class ASTValidatorTests(unittest.TestCase):
         ast.MatchMapping(
             [constant_true, constant_1],
             [pattern_x, pattern_1],
-            rest='True'
+            rest=ast.Name('True', ast.Store())
         ),
         ast.MatchMapping(
             [constant_true, ast.Starred(ast.Name('lol', ast.Load()), ast.Load())],
             [pattern_x, pattern_1],
-            rest='legit'
+            rest=ast.Name('legit', ast.Store())
         ),
         ast.MatchClass(
             ast.Attribute(
@@ -2527,11 +2527,11 @@ class ASTValidatorTests(unittest.TestCase):
         ),
         ast.MatchSequence(
             [
-                ast.MatchStar("True")
+                ast.MatchStar(ast.Name("True", ast.Store()))
             ]
         ),
         ast.MatchAs(
-            name='False'
+            name=ast.Name('False', ast.Store())
         ),
         ast.MatchOr(
             []
@@ -2542,10 +2542,10 @@ class ASTValidatorTests(unittest.TestCase):
         ast.MatchOr(
             [pattern_1, pattern_x, ast.MatchSingleton('xxx')]
         ),
-        ast.MatchAs(name="_"),
-        ast.MatchStar(name="x"),
-        ast.MatchSequence([ast.MatchStar("_")]),
-        ast.MatchMapping([], [], rest="_"),
+        ast.MatchAs(name=ast.Name("_", ast.Store())),
+        ast.MatchStar(name=ast.Name("x", ast.Store())),
+        ast.MatchSequence([ast.MatchStar(ast.Name("_", ast.Store()))]),
+        ast.MatchMapping([], [], rest=ast.Name("_", ast.Store())),
     ]
 
     def test_match_validation_pattern(self):

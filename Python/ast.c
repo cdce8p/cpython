@@ -536,14 +536,15 @@ validate_pattern_match_value(expr_ty exp)
 }
 
 static int
-validate_capture(PyObject *name)
+validate_capture(expr_ty exp)
 {
     assert(!PyErr_Occurred());
-    if (_PyUnicode_EqualToASCIIString(name, "_")) {
+    assert(exp->kind == Name_kind);
+    if (_PyUnicode_EqualToASCIIString(exp->v.Name.id, "_")) {
         PyErr_Format(PyExc_ValueError, "can't capture name '_' in patterns");
         return 0;
     }
-    return validate_name(name);
+    return validate_name(exp->v.Name.id);
 }
 
 static int

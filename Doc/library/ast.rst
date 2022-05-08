@@ -139,6 +139,12 @@ Node classes
     The :meth:`~object.__repr__` output of :class:`~ast.AST` nodes includes
     the values of the node fields.
 
+.. versionchanged:: 3.15
+
+   Changed representation of :class:`ast.MatchMapping` ``rest``,
+   :class:`ast.MatchStar` ``name``, and :class:`MatchAs` ``name``
+   to :class:`ast.Name`.
+
 .. deprecated-removed:: 3.8 3.14
 
    Previous versions of Python provided the AST classes :class:`!ast.Num`,
@@ -1613,7 +1619,8 @@ Pattern matching
                                         value=Constant(value=1)),
                                     MatchValue(
                                         value=Constant(value=2)),
-                                    MatchStar(name='rest')]),
+                                    MatchStar(
+                                        name=Name(id='rest', ctx=Store()))]),
                             body=[
                                 Expr(
                                     value=Constant(value=Ellipsis))]),
@@ -1667,7 +1674,10 @@ Pattern matching
                                 Expr(
                                     value=Constant(value=Ellipsis))]),
                         match_case(
-                            pattern=MatchMapping(rest='rest'),
+                            pattern=MatchMapping(
+                                keys=[],
+                                patterns=[],
+                                rest=Name(id='rest', ctx=Store())),
                             body=[
                                 Expr(
                                     value=Constant(value=Ellipsis))])])])
@@ -1766,7 +1776,7 @@ Pattern matching
                                 pattern=MatchSequence(
                                     patterns=[
                                         MatchAs(name='x')]),
-                                name='y'),
+                                name=Name(id='y', ctx=Store())),
                             body=[
                                 Expr(
                                     value=Constant(value=Ellipsis))]),
@@ -1803,7 +1813,8 @@ Pattern matching
                                 patterns=[
                                     MatchSequence(
                                         patterns=[
-                                            MatchAs(name='x')]),
+                                            MatchAs(
+                                                Name(name='x', id=Store()))]),
                                     MatchAs(name='y')]),
                             body=[
                                 Expr(

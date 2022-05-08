@@ -8217,7 +8217,7 @@ as_pattern_rule(Parser *p)
             UNUSED(_end_lineno); // Only used by EXTRA macro
             int _end_col_offset = _token->end_col_offset;
             UNUSED(_end_col_offset); // Only used by EXTRA macro
-            _res = _PyAST_MatchAs ( pattern , target -> v . Name . id , EXTRA );
+            _res = _PyAST_MatchAs ( pattern , target , EXTRA );
             if (_res == NULL && PyErr_Occurred()) {
                 p->error_indicator = 1;
                 p->level--;
@@ -9330,7 +9330,7 @@ capture_pattern_rule(Parser *p)
             UNUSED(_end_lineno); // Only used by EXTRA macro
             int _end_col_offset = _token->end_col_offset;
             UNUSED(_end_col_offset); // Only used by EXTRA macro
-            _res = _PyAST_MatchAs ( NULL , target -> v . Name . id , EXTRA );
+            _res = _PyAST_MatchAs ( NULL , target , EXTRA );
             if (_res == NULL && PyErr_Occurred()) {
                 p->error_indicator = 1;
                 p->level--;
@@ -10038,7 +10038,7 @@ star_pattern_rule(Parser *p)
             UNUSED(_end_lineno); // Only used by EXTRA macro
             int _end_col_offset = _token->end_col_offset;
             UNUSED(_end_col_offset); // Only used by EXTRA macro
-            _res = _PyAST_MatchStar ( target -> v . Name . id , EXTRA );
+            _res = _PyAST_MatchStar ( target , EXTRA );
             if (_res == NULL && PyErr_Occurred()) {
                 p->error_indicator = 1;
                 p->level--;
@@ -10187,7 +10187,7 @@ mapping_pattern_rule(Parser *p)
             UNUSED(_end_lineno); // Only used by EXTRA macro
             int _end_col_offset = _token->end_col_offset;
             UNUSED(_end_col_offset); // Only used by EXTRA macro
-            _res = _PyAST_MatchMapping ( NULL , NULL , rest -> v . Name . id , EXTRA );
+            _res = _PyAST_MatchMapping ( NULL , NULL , rest , EXTRA );
             if (_res == NULL && PyErr_Occurred()) {
                 p->error_indicator = 1;
                 p->level--;
@@ -10236,7 +10236,7 @@ mapping_pattern_rule(Parser *p)
             UNUSED(_end_lineno); // Only used by EXTRA macro
             int _end_col_offset = _token->end_col_offset;
             UNUSED(_end_col_offset); // Only used by EXTRA macro
-            _res = _PyAST_MatchMapping ( CHECK ( asdl_expr_seq* , _PyPegen_get_pattern_keys ( p , items ) ) , CHECK ( asdl_pattern_seq* , _PyPegen_get_patterns ( p , items ) ) , rest -> v . Name . id , EXTRA );
+            _res = _PyAST_MatchMapping ( CHECK ( asdl_expr_seq* , _PyPegen_get_pattern_keys ( p , items ) ) , CHECK ( asdl_pattern_seq* , _PyPegen_get_patterns ( p , items ) ) , rest , EXTRA );
             if (_res == NULL && PyErr_Occurred()) {
                 p->error_indicator = 1;
                 p->level--;

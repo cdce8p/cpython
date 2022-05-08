@@ -5712,22 +5712,22 @@ codegen_pattern_helper_rotate(compiler *c, location loc, Py_ssize_t count)
 
 static int
 codegen_pattern_helper_store_name(compiler *c, location loc,
-                                  identifier n, pattern_context *pc)
+                                  expr_ty n, pattern_context *pc)
 {
-    if (n == NULL) {
+    if (n == NULL || n->v.Name.id == NULL) {
         ADDOP(c, loc, POP_TOP);
         return SUCCESS;
     }
     // Can't assign to the same name twice:
-    int duplicate = PySequence_Contains(pc->stores, n);
+    int duplicate = PySequence_Contains(pc->stores, n->v.Name.id);
     RETURN_IF_ERROR(duplicate);
     if (duplicate) {
-        return codegen_error_duplicate_store(c, loc, n);
+        return codegen_error_duplicate_store(c, loc, n->v.Name.id);
     }
     // Rotate this object underneath any items we need to preserve:
     Py_ssize_t rotations = pc->on_top + PyList_GET_SIZE(pc->stores) + 1;
     RETURN_IF_ERROR(codegen_pattern_helper_rotate(c, loc, rotations));
-    RETURN_IF_ERROR(PyList_Append(pc->stores, n));
+    RETURN_IF_ERROR(PyList_Append(pc->stores, n->v.Name.id));
     return SUCCESS;
 }
 
@@ -5997,7 +5997,7 @@ codegen_pattern_mapping(compiler *c, pattern_ty p,
         return _PyCompile_Error(c, LOC(p), e, size, npatterns);
     }
     // We have a double-star target if "rest" is set
-    PyObject *star_target = p->v.MatchMapping.rest;
+    expr_ty star_target = p->v.MatchMapping.rest;
     // We need to keep the subject on top during the mapping and length checks:
     pc->on_top++;
     ADDOP(c, LOC(p), MATCH_MAPPING);

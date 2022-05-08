@@ -915,6 +915,9 @@ astfold_pattern(pattern_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
         case MatchMapping_kind:
             CALL_SEQ(fold_const_match_patterns, expr, node_->v.MatchMapping.keys);
             CALL_SEQ(astfold_pattern, pattern, node_->v.MatchMapping.patterns);
+            if (node_->v.MatchMapping.rest) {
+                CALL(astfold_expr, expr_ty, node_->v.MatchMapping.rest);
+            }
             break;
         case MatchClass_kind:
             CALL(astfold_expr, expr_ty, node_->v.MatchClass.cls);
@@ -922,10 +925,16 @@ astfold_pattern(pattern_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
             CALL_SEQ(astfold_pattern, pattern, node_->v.MatchClass.kwd_patterns);
             break;
         case MatchStar_kind:
+            if (node_->v.MatchStar.name) {
+                CALL(astfold_expr, expr_ty, node_->v.MatchStar.name);
+            }
             break;
         case MatchAs_kind:
             if (node_->v.MatchAs.pattern) {
                 CALL(astfold_pattern, pattern_ty, node_->v.MatchAs.pattern);
+            }
+            if (node_->v.MatchAs.name) {
+                CALL(astfold_expr, expr_ty, node_->v.MatchAs.name);
             }
             break;
         case MatchOr_kind:

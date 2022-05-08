@@ -509,7 +509,7 @@ pattern[pattern_ty]:
 
 as_pattern[pattern_ty]:
     | pattern=or_pattern 'as' target=pattern_capture_target {
-        _PyAST_MatchAs(pattern, target->v.Name.id, EXTRA) }
+        _PyAST_MatchAs(pattern, target, EXTRA) }
     | invalid_as_pattern
 
 or_pattern[pattern_ty]:
@@ -565,7 +565,7 @@ imaginary_number[expr_ty]:
     | imag=NUMBER { _PyPegen_ensure_imaginary(p, imag) }
 
 capture_pattern[pattern_ty]:
-    | target=pattern_capture_target { _PyAST_MatchAs(NULL, target->v.Name.id, EXTRA) }
+    | target=pattern_capture_target { _PyAST_MatchAs(NULL, target, EXTRA) }
 
 pattern_capture_target[expr_ty]:
     | !"_" name=NAME !('.' | '(' | '=') {
@@ -605,7 +605,7 @@ maybe_star_pattern[pattern_ty]:
 
 star_pattern[pattern_ty] (memo):
     | '*' target=pattern_capture_target {
-        _PyAST_MatchStar(target->v.Name.id, EXTRA) }
+        _PyAST_MatchStar(target, EXTRA) }
     | '*' wildcard_pattern {
         _PyAST_MatchStar(NULL, EXTRA) }
 
@@ -613,12 +613,12 @@ mapping_pattern[pattern_ty]:
     | '{' '}' {
         _PyAST_MatchMapping(NULL, NULL, NULL, EXTRA) }
     | '{' rest=double_star_pattern ','? '}' {
-        _PyAST_MatchMapping(NULL, NULL, rest->v.Name.id, EXTRA) }
+        _PyAST_MatchMapping(NULL, NULL, rest, EXTRA) }
     | '{' items=items_pattern ',' rest=double_star_pattern ','? '}' {
         _PyAST_MatchMapping(
             CHECK(asdl_expr_seq*, _PyPegen_get_pattern_keys(p, items)),
             CHECK(asdl_pattern_seq*, _PyPegen_get_patterns(p, items)),
-            rest->v.Name.id,
+            rest,
             EXTRA) }
     | '{' items=items_pattern ','? '}' {
         _PyAST_MatchMapping(

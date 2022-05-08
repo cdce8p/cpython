@@ -6878,10 +6878,10 @@ init_types(void *arg)
         "pattern = MatchValue(expr value)\n"
         "        | MatchSingleton(constant value)\n"
         "        | MatchSequence(pattern* patterns)\n"
-        "        | MatchMapping(expr* keys, pattern* patterns, identifier? rest)\n"
+        "        | MatchMapping(expr* keys, pattern* patterns, expr? rest)\n"
         "        | MatchClass(expr cls, pattern* patterns, identifier* kwd_attrs, pattern* kwd_patterns)\n"
-        "        | MatchStar(identifier? name)\n"
-        "        | MatchAs(pattern? pattern, identifier? name)\n"
+        "        | MatchStar(expr? name)\n"
+        "        | MatchAs(pattern? pattern, expr? name)\n"
         "        | MatchOr(pattern* patterns)");
     if (!state->pattern_type) return -1;
     if (add_attributes(state, state->pattern_type, pattern_attributes, 4) < 0)
@@ -8695,9 +8695,9 @@ _PyAST_MatchSequence(asdl_pattern_seq * patterns, int lineno, int col_offset,
 }
 
 pattern_ty
-_PyAST_MatchMapping(asdl_expr_seq * keys, asdl_pattern_seq * patterns,
-                    identifier rest, int lineno, int col_offset, int
-                    end_lineno, int end_col_offset, PyArena *arena)
+_PyAST_MatchMapping(asdl_expr_seq * keys, asdl_pattern_seq * patterns, expr_ty
+                    rest, int lineno, int col_offset, int end_lineno, int
+                    end_col_offset, PyArena *arena)
 {
     pattern_ty p;
     p = (pattern_ty)_PyArena_Malloc(arena, sizeof(*p));
@@ -8742,8 +8742,8 @@ _PyAST_MatchClass(expr_ty cls, asdl_pattern_seq * patterns, asdl_identifier_seq
 }
 
 pattern_ty
-_PyAST_MatchStar(identifier name, int lineno, int col_offset, int end_lineno,
-                 int end_col_offset, PyArena *arena)
+_PyAST_MatchStar(expr_ty name, int lineno, int col_offset, int end_lineno, int
+                 end_col_offset, PyArena *arena)
 {
     pattern_ty p;
     p = (pattern_ty)_PyArena_Malloc(arena, sizeof(*p));
@@ -8759,7 +8759,7 @@ _PyAST_MatchStar(identifier name, int lineno, int col_offset, int end_lineno,
 }
 
 pattern_ty
-_PyAST_MatchAs(pattern_ty pattern, identifier name, int lineno, int col_offset,
+_PyAST_MatchAs(pattern_ty pattern, expr_ty name, int lineno, int col_offset,
                int end_lineno, int end_col_offset, PyArena *arena)
 {
     pattern_ty p;
@@ -10643,7 +10643,7 @@ ast2obj_pattern(struct ast_state *state, void* _o)
         if (PyObject_SetAttr(result, state->patterns, value) == -1)
             goto failed;
         Py_DECREF(value);
-        value = ast2obj_identifier(state, o->v.MatchMapping.rest);
+        value = ast2obj_expr(state, o->v.MatchMapping.rest);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->rest, value) == -1)
             goto failed;
@@ -10681,7 +10681,7 @@ ast2obj_pattern(struct ast_state *state, void* _o)
         tp = (PyTypeObject *)state->MatchStar_type;
         result = PyType_GenericNew(tp, NULL, NULL);
         if (!result) goto failed;
-        value = ast2obj_identifier(state, o->v.MatchStar.name);
+        value = ast2obj_expr(state, o->v.MatchStar.name);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->name, value) == -1)
             goto failed;
@@ -10696,7 +10696,7 @@ ast2obj_pattern(struct ast_state *state, void* _o)
         if (PyObject_SetAttr(result, state->pattern, value) == -1)
             goto failed;
         Py_DECREF(value);
-        value = ast2obj_identifier(state, o->v.MatchAs.name);
+        value = ast2obj_expr(state, o->v.MatchAs.name);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->name, value) == -1)
             goto failed;
@@ -17271,7 +17271,7 @@ obj2ast_pattern(struct ast_state *state, PyObject* obj, pattern_ty* out,
     if (isinstance) {
         asdl_expr_seq* keys;
         asdl_pattern_seq* patterns;
-        identifier rest;
+        expr_ty rest;
 
         if (PyObject_GetOptionalAttr(obj, state->keys, &tmp) < 0) {
             return -1;
@@ -17361,7 +17361,7 @@ obj2ast_pattern(struct ast_state *state, PyObject* obj, pattern_ty* out,
             if (_Py_EnterRecursiveCall(" while traversing 'MatchMapping' node")) {
                 goto failed;
             }
-            res = obj2ast_identifier(state, tmp, &rest, arena);
+            res = obj2ast_expr(state, tmp, &rest, arena);
             _Py_LeaveRecursiveCall();
             if (res != 0) goto failed;
             Py_CLEAR(tmp);
@@ -17525,7 +17525,7 @@ obj2ast_pattern(struct ast_state *state, PyObject* obj, pattern_ty* out,
         return -1;
     }
     if (isinstance) {
-        identifier name;
+        expr_ty name;
 
         if (PyObject_GetOptionalAttr(obj, state->name, &tmp) < 0) {
             return -1;
@@ -17539,7 +17539,7 @@ obj2ast_pattern(struct ast_state *state, PyObject* obj, pattern_ty* out,
             if (_Py_EnterRecursiveCall(" while traversing 'MatchStar' node")) {
                 goto failed;
             }
-            res = obj2ast_identifier(state, tmp, &name, arena);
+            res = obj2ast_expr(state, tmp, &name, arena);
             _Py_LeaveRecursiveCall();
             if (res != 0) goto failed;
             Py_CLEAR(tmp);
@@ -17556,7 +17556,7 @@ obj2ast_pattern(struct ast_state *state, PyObject* obj, pattern_ty* out,
     }
     if (isinstance) {
         pattern_ty pattern;
-        identifier name;
+        expr_ty name;
 
         if (PyObject_GetOptionalAttr(obj, state->pattern, &tmp) < 0) {
             return -1;
@@ -17587,7 +17587,7 @@ obj2ast_pattern(struct ast_state *state, PyObject* obj, pattern_ty* out,
             if (_Py_EnterRecursiveCall(" while traversing 'MatchAs' node")) {
                 goto failed;
             }
-            res = obj2ast_identifier(state, tmp, &name, arena);
+            res = obj2ast_expr(state, tmp, &name, arena);
             _Py_LeaveRecursiveCall();
             if (res != 0) goto failed;
             Py_CLEAR(tmp);
@@ -18481,5 +18481,3 @@ int PyAST_Check(PyObject* obj)
     }
     return PyObject_IsInstance(obj, state->AST_type);
 }
-
-
