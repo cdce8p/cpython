@@ -1627,7 +1627,7 @@ class ASTValidatorTests(unittest.TestCase):
         ast.MatchClass(
             name_carter,
             patterns=[],
-            kwd_attrs=['True'],
+            kwd_attrs=[ast.Name('True', ast.Load())],
             kwd_patterns=[pattern_1]
         ),
         ast.MatchClass(

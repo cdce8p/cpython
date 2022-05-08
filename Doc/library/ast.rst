@@ -126,6 +126,11 @@ Node classes
    Simple indices are represented by their value, extended slices are
    represented as tuples.
 
+.. versionchanged:: 3.12
+
+   Changed :class:`ast.MatchClass` ``kwd_attrs`` to list of :class:`astName`
+   from list of strings.
+
 .. deprecated:: 3.8
 
    Old classes :class:`ast.Num`, :class:`ast.Str`, :class:`ast.Bytes`,
@@ -1555,9 +1560,9 @@ Pattern matching
                                 cls=Name(id='Point3D', ctx=Load()),
                                 patterns=[],
                                 kwd_attrs=[
-                                    'x',
-                                    'y',
-                                    'z'],
+                                    Name('x', ctx=Load()),
+                                    Name('y', ctx=Load()),
+                                    Name('z', ctx=Load())],
                                 kwd_patterns=[
                                     MatchValue(
                                         value=Constant(value=0)),

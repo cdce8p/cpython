@@ -1788,7 +1788,7 @@ init_types(struct ast_state *state)
         "        | MatchSingleton(constant value)\n"
         "        | MatchSequence(pattern* patterns)\n"
         "        | MatchMapping(expr* keys, pattern* patterns, identifier? rest)\n"
-        "        | MatchClass(expr cls, pattern* patterns, identifier* kwd_attrs, pattern* kwd_patterns)\n"
+        "        | MatchClass(expr cls, pattern* patterns, expr* kwd_attrs, pattern* kwd_patterns)\n"
         "        | MatchStar(identifier? name)\n"
         "        | MatchAs(pattern? pattern, identifier? name)\n"
         "        | MatchOr(pattern* patterns)");
@@ -1820,7 +1820,7 @@ init_types(struct ast_state *state)
     state->MatchClass_type = make_type(state, "MatchClass",
                                        state->pattern_type, MatchClass_fields,
                                        4,
-        "MatchClass(expr cls, pattern* patterns, identifier* kwd_attrs, pattern* kwd_patterns)");
+        "MatchClass(expr cls, pattern* patterns, expr* kwd_attrs, pattern* kwd_patterns)");
     if (!state->MatchClass_type) return 0;
     state->MatchStar_type = make_type(state, "MatchStar", state->pattern_type,
                                       MatchStar_fields, 1,
@@ -3504,8 +3504,8 @@ _PyAST_MatchMapping(asdl_expr_seq * keys, asdl_pattern_seq * patterns,
 }
 
 pattern_ty
-_PyAST_MatchClass(expr_ty cls, asdl_pattern_seq * patterns, asdl_identifier_seq
-                  * kwd_attrs, asdl_pattern_seq * kwd_patterns, int lineno, int
+_PyAST_MatchClass(expr_ty cls, asdl_pattern_seq * patterns, asdl_expr_seq *
+                  kwd_attrs, asdl_pattern_seq * kwd_patterns, int lineno, int
                   col_offset, int end_lineno, int end_col_offset, PyArena
                   *arena)
 {
@@ -5280,7 +5280,7 @@ ast2obj_pattern(struct ast_state *state, void* _o)
             goto failed;
         Py_DECREF(value);
         value = ast2obj_list(state, (asdl_seq*)o->v.MatchClass.kwd_attrs,
-                             ast2obj_identifier);
+                             ast2obj_expr);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->kwd_attrs, value) == -1)
             goto failed;
@@ -11481,7 +11481,7 @@ obj2ast_pattern(struct ast_state *state, PyObject* obj, pattern_ty* out,
     if (isinstance) {
         expr_ty cls;
         asdl_pattern_seq* patterns;
-        asdl_identifier_seq* kwd_attrs;
+        asdl_expr_seq* kwd_attrs;
         asdl_pattern_seq* kwd_patterns;
 
         if (_PyObject_LookupAttr(obj, state->cls, &tmp) < 0) {
@@ -11554,16 +11554,16 @@ obj2ast_pattern(struct ast_state *state, PyObject* obj, pattern_ty* out,
                 goto failed;
             }
             len = PyList_GET_SIZE(tmp);
-            kwd_attrs = _Py_asdl_identifier_seq_new(len, arena);
+            kwd_attrs = _Py_asdl_expr_seq_new(len, arena);
             if (kwd_attrs == NULL) goto failed;
             for (i = 0; i < len; i++) {
-                identifier val;
+                expr_ty val;
                 PyObject *tmp2 = PyList_GET_ITEM(tmp, i);
                 Py_INCREF(tmp2);
                 if (_Py_EnterRecursiveCall(" while traversing 'MatchClass' node")) {
                     goto failed;
                 }
-                res = obj2ast_identifier(state, tmp2, &val, arena);
+                res = obj2ast_expr(state, tmp2, &val, arena);
                 _Py_LeaveRecursiveCall();
                 Py_DECREF(tmp2);
                 if (res != 0) goto failed;

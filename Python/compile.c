@@ -6472,22 +6472,22 @@ compiler_pattern_star(struct compiler *c, pattern_ty p, pattern_context *pc)
 }
 
 static int
-validate_kwd_attrs(struct compiler *c, asdl_identifier_seq *attrs, asdl_pattern_seq* patterns)
+validate_kwd_attrs(struct compiler *c, asdl_expr_seq *attrs, asdl_pattern_seq* patterns)
 {
     // Any errors will point to the pattern rather than the arg name as the
     // parser is only supplying identifiers rather than Name or keyword nodes
     Py_ssize_t nattrs = asdl_seq_LEN(attrs);
     for (Py_ssize_t i = 0; i < nattrs; i++) {
-        identifier attr = ((identifier)asdl_seq_GET(attrs, i));
+        expr_ty attr = ((expr_ty)asdl_seq_GET(attrs, i));
         SET_LOC(c, ((pattern_ty) asdl_seq_GET(patterns, i)));
-        if (forbidden_name(c, attr, Store)) {
+        if (forbidden_name(c, attr->v.Name.id, Store)) {
             return -1;
         }
         for (Py_ssize_t j = i + 1; j < nattrs; j++) {
-            identifier other = ((identifier)asdl_seq_GET(attrs, j));
-            if (!PyUnicode_Compare(attr, other)) {
+            expr_ty other = ((expr_ty)asdl_seq_GET(attrs, j));
+            if (!PyUnicode_Compare(attr->v.Name.id, other->v.Name.id)) {
                 SET_LOC(c, ((pattern_ty) asdl_seq_GET(patterns, j)));
-                compiler_error(c, "attribute name repeated in class pattern: %U", attr);
+                compiler_error(c, "attribute name repeated in class pattern: %U", attr->v.Name.id);
                 return -1;
             }
         }
@@ -6500,7 +6500,7 @@ compiler_pattern_class(struct compiler *c, pattern_ty p, pattern_context *pc)
 {
     assert(p->kind == MatchClass_kind);
     asdl_pattern_seq *patterns = p->v.MatchClass.patterns;
-    asdl_identifier_seq *kwd_attrs = p->v.MatchClass.kwd_attrs;
+    asdl_expr_seq *kwd_attrs = p->v.MatchClass.kwd_attrs;
     asdl_pattern_seq *kwd_patterns = p->v.MatchClass.kwd_patterns;
     Py_ssize_t nargs = asdl_seq_LEN(patterns);
     Py_ssize_t nattrs = asdl_seq_LEN(kwd_attrs);
@@ -6524,9 +6524,9 @@ compiler_pattern_class(struct compiler *c, pattern_ty p, pattern_context *pc)
     RETURN_IF_FALSE(attr_names = PyTuple_New(nattrs));
     Py_ssize_t i;
     for (i = 0; i < nattrs; i++) {
-        PyObject *name = asdl_seq_GET(kwd_attrs, i);
+        expr_ty name = asdl_seq_GET(kwd_attrs, i);
         Py_INCREF(name);
-        PyTuple_SET_ITEM(attr_names, i, name);
+        PyTuple_SET_ITEM(attr_names, i, name->v.Name.id);
     }
     ADDOP_LOAD_CONST_NEW(c, attr_names);
     ADDOP_I(c, MATCH_CLASS, nargs);

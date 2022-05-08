@@ -1764,6 +1764,7 @@ symtable_visit_pattern(struct symtable *st, pattern_ty p)
     case MatchClass_kind:
         VISIT(st, expr, p->v.MatchClass.cls);
         VISIT_SEQ(st, pattern, p->v.MatchClass.patterns);
+        VISIT_SEQ(st, expr, p->v.MatchClass.kwd_attrs);
         VISIT_SEQ(st, pattern, p->v.MatchClass.kwd_patterns);
         break;
     case MatchAs_kind:
