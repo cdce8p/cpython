@@ -139,6 +139,11 @@ Node classes
     The :meth:`~object.__repr__` output of :class:`~ast.AST` nodes includes
     the values of the node fields.
 
+.. versionchanged:: 3.15
+
+   Changed :class:`ast.MatchClass` ``kwd_attrs`` to list of :class:`astName`
+   from list of strings.
+
 .. deprecated-removed:: 3.8 3.14
 
    Previous versions of Python provided the AST classes :class:`!ast.Num`,
@@ -1720,9 +1725,9 @@ Pattern matching
                             pattern=MatchClass(
                                 cls=Name(id='Point3D'),
                                 kwd_attrs=[
-                                    'x',
-                                    'y',
-                                    'z'],
+                                    Name('x', ctx=Load()),
+                                    Name('y', ctx=Load()),
+                                    Name('z', ctx=Load())],
                                 kwd_patterns=[
                                     MatchValue(
                                         value=Constant(value=0)),

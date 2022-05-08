@@ -919,6 +919,7 @@ astfold_pattern(pattern_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
         case MatchClass_kind:
             CALL(astfold_expr, expr_ty, node_->v.MatchClass.cls);
             CALL_SEQ(astfold_pattern, pattern, node_->v.MatchClass.patterns);
+            CALL_SEQ(astfold_expr, expr, node_->v.MatchClass.kwd_attrs);
             CALL_SEQ(astfold_pattern, pattern, node_->v.MatchClass.kwd_patterns);
             break;
         case MatchStar_kind:

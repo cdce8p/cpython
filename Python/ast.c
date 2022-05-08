@@ -636,8 +636,8 @@ validate_pattern(pattern_ty p, int star_ok)
             }
 
             for (Py_ssize_t i = 0; i < asdl_seq_LEN(p->v.MatchClass.kwd_attrs); i++) {
-                PyObject *identifier = asdl_seq_GET(p->v.MatchClass.kwd_attrs, i);
-                if (!validate_name(identifier)) {
+                expr_ty name = asdl_seq_GET(p->v.MatchClass.kwd_attrs, i);
+                if (!validate_name(name->v.Name.id)) {
                     ret = 0;
                     break;
                 }

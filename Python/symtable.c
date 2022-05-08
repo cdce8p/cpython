@@ -1601,11 +1601,11 @@ static int
 check_kwd_patterns(struct symtable *st, pattern_ty p)
 {
     assert(p->kind == MatchClass_kind);
-    asdl_identifier_seq *kwd_attrs = p->v.MatchClass.kwd_attrs;
+    asdl_expr_seq *kwd_attrs = p->v.MatchClass.kwd_attrs;
     asdl_pattern_seq *kwd_patterns = p->v.MatchClass.kwd_patterns;
     for (Py_ssize_t i = 0; i < asdl_seq_LEN(kwd_attrs); i++) {
         _Py_SourceLocation loc = LOCATION(asdl_seq_GET(kwd_patterns, i));
-        if (!check_name(st, asdl_seq_GET(kwd_attrs, i), loc, Store)) {
+        if (!check_name(st, asdl_seq_GET(kwd_attrs, i)->v.Name.id, loc, Store)) {
             return 0;
         }
     }
@@ -2703,6 +2703,7 @@ symtable_visit_pattern(struct symtable *st, pattern_ty p)
         if (!check_kwd_patterns(st, p)) {
             return 0;
         }
+        VISIT_SEQ(st, expr, p->v.MatchClass.kwd_attrs);
         VISIT_SEQ(st, pattern, p->v.MatchClass.kwd_patterns);
         break;
     case MatchAs_kind:

@@ -1293,6 +1293,7 @@ Missing ':' before suites:
    ...       pass
    Traceback (most recent call last):
    SyntaxError: cannot assign to __debug__
+   # TODO with ctx LOAD __debug__ is optimized to bool before the name check in symtable.c
 
    >>> if x = 3:
    ...    pass

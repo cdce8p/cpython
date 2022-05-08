@@ -646,16 +646,14 @@ class_pattern[pattern_ty]:
     | cls=name_or_attr '(' keywords=keyword_patterns ','? ')' {
         _PyAST_MatchClass(
             cls, NULL,
-            CHECK(asdl_identifier_seq*, _PyPegen_map_names_to_ids(p,
-                CHECK(asdl_expr_seq*, _PyPegen_get_pattern_keys(p, keywords)))),
+            CHECK(asdl_expr_seq*, _PyPegen_get_pattern_keys(p, keywords)),
             CHECK(asdl_pattern_seq*, _PyPegen_get_patterns(p, keywords)),
             EXTRA) }
     | cls=name_or_attr '(' patterns=positional_patterns ',' keywords=keyword_patterns ','? ')' {
         _PyAST_MatchClass(
             cls,
             patterns,
-            CHECK(asdl_identifier_seq*, _PyPegen_map_names_to_ids(p,
-                CHECK(asdl_expr_seq*, _PyPegen_get_pattern_keys(p, keywords)))),
+            CHECK(asdl_expr_seq*, _PyPegen_get_pattern_keys(p, keywords)),
             CHECK(asdl_pattern_seq*, _PyPegen_get_patterns(p, keywords)),
             EXTRA) }
     | invalid_class_pattern
