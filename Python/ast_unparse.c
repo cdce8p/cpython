@@ -846,6 +846,16 @@ append_named_expr(_PyUnicodeWriter *writer, expr_ty e, int level)
 }
 
 static int
+append_ast_none_aware_attribute(_PyUnicodeWriter *writer, expr_ty e)
+{
+    expr_ty v = e->v.NoneAwareAttribute.value;
+    APPEND_EXPR(v, PR_ATOM);
+    APPEND_STR("?.");
+
+    return _PyUnicodeWriter_WriteStr(writer, e->v.NoneAwareAttribute.attr);
+}
+
+static int
 append_ast_expr(_PyUnicodeWriter *writer, expr_ty e, int level)
 {
     switch (e->kind) {
@@ -911,6 +921,8 @@ append_ast_expr(_PyUnicodeWriter *writer, expr_ty e, int level)
         return append_ast_tuple(writer, e, level);
     case NamedExpr_kind:
         return append_named_expr(writer, e, level);
+    case NoneAwareAttribute_kind:
+        return append_ast_none_aware_attribute(writer, e);
     // No default so compiler emits a warning for unhandled cases
     }
     PyErr_SetString(PyExc_SystemError,

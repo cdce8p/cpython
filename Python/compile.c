@@ -306,6 +306,7 @@ static int compiler_augassign(struct compiler *, stmt_ty);
 static int compiler_annassign(struct compiler *, stmt_ty);
 static int compiler_subscript(struct compiler *, expr_ty);
 static int compiler_slice(struct compiler *, expr_ty);
+static int compiler_none_aware_attribute(struct compiler *, expr_ty);
 
 static bool are_all_items_const(asdl_expr_seq *, Py_ssize_t, Py_ssize_t);
 
@@ -6191,6 +6192,8 @@ compiler_visit_expr(struct compiler *c, expr_ty e)
             break;
         }
         break;
+    case NoneAwareAttribute_kind:
+        return compiler_none_aware_attribute(c, e);
     case Subscript_kind:
         return compiler_subscript(c, e);
     case Starred_kind:
@@ -6537,6 +6540,27 @@ compiler_subscript(struct compiler *c, expr_ty e)
         assert(op);
         ADDOP(c, loc, op);
     }
+    return SUCCESS;
+}
+
+static int
+compiler_none_aware_attribute(struct compiler *c, expr_ty e)
+{
+    assert(e->kind == NoneAwareAttribute_kind);
+    location loc = LOC(e);
+    NEW_JUMP_TARGET_LABEL(c, end);
+    NEW_JUMP_TARGET_LABEL(c, next);
+
+    VISIT(c, expr, e->v.NoneAwareAttribute.value);
+    ADDOP_JUMP(c, loc, POP_JUMP_IF_NONE, next);
+    VISIT(c, expr, e->v.NoneAwareAttribute.value);
+    ADDOP_NAME(c, loc, LOAD_ATTR, e->v.NoneAwareAttribute.attr, names);
+    ADDOP_JUMP(c, NO_LOCATION, JUMP, end);
+
+    USE_LABEL(c, next);
+    ADDOP_LOAD_CONST(c, loc, Py_None);
+
+    USE_LABEL(c, end);
     return SUCCESS;
 }
 

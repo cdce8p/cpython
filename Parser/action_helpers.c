@@ -1091,6 +1091,8 @@ _PyPegen_get_expr_name(expr_ty e)
             return "conditional expression";
         case NamedExpr_kind:
             return "named expression";
+        case NoneAwareAttribute_kind:
+            return "none-aware attribute";
         default:
             PyErr_Format(PyExc_SystemError,
                          "unexpected expression in assignment %d (line %d)",
