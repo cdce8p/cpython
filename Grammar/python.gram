@@ -408,11 +408,14 @@ while_stmt[stmt_ty]:
 
 for_stmt[stmt_ty]:
     | invalid_for_stmt
-    | 'for' t=star_targets 'in' ~ ex=star_expressions ':' tc=[TYPE_COMMENT] b=block el=[else_block] {
-        _PyAST_For(t, ex, b, el, NEW_TYPE_COMMENT(p, tc), EXTRA) }
-    | 'async' 'for' t=star_targets 'in' ~ ex=star_expressions ':' tc=[TYPE_COMMENT] b=block el=[else_block] {
-        CHECK_VERSION(stmt_ty, 5, "Async for loops are", _PyAST_AsyncFor(t, ex, b, el, NEW_TYPE_COMMENT(p, tc), EXTRA)) }
+    | 'for' t=star_targets 'in' ~ ex=star_expressions ':' tc=[TYPE_COMMENT] b=block bb=[break_block] el=[else_block] {
+        _PyAST_For(t, ex, b, bb, el, NEW_TYPE_COMMENT(p, tc), EXTRA) }
+    | 'async' 'for' t=star_targets 'in' ~ ex=star_expressions ':' tc=[TYPE_COMMENT] b=block bb=[break_block] el=[else_block] {
+        CHECK_VERSION(stmt_ty, 5, "Async for loops are", _PyAST_AsyncFor(t, ex, b, bb, el, NEW_TYPE_COMMENT(p, tc), EXTRA)) }
     | invalid_for_target
+break_block[asdl_stmt_seq*]:
+    | invalid_if_break_stmt
+    | "if_break" &&':' b=block { b }
 
 # With statement
 # --------------
@@ -1529,6 +1532,9 @@ invalid_else_stmt:
     | a='else' ':' NEWLINE !INDENT {
         RAISE_INDENTATION_ERROR("expected an indented block after 'else' statement on line %d", a->lineno) }
     | 'else' ':' block 'elif' { RAISE_SYNTAX_ERROR("'elif' block follows an 'else' block")}
+invalid_if_break_stmt:
+    | a="if_break" ':' NEWLINE !INDENT {
+        RAISE_INDENTATION_ERROR("expected an indented block after 'if_break' statement on line %d", a->lineno) }
 invalid_while_stmt:
     | 'while' named_expression NEWLINE { RAISE_SYNTAX_ERROR("expected ':'") }
     | a='while' named_expression ':' NEWLINE !INDENT {

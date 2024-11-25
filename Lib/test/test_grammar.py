@@ -2063,6 +2063,25 @@ class GrammarTests(unittest.TestCase):
 
         self.assertEqual(test2(), "")
 
+    def test_if_break(self):
+        call_cnt = 0
+        for i in range(3):
+            if i == 1:
+                break
+        if_break:
+            call_cnt += 1
+        else:
+            self.fail("else called with break")
+        self.assertEqual(call_cnt, 1)
+
+        for _ in range(3):
+            ...
+        if_break:
+            self.fail("if_break called without break")
+        else:
+            call_cnt += 1
+        self.assertEqual(call_cnt, 2)
+
 
 if __name__ == '__main__':
     unittest.main()

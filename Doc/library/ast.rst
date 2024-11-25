@@ -1202,14 +1202,14 @@ Control flow
                                     value=Constant(value=Ellipsis))])])])
 
 
-.. class:: For(target, iter, body, orelse, type_comment)
+.. class:: For(target, iter, body, if_break, orelse, type_comment)
 
    A ``for`` loop. ``target`` holds the variable(s) the loop assigns to, as a
    single :class:`Name`, :class:`Tuple`, :class:`List`, :class:`Attribute` or
    :class:`Subscript` node. ``iter`` holds the item to be looped over, again
-   as a single node. ``body`` and ``orelse`` contain lists of nodes to execute.
-   Those in ``orelse`` are executed if the loop finishes normally, rather than
-   via a ``break`` statement.
+   as a single node. ``body``, ``if_break`` and ``orelse`` contain lists of nodes
+   to execute. Those in ``orelse`` are executed if the loop finishes normally,
+   rather than via a ``break`` statement.
 
    .. attribute:: type_comment
 
@@ -1220,6 +1220,8 @@ Control flow
         >>> print(ast.dump(ast.parse("""
         ... for x in y:
         ...     ...
+        ... if_break:
+        ...     ...
         ... else:
         ...     ...
         ... """), indent=4))
@@ -1229,6 +1231,9 @@ Control flow
                     target=Name(id='x', ctx=Store()),
                     iter=Name(id='y'),
                     body=[
+                        Expr(
+                            value=Constant(value=Ellipsis))],
+                    if_break=[
                         Expr(
                             value=Constant(value=Ellipsis))],
                     orelse=[
@@ -2188,7 +2193,7 @@ Async and await
                                 func=Name(id='other_func'))))])])
 
 
-.. class:: AsyncFor(target, iter, body, orelse, type_comment)
+.. class:: AsyncFor(target, iter, body, if_break, orelse, type_comment)
            AsyncWith(items, body, type_comment)
 
    ``async for`` loops and ``async with`` context managers. They have the same

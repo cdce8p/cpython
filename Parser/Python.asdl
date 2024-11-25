@@ -31,8 +31,8 @@ module Python
           | AnnAssign(expr target, expr annotation, expr? value, int simple)
 
           -- use 'orelse' because else is a keyword in target languages
-          | For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)
-          | AsyncFor(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)
+          | For(expr target, expr iter, stmt* body, stmt* if_break, stmt* orelse, string? type_comment)
+          | AsyncFor(expr target, expr iter, stmt* body, stmt* if_break, stmt* orelse, string? type_comment)
           | While(expr test, stmt* body, stmt* orelse)
           | If(expr test, stmt* body, stmt* orelse)
           | With(withitem* items, stmt* body, string? type_comment)
