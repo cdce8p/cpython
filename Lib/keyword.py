@@ -56,6 +56,7 @@ kwlist = [
 softkwlist = [
     '_',
     'case',
+    'if_break',
     'lazy',
     'match',
     'type'
