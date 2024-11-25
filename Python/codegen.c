@@ -2166,9 +2166,10 @@ codegen_for(compiler *c, stmt_ty s)
     NEW_JUMP_TARGET_LABEL(c, start);
     NEW_JUMP_TARGET_LABEL(c, body);
     NEW_JUMP_TARGET_LABEL(c, cleanup);
+    NEW_JUMP_TARGET_LABEL(c, if_break);
     NEW_JUMP_TARGET_LABEL(c, end);
 
-    RETURN_IF_ERROR(_PyCompile_PushFBlock(c, loc, COMPILE_FBLOCK_FOR_LOOP, start, end, NULL));
+    RETURN_IF_ERROR(_PyCompile_PushFBlock(c, loc, COMPILE_FBLOCK_FOR_LOOP, start, if_break, NULL));
 
     VISIT(c, expr, s->v.For.iter);
 
@@ -2200,6 +2201,10 @@ codegen_for(compiler *c, stmt_ty s)
     _PyCompile_PopFBlock(c, COMPILE_FBLOCK_FOR_LOOP, start);
 
     VISIT_SEQ(c, stmt, s->v.For.orelse);
+    ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+    USE_LABEL(c, if_break);
+    VISIT_SEQ(c, stmt, s->v.For.if_break);
 
     USE_LABEL(c, end);
     return SUCCESS;
@@ -2213,13 +2218,14 @@ codegen_async_for(compiler *c, stmt_ty s)
     NEW_JUMP_TARGET_LABEL(c, start);
     NEW_JUMP_TARGET_LABEL(c, send);
     NEW_JUMP_TARGET_LABEL(c, except);
+    NEW_JUMP_TARGET_LABEL(c, if_break);
     NEW_JUMP_TARGET_LABEL(c, end);
 
     VISIT(c, expr, s->v.AsyncFor.iter);
     ADDOP(c, LOC(s->v.AsyncFor.iter), GET_AITER);
 
     USE_LABEL(c, start);
-    RETURN_IF_ERROR(_PyCompile_PushFBlock(c, loc, COMPILE_FBLOCK_ASYNC_FOR_LOOP, start, end, NULL));
+    RETURN_IF_ERROR(_PyCompile_PushFBlock(c, loc, COMPILE_FBLOCK_ASYNC_FOR_LOOP, start, if_break, NULL));
 
     /* SETUP_FINALLY to guard the __anext__ call */
     ADDOP_JUMP(c, loc, SETUP_FINALLY, except);
@@ -2249,6 +2255,11 @@ codegen_async_for(compiler *c, stmt_ty s)
 
     /* `else` block */
     VISIT_SEQ(c, stmt, s->v.AsyncFor.orelse);
+    ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+    /* `if_break` block */
+    USE_LABEL(c, if_break);
+    VISIT_SEQ(c, stmt, s->v.AsyncFor.if_break);
 
     USE_LABEL(c, end);
     return SUCCESS;
@@ -2260,10 +2271,11 @@ codegen_while(compiler *c, stmt_ty s)
     NEW_JUMP_TARGET_LABEL(c, loop);
     NEW_JUMP_TARGET_LABEL(c, end);
     NEW_JUMP_TARGET_LABEL(c, anchor);
+    NEW_JUMP_TARGET_LABEL(c, if_break);
 
     USE_LABEL(c, loop);
 
-    RETURN_IF_ERROR(_PyCompile_PushFBlock(c, LOC(s), COMPILE_FBLOCK_WHILE_LOOP, loop, end, NULL));
+    RETURN_IF_ERROR(_PyCompile_PushFBlock(c, LOC(s), COMPILE_FBLOCK_WHILE_LOOP, loop, if_break, NULL));
     RETURN_IF_ERROR(codegen_jump_if(c, LOC(s), s->v.While.test, anchor, 0));
 
     VISIT_SEQ(c, stmt, s->v.While.body);
@@ -2275,6 +2287,10 @@ codegen_while(compiler *c, stmt_ty s)
     if (s->v.While.orelse) {
         VISIT_SEQ(c, stmt, s->v.While.orelse);
     }
+    ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+    USE_LABEL(c, if_break);
+    VISIT_SEQ(c, stmt, s->v.While.if_break);
 
     USE_LABEL(c, end);
     return SUCCESS;
