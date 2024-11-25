@@ -222,6 +222,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, guard),
         offsetof(struct ast_state, handlers),
         offsetof(struct ast_state, id),
+        offsetof(struct ast_state, if_break),
         offsetof(struct ast_state, ifs),
         offsetof(struct ast_state, is_async),
         offsetof(struct ast_state, is_lazy),
@@ -333,6 +334,7 @@ static int init_identifiers(struct ast_state *state)
     if ((state->guard = PyUnicode_InternFromString("guard")) == NULL) return -1;
     if ((state->handlers = PyUnicode_InternFromString("handlers")) == NULL) return -1;
     if ((state->id = PyUnicode_InternFromString("id")) == NULL) return -1;
+    if ((state->if_break = PyUnicode_InternFromString("if_break")) == NULL) return -1;
     if ((state->ifs = PyUnicode_InternFromString("ifs")) == NULL) return -1;
     if ((state->is_async = PyUnicode_InternFromString("is_async")) == NULL) return -1;
     if ((state->is_lazy = PyUnicode_InternFromString("is_lazy")) == NULL) return -1;
@@ -480,6 +482,7 @@ static const char * const For_fields[]={
     "target",
     "iter",
     "body",
+    "if_break",
     "orelse",
     "type_comment",
 };
@@ -487,12 +490,14 @@ static const char * const AsyncFor_fields[]={
     "target",
     "iter",
     "body",
+    "if_break",
     "orelse",
     "type_comment",
 };
 static const char * const While_fields[]={
     "test",
     "body",
+    "if_break",
     "orelse",
 };
 static const char * const If_fields[]={
@@ -933,6 +938,8 @@ add_ast_annotations(struct ast_state *state)
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, body),
          offsetof(struct ast_state, stmt_type), FIELD_SEQUENCE},
+        {offsetof(struct ast_state, if_break),
+         offsetof(struct ast_state, stmt_type), FIELD_SEQUENCE},
         {offsetof(struct ast_state, orelse),
          offsetof(struct ast_state, stmt_type), FIELD_SEQUENCE},
         {offsetof(struct ast_state, type_comment),
@@ -943,6 +950,8 @@ add_ast_annotations(struct ast_state *state)
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, body),
          offsetof(struct ast_state, stmt_type), FIELD_SEQUENCE},
+        {offsetof(struct ast_state, if_break),
+         offsetof(struct ast_state, stmt_type), FIELD_SEQUENCE},
         {offsetof(struct ast_state, orelse),
          offsetof(struct ast_state, stmt_type), FIELD_SEQUENCE},
         {offsetof(struct ast_state, type_comment),
@@ -950,6 +959,8 @@ add_ast_annotations(struct ast_state *state)
         {offsetof(struct ast_state, test),
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, body),
+         offsetof(struct ast_state, stmt_type), FIELD_SEQUENCE},
+        {offsetof(struct ast_state, if_break),
          offsetof(struct ast_state, stmt_type), FIELD_SEQUENCE},
         {offsetof(struct ast_state, orelse),
          offsetof(struct ast_state, stmt_type), FIELD_SEQUENCE},
@@ -1260,106 +1271,106 @@ add_ast_annotations(struct ast_state *state)
         {offsetof(struct ast_state, TypeAlias_type), 31, 3},
         {offsetof(struct ast_state, AugAssign_type), 34, 3},
         {offsetof(struct ast_state, AnnAssign_type), 37, 4},
-        {offsetof(struct ast_state, For_type), 41, 5},
-        {offsetof(struct ast_state, AsyncFor_type), 46, 5},
-        {offsetof(struct ast_state, While_type), 51, 3},
-        {offsetof(struct ast_state, If_type), 54, 3},
-        {offsetof(struct ast_state, With_type), 57, 3},
-        {offsetof(struct ast_state, AsyncWith_type), 60, 3},
-        {offsetof(struct ast_state, Match_type), 63, 2},
-        {offsetof(struct ast_state, Raise_type), 65, 2},
-        {offsetof(struct ast_state, Try_type), 67, 4},
-        {offsetof(struct ast_state, TryStar_type), 71, 4},
-        {offsetof(struct ast_state, Assert_type), 75, 2},
-        {offsetof(struct ast_state, Import_type), 77, 2},
-        {offsetof(struct ast_state, ImportFrom_type), 79, 4},
-        {offsetof(struct ast_state, Global_type), 83, 1},
-        {offsetof(struct ast_state, Nonlocal_type), 84, 1},
-        {offsetof(struct ast_state, Expr_type), 85, 1},
-        {offsetof(struct ast_state, Pass_type), 86, 0},
-        {offsetof(struct ast_state, Break_type), 86, 0},
-        {offsetof(struct ast_state, Continue_type), 86, 0},
-        {offsetof(struct ast_state, BoolOp_type), 86, 2},
-        {offsetof(struct ast_state, NamedExpr_type), 88, 2},
-        {offsetof(struct ast_state, BinOp_type), 90, 3},
-        {offsetof(struct ast_state, UnaryOp_type), 93, 2},
-        {offsetof(struct ast_state, Lambda_type), 95, 2},
-        {offsetof(struct ast_state, IfExp_type), 97, 3},
-        {offsetof(struct ast_state, Dict_type), 100, 2},
-        {offsetof(struct ast_state, Set_type), 102, 1},
-        {offsetof(struct ast_state, ListComp_type), 103, 2},
-        {offsetof(struct ast_state, SetComp_type), 105, 2},
-        {offsetof(struct ast_state, DictComp_type), 107, 3},
-        {offsetof(struct ast_state, GeneratorExp_type), 110, 2},
-        {offsetof(struct ast_state, Await_type), 112, 1},
-        {offsetof(struct ast_state, Yield_type), 113, 1},
-        {offsetof(struct ast_state, YieldFrom_type), 114, 1},
-        {offsetof(struct ast_state, Compare_type), 115, 3},
-        {offsetof(struct ast_state, Call_type), 118, 3},
-        {offsetof(struct ast_state, FormattedValue_type), 121, 3},
-        {offsetof(struct ast_state, Interpolation_type), 124, 4},
-        {offsetof(struct ast_state, JoinedStr_type), 128, 1},
-        {offsetof(struct ast_state, TemplateStr_type), 129, 1},
-        {offsetof(struct ast_state, Constant_type), 130, 2},
-        {offsetof(struct ast_state, Attribute_type), 132, 3},
-        {offsetof(struct ast_state, Subscript_type), 135, 3},
-        {offsetof(struct ast_state, Starred_type), 138, 2},
-        {offsetof(struct ast_state, Name_type), 140, 2},
-        {offsetof(struct ast_state, List_type), 142, 2},
-        {offsetof(struct ast_state, Tuple_type), 144, 2},
-        {offsetof(struct ast_state, Slice_type), 146, 3},
-        {offsetof(struct ast_state, Load_type), 149, 0},
-        {offsetof(struct ast_state, Store_type), 149, 0},
-        {offsetof(struct ast_state, Del_type), 149, 0},
-        {offsetof(struct ast_state, And_type), 149, 0},
-        {offsetof(struct ast_state, Or_type), 149, 0},
-        {offsetof(struct ast_state, Add_type), 149, 0},
-        {offsetof(struct ast_state, Sub_type), 149, 0},
-        {offsetof(struct ast_state, Mult_type), 149, 0},
-        {offsetof(struct ast_state, MatMult_type), 149, 0},
-        {offsetof(struct ast_state, Div_type), 149, 0},
-        {offsetof(struct ast_state, Mod_type), 149, 0},
-        {offsetof(struct ast_state, Pow_type), 149, 0},
-        {offsetof(struct ast_state, LShift_type), 149, 0},
-        {offsetof(struct ast_state, RShift_type), 149, 0},
-        {offsetof(struct ast_state, BitOr_type), 149, 0},
-        {offsetof(struct ast_state, BitXor_type), 149, 0},
-        {offsetof(struct ast_state, BitAnd_type), 149, 0},
-        {offsetof(struct ast_state, FloorDiv_type), 149, 0},
-        {offsetof(struct ast_state, Invert_type), 149, 0},
-        {offsetof(struct ast_state, Not_type), 149, 0},
-        {offsetof(struct ast_state, UAdd_type), 149, 0},
-        {offsetof(struct ast_state, USub_type), 149, 0},
-        {offsetof(struct ast_state, Eq_type), 149, 0},
-        {offsetof(struct ast_state, NotEq_type), 149, 0},
-        {offsetof(struct ast_state, Lt_type), 149, 0},
-        {offsetof(struct ast_state, LtE_type), 149, 0},
-        {offsetof(struct ast_state, Gt_type), 149, 0},
-        {offsetof(struct ast_state, GtE_type), 149, 0},
-        {offsetof(struct ast_state, Is_type), 149, 0},
-        {offsetof(struct ast_state, IsNot_type), 149, 0},
-        {offsetof(struct ast_state, In_type), 149, 0},
-        {offsetof(struct ast_state, NotIn_type), 149, 0},
-        {offsetof(struct ast_state, comprehension_type), 149, 4},
-        {offsetof(struct ast_state, ExceptHandler_type), 153, 3},
-        {offsetof(struct ast_state, arguments_type), 156, 7},
-        {offsetof(struct ast_state, arg_type), 163, 3},
-        {offsetof(struct ast_state, keyword_type), 166, 2},
-        {offsetof(struct ast_state, alias_type), 168, 2},
-        {offsetof(struct ast_state, withitem_type), 170, 2},
-        {offsetof(struct ast_state, match_case_type), 172, 3},
-        {offsetof(struct ast_state, MatchValue_type), 175, 1},
-        {offsetof(struct ast_state, MatchSingleton_type), 176, 1},
-        {offsetof(struct ast_state, MatchSequence_type), 177, 1},
-        {offsetof(struct ast_state, MatchMapping_type), 178, 3},
-        {offsetof(struct ast_state, MatchClass_type), 181, 4},
-        {offsetof(struct ast_state, MatchStar_type), 185, 1},
-        {offsetof(struct ast_state, MatchAs_type), 186, 2},
-        {offsetof(struct ast_state, MatchOr_type), 188, 1},
-        {offsetof(struct ast_state, TypeIgnore_type), 189, 2},
-        {offsetof(struct ast_state, TypeVar_type), 191, 3},
-        {offsetof(struct ast_state, ParamSpec_type), 194, 2},
-        {offsetof(struct ast_state, TypeVarTuple_type), 196, 2},
+        {offsetof(struct ast_state, For_type), 41, 6},
+        {offsetof(struct ast_state, AsyncFor_type), 47, 6},
+        {offsetof(struct ast_state, While_type), 53, 4},
+        {offsetof(struct ast_state, If_type), 57, 3},
+        {offsetof(struct ast_state, With_type), 60, 3},
+        {offsetof(struct ast_state, AsyncWith_type), 63, 3},
+        {offsetof(struct ast_state, Match_type), 66, 2},
+        {offsetof(struct ast_state, Raise_type), 68, 2},
+        {offsetof(struct ast_state, Try_type), 70, 4},
+        {offsetof(struct ast_state, TryStar_type), 74, 4},
+        {offsetof(struct ast_state, Assert_type), 78, 2},
+        {offsetof(struct ast_state, Import_type), 80, 2},
+        {offsetof(struct ast_state, ImportFrom_type), 82, 4},
+        {offsetof(struct ast_state, Global_type), 86, 1},
+        {offsetof(struct ast_state, Nonlocal_type), 87, 1},
+        {offsetof(struct ast_state, Expr_type), 88, 1},
+        {offsetof(struct ast_state, Pass_type), 89, 0},
+        {offsetof(struct ast_state, Break_type), 89, 0},
+        {offsetof(struct ast_state, Continue_type), 89, 0},
+        {offsetof(struct ast_state, BoolOp_type), 89, 2},
+        {offsetof(struct ast_state, NamedExpr_type), 91, 2},
+        {offsetof(struct ast_state, BinOp_type), 93, 3},
+        {offsetof(struct ast_state, UnaryOp_type), 96, 2},
+        {offsetof(struct ast_state, Lambda_type), 98, 2},
+        {offsetof(struct ast_state, IfExp_type), 100, 3},
+        {offsetof(struct ast_state, Dict_type), 103, 2},
+        {offsetof(struct ast_state, Set_type), 105, 1},
+        {offsetof(struct ast_state, ListComp_type), 106, 2},
+        {offsetof(struct ast_state, SetComp_type), 108, 2},
+        {offsetof(struct ast_state, DictComp_type), 110, 3},
+        {offsetof(struct ast_state, GeneratorExp_type), 113, 2},
+        {offsetof(struct ast_state, Await_type), 115, 1},
+        {offsetof(struct ast_state, Yield_type), 116, 1},
+        {offsetof(struct ast_state, YieldFrom_type), 117, 1},
+        {offsetof(struct ast_state, Compare_type), 118, 3},
+        {offsetof(struct ast_state, Call_type), 121, 3},
+        {offsetof(struct ast_state, FormattedValue_type), 124, 3},
+        {offsetof(struct ast_state, Interpolation_type), 127, 4},
+        {offsetof(struct ast_state, JoinedStr_type), 131, 1},
+        {offsetof(struct ast_state, TemplateStr_type), 132, 1},
+        {offsetof(struct ast_state, Constant_type), 133, 2},
+        {offsetof(struct ast_state, Attribute_type), 135, 3},
+        {offsetof(struct ast_state, Subscript_type), 138, 3},
+        {offsetof(struct ast_state, Starred_type), 141, 2},
+        {offsetof(struct ast_state, Name_type), 143, 2},
+        {offsetof(struct ast_state, List_type), 145, 2},
+        {offsetof(struct ast_state, Tuple_type), 147, 2},
+        {offsetof(struct ast_state, Slice_type), 149, 3},
+        {offsetof(struct ast_state, Load_type), 152, 0},
+        {offsetof(struct ast_state, Store_type), 152, 0},
+        {offsetof(struct ast_state, Del_type), 152, 0},
+        {offsetof(struct ast_state, And_type), 152, 0},
+        {offsetof(struct ast_state, Or_type), 152, 0},
+        {offsetof(struct ast_state, Add_type), 152, 0},
+        {offsetof(struct ast_state, Sub_type), 152, 0},
+        {offsetof(struct ast_state, Mult_type), 152, 0},
+        {offsetof(struct ast_state, MatMult_type), 152, 0},
+        {offsetof(struct ast_state, Div_type), 152, 0},
+        {offsetof(struct ast_state, Mod_type), 152, 0},
+        {offsetof(struct ast_state, Pow_type), 152, 0},
+        {offsetof(struct ast_state, LShift_type), 152, 0},
+        {offsetof(struct ast_state, RShift_type), 152, 0},
+        {offsetof(struct ast_state, BitOr_type), 152, 0},
+        {offsetof(struct ast_state, BitXor_type), 152, 0},
+        {offsetof(struct ast_state, BitAnd_type), 152, 0},
+        {offsetof(struct ast_state, FloorDiv_type), 152, 0},
+        {offsetof(struct ast_state, Invert_type), 152, 0},
+        {offsetof(struct ast_state, Not_type), 152, 0},
+        {offsetof(struct ast_state, UAdd_type), 152, 0},
+        {offsetof(struct ast_state, USub_type), 152, 0},
+        {offsetof(struct ast_state, Eq_type), 152, 0},
+        {offsetof(struct ast_state, NotEq_type), 152, 0},
+        {offsetof(struct ast_state, Lt_type), 152, 0},
+        {offsetof(struct ast_state, LtE_type), 152, 0},
+        {offsetof(struct ast_state, Gt_type), 152, 0},
+        {offsetof(struct ast_state, GtE_type), 152, 0},
+        {offsetof(struct ast_state, Is_type), 152, 0},
+        {offsetof(struct ast_state, IsNot_type), 152, 0},
+        {offsetof(struct ast_state, In_type), 152, 0},
+        {offsetof(struct ast_state, NotIn_type), 152, 0},
+        {offsetof(struct ast_state, comprehension_type), 152, 4},
+        {offsetof(struct ast_state, ExceptHandler_type), 156, 3},
+        {offsetof(struct ast_state, arguments_type), 159, 7},
+        {offsetof(struct ast_state, arg_type), 166, 3},
+        {offsetof(struct ast_state, keyword_type), 169, 2},
+        {offsetof(struct ast_state, alias_type), 171, 2},
+        {offsetof(struct ast_state, withitem_type), 173, 2},
+        {offsetof(struct ast_state, match_case_type), 175, 3},
+        {offsetof(struct ast_state, MatchValue_type), 178, 1},
+        {offsetof(struct ast_state, MatchSingleton_type), 179, 1},
+        {offsetof(struct ast_state, MatchSequence_type), 180, 1},
+        {offsetof(struct ast_state, MatchMapping_type), 181, 3},
+        {offsetof(struct ast_state, MatchClass_type), 184, 4},
+        {offsetof(struct ast_state, MatchStar_type), 188, 1},
+        {offsetof(struct ast_state, MatchAs_type), 189, 2},
+        {offsetof(struct ast_state, MatchOr_type), 191, 1},
+        {offsetof(struct ast_state, TypeIgnore_type), 192, 2},
+        {offsetof(struct ast_state, TypeVar_type), 194, 3},
+        {offsetof(struct ast_state, ParamSpec_type), 197, 2},
+        {offsetof(struct ast_state, TypeVarTuple_type), 199, 2},
     };
     char *base = (char *)state;
     PyObject *annotations = NULL;
@@ -2411,9 +2422,9 @@ init_types(void *arg)
         "     | TypeAlias(expr name, type_param* type_params, expr value)\n"
         "     | AugAssign(expr target, operator op, expr value)\n"
         "     | AnnAssign(expr target, expr annotation, expr? value, int simple)\n"
-        "     | For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)\n"
-        "     | AsyncFor(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)\n"
-        "     | While(expr test, stmt* body, stmt* orelse)\n"
+        "     | For(expr target, expr iter, stmt* body, stmt* if_break, stmt* orelse, string? type_comment)\n"
+        "     | AsyncFor(expr target, expr iter, stmt* body, stmt* if_break, stmt* orelse, string? type_comment)\n"
+        "     | While(expr test, stmt* body, stmt* if_break, stmt* orelse)\n"
         "     | If(expr test, stmt* body, stmt* orelse)\n"
         "     | With(withitem* items, stmt* body, string? type_comment)\n"
         "     | AsyncWith(withitem* items, stmt* body, string? type_comment)\n"
@@ -2495,21 +2506,21 @@ init_types(void *arg)
     if (!state->AnnAssign_type) return -1;
     if (PyObject_SetAttr(state->AnnAssign_type, state->value, Py_None) == -1)
         return -1;
-    state->For_type = make_type(state, "For", state->stmt_type, For_fields, 5,
-        "For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)");
+    state->For_type = make_type(state, "For", state->stmt_type, For_fields, 6,
+        "For(expr target, expr iter, stmt* body, stmt* if_break, stmt* orelse, string? type_comment)");
     if (!state->For_type) return -1;
     if (PyObject_SetAttr(state->For_type, state->type_comment, Py_None) == -1)
         return -1;
     state->AsyncFor_type = make_type(state, "AsyncFor", state->stmt_type,
-                                     AsyncFor_fields, 5,
-        "AsyncFor(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)");
+                                     AsyncFor_fields, 6,
+        "AsyncFor(expr target, expr iter, stmt* body, stmt* if_break, stmt* orelse, string? type_comment)");
     if (!state->AsyncFor_type) return -1;
     if (PyObject_SetAttr(state->AsyncFor_type, state->type_comment, Py_None) ==
         -1)
         return -1;
     state->While_type = make_type(state, "While", state->stmt_type,
-                                  While_fields, 3,
-        "While(expr test, stmt* body, stmt* orelse)");
+                                  While_fields, 4,
+        "While(expr test, stmt* body, stmt* if_break, stmt* orelse)");
     if (!state->While_type) return -1;
     state->If_type = make_type(state, "If", state->stmt_type, If_fields, 3,
         "If(expr test, stmt* body, stmt* orelse)");
@@ -3571,8 +3582,8 @@ _PyAST_AnnAssign(expr_ty target, expr_ty annotation, expr_ty value, int simple,
 
 stmt_ty
 _PyAST_For(expr_ty target, expr_ty iter, asdl_stmt_seq * body, asdl_stmt_seq *
-           orelse, string type_comment, int lineno, int col_offset, int
-           end_lineno, int end_col_offset, PyArena *arena)
+           if_break, asdl_stmt_seq * orelse, string type_comment, int lineno,
+           int col_offset, int end_lineno, int end_col_offset, PyArena *arena)
 {
     stmt_ty p;
     if (!target) {
@@ -3592,6 +3603,7 @@ _PyAST_For(expr_ty target, expr_ty iter, asdl_stmt_seq * body, asdl_stmt_seq *
     p->v.For.target = target;
     p->v.For.iter = iter;
     p->v.For.body = body;
+    p->v.For.if_break = if_break;
     p->v.For.orelse = orelse;
     p->v.For.type_comment = type_comment;
     p->lineno = lineno;
@@ -3603,8 +3615,9 @@ _PyAST_For(expr_ty target, expr_ty iter, asdl_stmt_seq * body, asdl_stmt_seq *
 
 stmt_ty
 _PyAST_AsyncFor(expr_ty target, expr_ty iter, asdl_stmt_seq * body,
-                asdl_stmt_seq * orelse, string type_comment, int lineno, int
-                col_offset, int end_lineno, int end_col_offset, PyArena *arena)
+                asdl_stmt_seq * if_break, asdl_stmt_seq * orelse, string
+                type_comment, int lineno, int col_offset, int end_lineno, int
+                end_col_offset, PyArena *arena)
 {
     stmt_ty p;
     if (!target) {
@@ -3624,6 +3637,7 @@ _PyAST_AsyncFor(expr_ty target, expr_ty iter, asdl_stmt_seq * body,
     p->v.AsyncFor.target = target;
     p->v.AsyncFor.iter = iter;
     p->v.AsyncFor.body = body;
+    p->v.AsyncFor.if_break = if_break;
     p->v.AsyncFor.orelse = orelse;
     p->v.AsyncFor.type_comment = type_comment;
     p->lineno = lineno;
@@ -3634,9 +3648,9 @@ _PyAST_AsyncFor(expr_ty target, expr_ty iter, asdl_stmt_seq * body,
 }
 
 stmt_ty
-_PyAST_While(expr_ty test, asdl_stmt_seq * body, asdl_stmt_seq * orelse, int
-             lineno, int col_offset, int end_lineno, int end_col_offset,
-             PyArena *arena)
+_PyAST_While(expr_ty test, asdl_stmt_seq * body, asdl_stmt_seq * if_break,
+             asdl_stmt_seq * orelse, int lineno, int col_offset, int
+             end_lineno, int end_col_offset, PyArena *arena)
 {
     stmt_ty p;
     if (!test) {
@@ -3650,6 +3664,7 @@ _PyAST_While(expr_ty test, asdl_stmt_seq * body, asdl_stmt_seq * orelse, int
     p->kind = While_kind;
     p->v.While.test = test;
     p->v.While.body = body;
+    p->v.While.if_break = if_break;
     p->v.While.orelse = orelse;
     p->lineno = lineno;
     p->col_offset = col_offset;
@@ -5458,6 +5473,11 @@ ast2obj_stmt(struct ast_state *state, void* _o)
         if (PyObject_SetAttr(result, state->body, value) == -1)
             goto failed;
         Py_DECREF(value);
+        value = ast2obj_list(state, (asdl_seq*)o->v.For.if_break, ast2obj_stmt);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->if_break, value) == -1)
+            goto failed;
+        Py_DECREF(value);
         value = ast2obj_list(state, (asdl_seq*)o->v.For.orelse, ast2obj_stmt);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->orelse, value) == -1)
@@ -5489,6 +5509,12 @@ ast2obj_stmt(struct ast_state *state, void* _o)
         if (PyObject_SetAttr(result, state->body, value) == -1)
             goto failed;
         Py_DECREF(value);
+        value = ast2obj_list(state, (asdl_seq*)o->v.AsyncFor.if_break,
+                             ast2obj_stmt);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->if_break, value) == -1)
+            goto failed;
+        Py_DECREF(value);
         value = ast2obj_list(state, (asdl_seq*)o->v.AsyncFor.orelse,
                              ast2obj_stmt);
         if (!value) goto failed;
@@ -5513,6 +5539,12 @@ ast2obj_stmt(struct ast_state *state, void* _o)
         value = ast2obj_list(state, (asdl_seq*)o->v.While.body, ast2obj_stmt);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->body, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_list(state, (asdl_seq*)o->v.While.if_break,
+                             ast2obj_stmt);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->if_break, value) == -1)
             goto failed;
         Py_DECREF(value);
         value = ast2obj_list(state, (asdl_seq*)o->v.While.orelse, ast2obj_stmt);
@@ -8523,6 +8555,7 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, const char*
         expr_ty target;
         expr_ty iter;
         asdl_stmt_seq* body;
+        asdl_stmt_seq* if_break;
         asdl_stmt_seq* orelse;
         string type_comment;
 
@@ -8598,6 +8631,44 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, const char*
             }
             Py_CLEAR(tmp);
         }
+        if (PyObject_GetOptionalAttr(obj, state->if_break, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            tmp = PyList_New(0);
+            if (tmp == NULL) {
+                return -1;
+            }
+        }
+        {
+            int res;
+            Py_ssize_t len;
+            Py_ssize_t i;
+            if (!PyList_Check(tmp)) {
+                PyErr_Format(PyExc_TypeError, "For field \"if_break\" must be a list, not a %T", tmp);
+                goto failed;
+            }
+            len = PyList_GET_SIZE(tmp);
+            if_break = _Py_asdl_stmt_seq_new(len, arena);
+            if (if_break == NULL) goto failed;
+            for (i = 0; i < len; i++) {
+                stmt_ty val;
+                PyObject *tmp2 = Py_NewRef(PyList_GET_ITEM(tmp, i));
+                if (_Py_EnterRecursiveCall(" while traversing 'For' node")) {
+                    goto failed;
+                }
+                res = obj2ast_stmt(state, tmp2, &val, "if_break", arena);
+                _Py_LeaveRecursiveCall();
+                Py_DECREF(tmp2);
+                if (res != 0) goto failed;
+                if (len != PyList_GET_SIZE(tmp)) {
+                    PyErr_SetString(PyExc_RuntimeError, "For field \"if_break\" changed size during iteration");
+                    goto failed;
+                }
+                asdl_seq_SET(if_break, i, val);
+            }
+            Py_CLEAR(tmp);
+        }
         if (PyObject_GetOptionalAttr(obj, state->orelse, &tmp) < 0) {
             return -1;
         }
@@ -8654,8 +8725,9 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, const char*
             if (res != 0) goto failed;
             Py_CLEAR(tmp);
         }
-        *out = _PyAST_For(target, iter, body, orelse, type_comment, lineno,
-                          col_offset, end_lineno, end_col_offset, arena);
+        *out = _PyAST_For(target, iter, body, if_break, orelse, type_comment,
+                          lineno, col_offset, end_lineno, end_col_offset,
+                          arena);
         if (*out == NULL) goto failed;
         return 0;
     }
@@ -8668,6 +8740,7 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, const char*
         expr_ty target;
         expr_ty iter;
         asdl_stmt_seq* body;
+        asdl_stmt_seq* if_break;
         asdl_stmt_seq* orelse;
         string type_comment;
 
@@ -8743,6 +8816,44 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, const char*
             }
             Py_CLEAR(tmp);
         }
+        if (PyObject_GetOptionalAttr(obj, state->if_break, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            tmp = PyList_New(0);
+            if (tmp == NULL) {
+                return -1;
+            }
+        }
+        {
+            int res;
+            Py_ssize_t len;
+            Py_ssize_t i;
+            if (!PyList_Check(tmp)) {
+                PyErr_Format(PyExc_TypeError, "AsyncFor field \"if_break\" must be a list, not a %T", tmp);
+                goto failed;
+            }
+            len = PyList_GET_SIZE(tmp);
+            if_break = _Py_asdl_stmt_seq_new(len, arena);
+            if (if_break == NULL) goto failed;
+            for (i = 0; i < len; i++) {
+                stmt_ty val;
+                PyObject *tmp2 = Py_NewRef(PyList_GET_ITEM(tmp, i));
+                if (_Py_EnterRecursiveCall(" while traversing 'AsyncFor' node")) {
+                    goto failed;
+                }
+                res = obj2ast_stmt(state, tmp2, &val, "if_break", arena);
+                _Py_LeaveRecursiveCall();
+                Py_DECREF(tmp2);
+                if (res != 0) goto failed;
+                if (len != PyList_GET_SIZE(tmp)) {
+                    PyErr_SetString(PyExc_RuntimeError, "AsyncFor field \"if_break\" changed size during iteration");
+                    goto failed;
+                }
+                asdl_seq_SET(if_break, i, val);
+            }
+            Py_CLEAR(tmp);
+        }
         if (PyObject_GetOptionalAttr(obj, state->orelse, &tmp) < 0) {
             return -1;
         }
@@ -8799,9 +8910,9 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, const char*
             if (res != 0) goto failed;
             Py_CLEAR(tmp);
         }
-        *out = _PyAST_AsyncFor(target, iter, body, orelse, type_comment,
-                               lineno, col_offset, end_lineno, end_col_offset,
-                               arena);
+        *out = _PyAST_AsyncFor(target, iter, body, if_break, orelse,
+                               type_comment, lineno, col_offset, end_lineno,
+                               end_col_offset, arena);
         if (*out == NULL) goto failed;
         return 0;
     }
@@ -8813,6 +8924,7 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, const char*
     if (isinstance) {
         expr_ty test;
         asdl_stmt_seq* body;
+        asdl_stmt_seq* if_break;
         asdl_stmt_seq* orelse;
 
         if (PyObject_GetOptionalAttr(obj, state->test, &tmp) < 0) {
@@ -8870,6 +8982,44 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, const char*
             }
             Py_CLEAR(tmp);
         }
+        if (PyObject_GetOptionalAttr(obj, state->if_break, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            tmp = PyList_New(0);
+            if (tmp == NULL) {
+                return -1;
+            }
+        }
+        {
+            int res;
+            Py_ssize_t len;
+            Py_ssize_t i;
+            if (!PyList_Check(tmp)) {
+                PyErr_Format(PyExc_TypeError, "While field \"if_break\" must be a list, not a %T", tmp);
+                goto failed;
+            }
+            len = PyList_GET_SIZE(tmp);
+            if_break = _Py_asdl_stmt_seq_new(len, arena);
+            if (if_break == NULL) goto failed;
+            for (i = 0; i < len; i++) {
+                stmt_ty val;
+                PyObject *tmp2 = Py_NewRef(PyList_GET_ITEM(tmp, i));
+                if (_Py_EnterRecursiveCall(" while traversing 'While' node")) {
+                    goto failed;
+                }
+                res = obj2ast_stmt(state, tmp2, &val, "if_break", arena);
+                _Py_LeaveRecursiveCall();
+                Py_DECREF(tmp2);
+                if (res != 0) goto failed;
+                if (len != PyList_GET_SIZE(tmp)) {
+                    PyErr_SetString(PyExc_RuntimeError, "While field \"if_break\" changed size during iteration");
+                    goto failed;
+                }
+                asdl_seq_SET(if_break, i, val);
+            }
+            Py_CLEAR(tmp);
+        }
         if (PyObject_GetOptionalAttr(obj, state->orelse, &tmp) < 0) {
             return -1;
         }
@@ -8908,8 +9058,8 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, const char*
             }
             Py_CLEAR(tmp);
         }
-        *out = _PyAST_While(test, body, orelse, lineno, col_offset, end_lineno,
-                            end_col_offset, arena);
+        *out = _PyAST_While(test, body, if_break, orelse, lineno, col_offset,
+                            end_lineno, end_col_offset, arena);
         if (*out == NULL) goto failed;
         return 0;
     }
