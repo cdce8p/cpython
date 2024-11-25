@@ -21,6 +21,8 @@ for_else = """\
 def f():
     for x in range(10):
         break
+    if_break:
+        y = 3
     else:
         y = 2
     z = 3
@@ -30,6 +32,8 @@ while_else = """\
 def g():
     while True:
         break
+    if_break:
+        y = 3
     else:
         y = 2
     z = 3
