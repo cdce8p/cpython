@@ -262,6 +262,7 @@ struct _stmt {
             expr_ty target;
             expr_ty iter;
             asdl_stmt_seq *body;
+            asdl_stmt_seq *if_break;
             asdl_stmt_seq *orelse;
             string type_comment;
         } For;
@@ -270,6 +271,7 @@ struct _stmt {
             expr_ty target;
             expr_ty iter;
             asdl_stmt_seq *body;
+            asdl_stmt_seq *if_break;
             asdl_stmt_seq *orelse;
             string type_comment;
         } AsyncFor;
@@ -732,13 +734,13 @@ stmt_ty _PyAST_AnnAssign(expr_ty target, expr_ty annotation, expr_ty value, int
                          simple, int lineno, int col_offset, int end_lineno,
                          int end_col_offset, PyArena *arena);
 stmt_ty _PyAST_For(expr_ty target, expr_ty iter, asdl_stmt_seq * body,
-                   asdl_stmt_seq * orelse, string type_comment, int lineno, int
-                   col_offset, int end_lineno, int end_col_offset, PyArena
-                   *arena);
+                   asdl_stmt_seq * if_break, asdl_stmt_seq * orelse, string
+                   type_comment, int lineno, int col_offset, int end_lineno,
+                   int end_col_offset, PyArena *arena);
 stmt_ty _PyAST_AsyncFor(expr_ty target, expr_ty iter, asdl_stmt_seq * body,
-                        asdl_stmt_seq * orelse, string type_comment, int
-                        lineno, int col_offset, int end_lineno, int
-                        end_col_offset, PyArena *arena);
+                        asdl_stmt_seq * if_break, asdl_stmt_seq * orelse,
+                        string type_comment, int lineno, int col_offset, int
+                        end_lineno, int end_col_offset, PyArena *arena);
 stmt_ty _PyAST_While(expr_ty test, asdl_stmt_seq * body, asdl_stmt_seq *
                      orelse, int lineno, int col_offset, int end_lineno, int
                      end_col_offset, PyArena *arena);
