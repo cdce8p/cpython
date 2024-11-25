@@ -201,6 +201,7 @@ struct ast_state {
     PyObject *guard;
     PyObject *handlers;
     PyObject *id;
+    PyObject *if_break;
     PyObject *ifs;
     PyObject *is_async;
     PyObject *items;

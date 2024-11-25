@@ -2023,6 +2023,8 @@ symtable_visit_stmt(struct symtable *st, stmt_ty s)
         VISIT(st, expr, s->v.For.target);
         VISIT(st, expr, s->v.For.iter);
         VISIT_SEQ(st, stmt, s->v.For.body);
+        if (s->v.For.if_break)
+            VISIT_SEQ(st, stmt, s->v.For.if_break);
         if (s->v.For.orelse)
             VISIT_SEQ(st, stmt, s->v.For.orelse);
         break;
@@ -2224,6 +2226,8 @@ symtable_visit_stmt(struct symtable *st, stmt_ty s)
         VISIT(st, expr, s->v.AsyncFor.target);
         VISIT(st, expr, s->v.AsyncFor.iter);
         VISIT_SEQ(st, stmt, s->v.AsyncFor.body);
+        if (s->v.AsyncFor.if_break)
+            VISIT_SEQ(st, stmt, s->v.AsyncFor.if_break);
         if (s->v.AsyncFor.orelse)
             VISIT_SEQ(st, stmt, s->v.AsyncFor.orelse);
         break;

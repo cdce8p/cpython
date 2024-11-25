@@ -784,12 +784,14 @@ validate_stmt(struct validator *state, stmt_ty stmt)
         ret = validate_expr(state, stmt->v.For.target, Store) &&
             validate_expr(state, stmt->v.For.iter, Load) &&
             validate_body(state, stmt->v.For.body, "For") &&
+            validate_stmts(state, stmt->v.For.if_break) &&
             validate_stmts(state, stmt->v.For.orelse);
         break;
     case AsyncFor_kind:
         ret = validate_expr(state, stmt->v.AsyncFor.target, Store) &&
             validate_expr(state, stmt->v.AsyncFor.iter, Load) &&
             validate_body(state, stmt->v.AsyncFor.body, "AsyncFor") &&
+            validate_stmts(state, stmt->v.AsyncFor.if_break) &&
             validate_stmts(state, stmt->v.AsyncFor.orelse);
         break;
     case While_kind:
