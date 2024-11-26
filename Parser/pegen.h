@@ -202,7 +202,9 @@ typedef enum {
     DEL_TARGETS,
     FOR_TARGETS,
     SINGLE_TARGETS,
-    ATTRIBUTE_OR_SUBSCRIPT_TARGETS
+    ATTRIBUTE_OR_SUBSCRIPT_TARGETS,
+    NONE_AWARE_TARGETS,
+    PRIMARY_TARGETS
 } TARGETS_TYPE;
 
 // Error handling functions and APIs
@@ -279,7 +281,7 @@ _RAISE_SYNTAX_ERROR_INVALID_TARGET(Parser *p, TARGETS_TYPE type, void *e)
     expr_ty invalid_target = CHECK_NULL_ALLOWED(expr_ty, _PyPegen_get_invalid_target(e, type));
     if (invalid_target != NULL) {
         const char *msg;
-        if (type == STAR_TARGETS || type == FOR_TARGETS) {
+        if (type == STAR_TARGETS || type == FOR_TARGETS || type == NONE_AWARE_TARGETS) {
             msg = "cannot assign to %s";
         }
         else {
@@ -303,8 +305,9 @@ void * _PyPegen_seq_last_item(asdl_seq *seq);
 void * _PyPegen_seq_first_item(asdl_seq *seq);
 #define PyPegen_first_item(seq, type) ((type)_PyPegen_seq_first_item((asdl_seq*)seq))
 #define UNUSED(expr) do { (void)(expr); } while (0)
-#define EXTRA_EXPR(head, tail) head->lineno, (head)->col_offset, (tail)->end_lineno, (tail)->end_col_offset, p->arena
+#define EXTRA_EXPRESSION(head, tail) 0, head->lineno, (head)->col_offset, (tail)->end_lineno, (tail)->end_col_offset, p->arena
 #define EXTRA _start_lineno, _start_col_offset, _end_lineno, _end_col_offset, p->arena
+#define EXTRA_EXPR 0, EXTRA
 PyObject *_PyPegen_new_type_comment(Parser *, const char *);
 
 Py_LOCAL_INLINE(PyObject *)
@@ -394,6 +397,7 @@ expr_ty _PyPegen_concatenate_strings(Parser *p, asdl_expr_seq *, int, int, int, 
 expr_ty _PyPegen_FetchRawForm(Parser *p, int, int, int, int);
 expr_ty _PyPegen_ensure_imaginary(Parser *p, expr_ty);
 expr_ty _PyPegen_ensure_real(Parser *p, expr_ty);
+expr_ty _PyPegen_set_group(Parser *p, expr_ty);
 asdl_seq *_PyPegen_join_sequences(Parser *, asdl_seq *, asdl_seq *);
 int _PyPegen_check_barry_as_flufl(Parser *, Token *);
 int _PyPegen_check_legacy_stmt(Parser *p, expr_ty t);
