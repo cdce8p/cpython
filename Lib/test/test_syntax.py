@@ -2879,6 +2879,25 @@ Asserts:
     Traceback (most recent call last):
     SyntaxError: cannot assign to literal here. Maybe you meant '==' instead of '='?
 
+Invalid none attribute access expressions:
+
+    >>> a?.b = 2
+    Traceback (most recent call last):
+    SyntaxError: cannot assign to none aware expression
+
+    >>> a?.b().c[0].d = 2
+    Traceback (most recent call last):
+    SyntaxError: cannot assign to attribute here. Maybe you meant '==' instead of '='?
+
+Invalid none subscript expressions:
+
+    >>> a?[b] = 2
+    Traceback (most recent call last):
+    SyntaxError: cannot assign to none aware subscript expression
+
+    >>> a?[b].c().d = 2
+    Traceback (most recent call last):
+    SyntaxError: cannot assign to attribute here. Maybe you meant '==' instead of '='?
 """
 
 import re
@@ -3118,6 +3137,8 @@ class SyntaxErrorTestCase(unittest.TestCase):
         self._check_error("del (a, b, (c, d.e.f + 2))", "cannot delete expression")
         self._check_error("del [a, b, (c, d.e.f[0] + 2)]", "cannot delete expression")
         self._check_error("del (a := 5)", "cannot delete named expression")
+        self._check_error("del a?.b", "cannot delete none aware expression")
+        self._check_error("del a?[b]", "cannot delete none aware subscript")
         # We don't have a special message for this, but make sure we don't
         # report "cannot delete name"
         self._check_error("del a += b", "invalid syntax")
