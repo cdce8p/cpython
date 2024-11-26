@@ -123,6 +123,11 @@ typedef struct {
     void *fb_datum;
 } _PyCompile_FBlockInfo;
 
+typedef struct {
+    _PyJumpTargetLabel na_target;
+    int na_count;
+} _PyCompile_NoneAwareBlockInfo;
+
 
 int _PyCompile_PushFBlock(struct _PyCompiler *c, _Py_SourceLocation loc,
                           enum _PyCompile_FBlockType t,
@@ -132,6 +137,11 @@ void _PyCompile_PopFBlock(struct _PyCompiler *c, enum _PyCompile_FBlockType t,
                           _PyJumpTargetLabel block_label);
 _PyCompile_FBlockInfo *_PyCompile_TopFBlock(struct _PyCompiler *c);
 bool _PyCompile_InExceptionHandler(struct _PyCompiler *c);
+
+int _PyCompile_PushNATarget(struct _PyCompiler *c, _Py_SourceLocation loc, expr_ty e,
+                            _PyJumpTargetLabel target);
+void _PyCompile_PopNATarget(struct _PyCompiler *c);
+_PyJumpTargetLabel _PyCompile_TopNATarget(struct _PyCompiler *c);
 
 int _PyCompile_EnterScope(struct _PyCompiler *c, identifier name, int scope_type,
                           void *key, int lineno, PyObject *private,
