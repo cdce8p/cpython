@@ -714,6 +714,22 @@ Expressions
                 attr='colour'))
 
 
+.. class:: NoneAwareAttribute(value, attr)
+
+   None aware attribute access, e.g. ``a?.b``. ``value`` is a node, typically a
+   :class:`Name`. ``attr`` is a bare string giving the name of the attribute.
+
+   .. doctest::
+
+        >>> print(ast.dump(ast.parse('snake?.colour', mode='eval'), indent=4))
+        Expression(
+            body=NoneAwareAttribute(
+                value=Name(id='snake', ctx=Load()),
+                attr='colour')
+
+   .. versionadded:: 3.15
+
+
 .. class:: NamedExpr(target, value)
 
    A named expression. This AST node is produced by the assignment expressions

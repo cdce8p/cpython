@@ -129,6 +129,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->Mult_type);
     Py_CLEAR(state->Name_type);
     Py_CLEAR(state->NamedExpr_type);
+    Py_CLEAR(state->NoneAwareAttribute_type);
     Py_CLEAR(state->Nonlocal_type);
     Py_CLEAR(state->NotEq_singleton);
     Py_CLEAR(state->NotEq_type);
@@ -598,6 +599,10 @@ static const char * const DictComp_fields[]={
 static const char * const GeneratorExp_fields[]={
     "elt",
     "generators",
+};
+static const char * const NoneAwareAttribute_fields[]={
+    "value",
+    "attr",
 };
 static const char * const Await_fields[]={
     "value",
@@ -2942,6 +2947,45 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(GeneratorExp_annotations);
+    PyObject *NoneAwareAttribute_annotations = PyDict_New();
+    if (!NoneAwareAttribute_annotations) return 0;
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(NoneAwareAttribute_annotations, "value",
+                                    type) == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(NoneAwareAttribute_annotations);
+            return 0;
+        }
+    }
+    {
+        PyObject *type = (PyObject *)&PyUnicode_Type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(NoneAwareAttribute_annotations, "attr",
+                                    type) == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(NoneAwareAttribute_annotations);
+            return 0;
+        }
+    }
+    cond = PyObject_SetAttrString(state->NoneAwareAttribute_type,
+                                  "_field_types",
+                                  NoneAwareAttribute_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(NoneAwareAttribute_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->NoneAwareAttribute_type,
+                                  "__annotations__",
+                                  NoneAwareAttribute_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(NoneAwareAttribute_annotations);
+        return 0;
+    }
+    Py_DECREF(NoneAwareAttribute_annotations);
     PyObject *Await_annotations = PyDict_New();
     if (!Await_annotations) return 0;
     {
@@ -6394,6 +6438,7 @@ init_types(void *arg)
         "     | SetComp(expr elt, comprehension* generators)\n"
         "     | DictComp(expr key, expr value, comprehension* generators)\n"
         "     | GeneratorExp(expr elt, comprehension* generators)\n"
+        "     | NoneAwareAttribute(expr value, identifier attr)\n"
         "     | Await(expr value)\n"
         "     | Yield(expr? value)\n"
         "     | YieldFrom(expr value)\n"
@@ -6467,6 +6512,11 @@ init_types(void *arg)
                                          2,
         "GeneratorExp(expr elt, comprehension* generators)");
     if (!state->GeneratorExp_type) return -1;
+    state->NoneAwareAttribute_type = make_type(state, "NoneAwareAttribute",
+                                               state->expr_type,
+                                               NoneAwareAttribute_fields, 2,
+        "NoneAwareAttribute(expr value, identifier attr)");
+    if (!state->NoneAwareAttribute_type) return -1;
     state->Await_type = make_type(state, "Await", state->expr_type,
                                   Await_fields, 1,
         "Await(expr value)");
@@ -8043,6 +8093,35 @@ _PyAST_GeneratorExp(expr_ty elt, asdl_comprehension_seq * generators, int
     p->kind = GeneratorExp_kind;
     p->v.GeneratorExp.elt = elt;
     p->v.GeneratorExp.generators = generators;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_NoneAwareAttribute(expr_ty value, identifier attr, int lineno, int
+                          col_offset, int end_lineno, int end_col_offset,
+                          PyArena *arena)
+{
+    expr_ty p;
+    if (!value) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'value' is required for NoneAwareAttribute");
+        return NULL;
+    }
+    if (!attr) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'attr' is required for NoneAwareAttribute");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = NoneAwareAttribute_kind;
+    p->v.NoneAwareAttribute.value = value;
+    p->v.NoneAwareAttribute.attr = attr;
     p->lineno = lineno;
     p->col_offset = col_offset;
     p->end_lineno = end_lineno;
@@ -9769,6 +9848,21 @@ ast2obj_expr(struct ast_state *state, void* _o)
                              ast2obj_comprehension);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->generators, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case NoneAwareAttribute_kind:
+        tp = (PyTypeObject *)state->NoneAwareAttribute_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.NoneAwareAttribute.value);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->value, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_identifier(state, o->v.NoneAwareAttribute.attr);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->attr, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -14652,6 +14746,54 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, PyArena*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->NoneAwareAttribute_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty value;
+        identifier attr;
+
+        if (PyObject_GetOptionalAttr(obj, state->value, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"value\" missing from NoneAwareAttribute");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'NoneAwareAttribute' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &value, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->attr, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"attr\" missing from NoneAwareAttribute");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'NoneAwareAttribute' node")) {
+                goto failed;
+            }
+            res = obj2ast_identifier(state, tmp, &attr, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_NoneAwareAttribute(value, attr, lineno, col_offset,
+                                         end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Await_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -18141,6 +18283,10 @@ astmodule_exec(PyObject *m)
     }
     if (PyModule_AddObjectRef(m, "GeneratorExp", state->GeneratorExp_type) < 0)
         {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "NoneAwareAttribute",
+        state->NoneAwareAttribute_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Await", state->Await_type) < 0) {
