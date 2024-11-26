@@ -818,6 +818,7 @@ await_primary[expr_ty] (memo):
 
 primary[expr_ty]:
     | a=primary '.' b=NAME { _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA) }
+    | a=none_aware_attribute !'='
     | a=primary b=genexp { _PyAST_Call(a, CHECK(asdl_expr_seq*, (asdl_expr_seq*)_PyPegen_singleton_seq(p, b)), NULL, EXTRA) }
     | a=primary '(' b=[arguments] ')' {
         _PyAST_Call(a,
@@ -826,6 +827,11 @@ primary[expr_ty]:
                  EXTRA) }
     | a=primary '[' b=slices ']' { _PyAST_Subscript(a, b, Load, EXTRA) }
     | atom
+
+none_aware_attribute[expr_ty]:
+    | a=primary '?.' b=NAME {
+        CHECK_VERSION(expr_ty, 14, "None aware attribute access operator is",
+        _PyAST_NoneAwareAttribute(a, b->v.Name.id, Load, EXTRA)) }
 
 slices[expr_ty]:
     | a=slice !',' { a }
@@ -1217,6 +1223,9 @@ invalid_assignment:
             "'%s' is an illegal expression for augmented assignment",
             _PyPegen_get_expr_name(a)
         )}
+    | a=none_aware_attribute '=' {
+        RAISE_SYNTAX_ERROR_INVALID_TARGET(NONE_AWARE_TARGET, a)
+    }
 invalid_ann_assign_target[expr_ty]:
     | list
     | tuple
