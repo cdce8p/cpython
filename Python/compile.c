@@ -48,6 +48,7 @@ typedef _PyJumpTargetLabel jump_target_label;
 typedef _PyInstructionSequence instr_sequence;
 typedef struct _PyCfgBuilder cfg_builder;
 typedef _PyCompile_FBlockInfo fblockinfo;
+typedef _PyCompile_NoneAwareBlockInfo nablockinfo;
 typedef enum _PyCompile_FBlockType fblocktype;
 
 /* The following items change on entry and exit of code blocks.
@@ -69,10 +70,13 @@ struct compiler_unit {
 
     int u_nfblocks;
     int u_in_conditional_block;
+    int u_nnablocks;
 
     _PyCompile_FBlockInfo u_fblock[CO_MAXBLOCKS];
 
     _PyCompile_CodeUnitMetadata u_metadata;
+
+    _PyCompile_NoneAwareBlockInfo u_none_aware_block[CO_MAXNONEAWAREBLOCKS];
 };
 
 /* This struct captures the global state of a compilation.
@@ -886,6 +890,88 @@ _PyCompile_TopFBlock(compiler *c)
         return NULL;
     }
     return &c->u->u_fblock[c->u->u_nfblocks - 1];
+}
+
+int
+_PyCompile_PushNATarget(compiler *c, location loc, expr_ty e, _PyJumpTargetLabel target) {
+    nablockinfo *na;
+    if (c->u->u_nnablocks - 1 >= CO_MAXNONEAWAREBLOCKS) {
+        return _PyCompile_Error(c, loc, "too many nested none aware blocks");
+    }
+    // Check next expression
+    int next_expression_same_block = e->group != 1 && (
+        e->kind == Attribute_kind ||
+        e->kind == Subscript_kind ||
+        e->kind == Call_kind ||
+        e->kind == NoneAwareAttribute_kind ||
+        e->kind == NoneAwareSubscript_kind
+    );
+
+    if (c->u->u_nnablocks > 0) {
+        na = &c->u->u_none_aware_block[c->u->u_nnablocks - 1];
+    } else if (c->u->u_nnablocks < 0) {
+        Py_UNREACHABLE();
+    }
+
+    if (c->u->u_nnablocks == 0 || !na->na_same_block) {
+        na = &c->u->u_none_aware_block[c->u->u_nnablocks++];
+        na->na_context = 0;
+        na->na_count++;
+        na->na_same_block = next_expression_same_block;
+        na->na_target = target;
+        return 1;
+    }
+
+    if (na->na_context == 1 && na->na_count == 0) {
+        na->na_count++;
+        na->na_same_block = next_expression_same_block;
+        na->na_target = target;
+        return 1;
+    }
+
+    na->na_count++;
+    na->na_same_block = next_expression_same_block;
+    return 0;
+}
+
+void
+_PyCompile_PopNATarget(compiler *c) {
+    nablockinfo *na;
+    na = &c->u->u_none_aware_block[c->u->u_nnablocks - 1];
+    assert(na->na_count > 0);
+    na->na_count--;
+    if (na->na_context == 0 && na->na_count == 0) {
+        c->u->u_nnablocks--;
+    }
+}
+
+_PyJumpTargetLabel
+_PyCompile_TopNATarget(compiler *c) {
+    nablockinfo *na;
+    assert(c->u->u_nnablocks > 0);
+    na = &c->u->u_none_aware_block[c->u->u_nnablocks - 1];
+    assert(na->na_count > 0);
+    return na->na_target;
+}
+
+int
+_PyCompile_PushNABlock(compiler *c, location loc) {
+    nablockinfo *na;
+    if (c->u->u_nnablocks - 1 >= CO_MAXNONEAWAREBLOCKS) {
+        return _PyCompile_Error(c, loc, "too many nested none aware blocks");
+    }
+    na = &c->u->u_none_aware_block[c->u->u_nnablocks++];
+    na->na_context = 1;
+    return SUCCESS;
+}
+
+void
+_PyCompile_PopNABlock(compiler *c) {
+#ifdef Py_DEBUG
+    nablockinfo *na = &c->u->u_none_aware_block[c->u->u_nnablocks - 1];
+    assert(na->na_context == 1 && na->na_count == 0);
+#endif
+    c->u->u_nnablocks--;
 }
 
 bool
