@@ -632,6 +632,13 @@ astfold_expr(expr_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
     case NamedExpr_kind:
         CALL(astfold_expr, expr_ty, node_->v.NamedExpr.value);
         break;
+    case NoneAwareAttribute_kind:
+        CALL(astfold_expr, expr_ty, node_->v.NoneAwareAttribute.value);
+        break;
+    case NoneAwareSubscript_kind:
+        CALL(astfold_expr, expr_ty, node_->v.NoneAwareSubscript.value);
+        CALL(astfold_expr, expr_ty, node_->v.NoneAwareSubscript.slice);
+        break;
     case Constant_kind:
         // Already a constant, nothing further to do
         break;
