@@ -1263,7 +1263,7 @@ Control flow
                             value=Constant(value=Ellipsis))])])
 
 
-.. class:: While(test, body, orelse)
+.. class:: While(test, body, if_break, orelse)
 
    A ``while`` loop. ``test`` holds the condition, such as a :class:`Compare`
    node.
@@ -1273,6 +1273,8 @@ Control flow
         >>> print(ast.dump(ast.parse("""
         ... while x:
         ...    ...
+        ... if_break:
+        ...    ...
         ... else:
         ...    ...
         ... """), indent=4))
@@ -1281,6 +1283,9 @@ Control flow
                 While(
                     test=Name(id='x'),
                     body=[
+                        Expr(
+                            value=Constant(value=Ellipsis))],
+                    if_break=[
                         Expr(
                             value=Constant(value=Ellipsis))],
                     orelse=[
