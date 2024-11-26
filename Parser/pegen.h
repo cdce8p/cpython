@@ -202,7 +202,9 @@ typedef enum {
     DEL_TARGETS,
     FOR_TARGETS,
     SINGLE_TARGETS,
-    ATTRIBUTE_OR_SUBSCRIPT_TARGETS
+    ATTRIBUTE_OR_SUBSCRIPT_TARGETS,
+    NONE_AWARE_TARGETS,
+    PRIMARY_TARGETS
 } TARGETS_TYPE;
 
 // Error handling functions and APIs
@@ -279,7 +281,7 @@ _RAISE_SYNTAX_ERROR_INVALID_TARGET(Parser *p, TARGETS_TYPE type, void *e)
     expr_ty invalid_target = CHECK_NULL_ALLOWED(expr_ty, _PyPegen_get_invalid_target(e, type));
     if (invalid_target != NULL) {
         const char *msg;
-        if (type == STAR_TARGETS || type == FOR_TARGETS) {
+        if (type == STAR_TARGETS || type == FOR_TARGETS || type == NONE_AWARE_TARGETS) {
             msg = "cannot assign to %s";
         }
         else {

@@ -1182,6 +1182,10 @@ _PyPegen_get_expr_name(expr_ty e)
             return "conditional expression";
         case NamedExpr_kind:
             return "named expression";
+        case NoneAwareAttribute_kind:
+            return "none aware expression";
+        case NoneAwareSubscript_kind:
+            return "none aware subscript expression";
         default:
             PyErr_Format(PyExc_SystemError,
                          "unexpected expression in assignment %d (line %d)",
@@ -1255,7 +1259,33 @@ _PyPegen_get_invalid_target(expr_ty e, TARGETS_TYPE targets_type)
         if (targets_type == SINGLE_TARGETS && e->kind == Name_kind) {
             return NULL;
         }
-        return e->kind == Attribute_kind || e->kind == Subscript_kind ? NULL : e;
+        if (e->kind == Attribute_kind) {
+            return _PyPegen_get_invalid_target(e->v.Attribute.value, PRIMARY_TARGETS);
+        }
+        if (e->kind == Subscript_kind) {
+            return _PyPegen_get_invalid_target(e->v.Subscript.value, PRIMARY_TARGETS);
+        }
+        return e;
+    }
+
+    if (targets_type == PRIMARY_TARGETS) {
+        switch (e->kind) {
+            case Name_kind:
+                return NULL;
+            case Attribute_kind:
+                return _PyPegen_get_invalid_target(e->v.Attribute.value, PRIMARY_TARGETS);
+            case Subscript_kind:
+                return _PyPegen_get_invalid_target(e->v.Subscript.value, PRIMARY_TARGETS);
+            case Call_kind:
+                return _PyPegen_get_invalid_target(e->v.Call.func, PRIMARY_TARGETS);
+            case NoneAwareAttribute_kind:
+            case NoneAwareSubscript_kind:
+                // NoneAwareAttribute and NoneAwareSubscript are invalid
+                // in target expressions.
+                return e;
+            default:
+                return NULL;
+        }
     }
 
 #define VISIT_CONTAINER(CONTAINER, TYPE) do { \
@@ -1300,9 +1330,11 @@ _PyPegen_get_invalid_target(expr_ty e, TARGETS_TYPE targets_type)
             }
             return e;
         case Name_kind:
-        case Subscript_kind:
-        case Attribute_kind:
             return NULL;
+        case Subscript_kind:
+            return _PyPegen_get_invalid_target(e->v.Subscript.value, PRIMARY_TARGETS);
+        case Attribute_kind:
+            return _PyPegen_get_invalid_target(e->v.Attribute.value, PRIMARY_TARGETS);
         default:
             return e;
     }
