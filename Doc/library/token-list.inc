@@ -205,6 +205,10 @@
 
    Token value for ``"!"``.
 
+.. data:: QUESTIONDOT
+
+   Token value for ``"?."``.
+
 .. data:: OP
 
 .. data:: TYPE_IGNORE
