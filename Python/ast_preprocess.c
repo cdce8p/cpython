@@ -768,6 +768,7 @@ astfold_stmt(stmt_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
         BEFORE_LOOP_BODY(state, node_);
         CALL_SEQ(astfold_stmt, stmt, node_->v.While.body);
         AFTER_LOOP_BODY(state);
+        CALL_SEQ(astfold_stmt, stmt, node_->v.While.if_break);
         CALL_SEQ(astfold_stmt, stmt, node_->v.While.orelse);
         break;
     }

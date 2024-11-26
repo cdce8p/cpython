@@ -401,7 +401,7 @@ else_block[asdl_stmt_seq*]:
 
 while_stmt[stmt_ty]:
     | invalid_while_stmt
-    | 'while' a=named_expression ':' b=block c=[else_block] { _PyAST_While(a, b, c, EXTRA) }
+    | 'while' a=named_expression ':' b=block c=[break_block] d=[else_block] { _PyAST_While(a, b, c, d, EXTRA) }
 
 # For statement
 # -------------
