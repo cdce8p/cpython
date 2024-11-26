@@ -926,6 +926,12 @@ class Unparser(NodeVisitor):
         self.write(".")
         self.write(node.attr)
 
+    def visit_NoneAwareAttribute(self, node):
+        self.set_precedence(_Precedence.ATOM, node.value)
+        self.traverse(node.value)
+        self.write("?.")
+        self.write(node.attr)
+
     def visit_Call(self, node):
         self.set_precedence(_Precedence.ATOM, node.func)
         self.traverse(node.func)
@@ -954,6 +960,22 @@ class Unparser(NodeVisitor):
         self.set_precedence(_Precedence.ATOM, node.value)
         self.traverse(node.value)
         with self.delimit("[", "]"):
+            if is_non_empty_tuple(node.slice):
+                # parentheses can be omitted if the tuple isn't empty
+                self.items_view(self.traverse, node.slice.elts)
+            else:
+                self.traverse(node.slice)
+
+    def visit_NoneAwareSubscript(self, node):
+        def is_non_empty_tuple(slice_value):
+            return (
+                isinstance(slice_value, Tuple)
+                and slice_value.elts
+            )
+
+        self.set_precedence(_Precedence.ATOM, node.value)
+        self.traverse(node.value)
+        with self.delimit("?[", "]"):
             if is_non_empty_tuple(node.slice):
                 # parentheses can be omitted if the tuple isn't empty
                 self.items_view(self.traverse, node.slice.elts)
