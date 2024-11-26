@@ -736,6 +736,22 @@ Expressions
                 attr='colour'))
 
 
+.. class:: NoneAwareAttribute(value, attr)
+
+   None aware attribute access, e.g. ``a?.b``. ``value`` is a node, typically a
+   :class:`Name`. ``attr`` is a bare string giving the name of the attribute.
+
+   .. doctest::
+
+        >>> print(ast.dump(ast.parse('snake?.colour', mode='eval'), indent=4))
+        Expression(
+            body=NoneAwareAttribute(
+                value=Name(id='snake', ctx=Load()),
+                attr='colour')
+
+   .. versionadded:: 3.16
+
+
 .. class:: NamedExpr(target, value)
 
    A named expression. This AST node is produced by the assignment expressions
@@ -776,6 +792,28 @@ Subscripting
                             lower=Constant(value=1),
                             upper=Constant(value=2)),
                         Constant(value=3)])))
+
+
+.. class:: NoneAwareSubscript(value, slice)
+
+   A ``None``-aware subscript, such as ``l?[1]``. ``value`` is the
+   subscripted object (usually sequence or mapping). ``slice`` is an index,
+   slice or key. It can be a :class:`Tuple` and contain a :class:`Slice`.
+
+   .. doctest::
+
+        >>> print(ast.dump(ast.parse('l?[1:2, 3]', mode='eval'), indent=4))
+        Expression(
+            body=NoneAwareSubscript(
+                value=Name(id='l'),
+                slice=Tuple(
+                    elts=[
+                        Slice(
+                            lower=Constant(value=1),
+                            upper=Constant(value=2)),
+                        Constant(value=3)])))
+
+   .. versionadded:: 3.16
 
 
 .. class:: Slice(lower, upper, step)
