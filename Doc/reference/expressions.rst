@@ -2077,7 +2077,9 @@ precedence and have a left-to-right chaining feature as described in the
 | ``{expressions...}``                          | set display                         |
 +-----------------------------------------------+-------------------------------------+
 | ``x[index]``, ``x[index:index]``,             | Subscription, slicing,              |
-| ``x(arguments...)``, ``x.attribute``          | call, attribute reference           |
+| ``x(arguments...)``, ``x.attribute``,         | call, attribute reference,          |
+| ``x?[index]``, ``x?.attribute``               | ``None``-aware subscript and        |
+|                                               | attribute                           |
 +-----------------------------------------------+-------------------------------------+
 | :keyword:`await x <await>`                    | Await expression                    |
 +-----------------------------------------------+-------------------------------------+
