@@ -170,7 +170,8 @@ Py_ssize_t _PyPegen_byte_offset_to_character_offset_raw(const char*, Py_ssize_t 
 typedef enum {
     STAR_TARGETS,
     DEL_TARGETS,
-    FOR_TARGETS
+    FOR_TARGETS,
+    NONE_AWARE_TARGET
 } TARGETS_TYPE;
 
 int _Pypegen_raise_decode_error(Parser *p);
@@ -241,7 +242,7 @@ _RAISE_SYNTAX_ERROR_INVALID_TARGET(Parser *p, TARGETS_TYPE type, void *e)
     expr_ty invalid_target = CHECK_NULL_ALLOWED(expr_ty, _PyPegen_get_invalid_target(e, type));
     if (invalid_target != NULL) {
         const char *msg;
-        if (type == STAR_TARGETS || type == FOR_TARGETS) {
+        if (type == STAR_TARGETS || type == FOR_TARGETS || type == NONE_AWARE_TARGET) {
             msg = "cannot assign to %s";
         }
         else {
