@@ -40,7 +40,7 @@ invalid_kwarg:
 
 # IMPORTANT: Note that the "_without_invalid" suffix causes the rule to not call invalid rules under it
 expression_without_invalid[expr_ty]:
-    | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
+    | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA_EXPR) }
     | disjunction
     | lambdef
 invalid_legacy_expression:
@@ -114,6 +114,8 @@ invalid_assignment:
             "'%s' is an illegal expression for augmented assignment",
             _PyPegen_get_expr_name(a)
         )}
+    | a=(none_aware_attribute | none_aware_subscript) '=' {
+        RAISE_SYNTAX_ERROR_INVALID_TARGET(NONE_AWARE_TARGETS, a) }
 invalid_ann_assign_target[expr_ty]:
     | list
     | tuple
