@@ -797,6 +797,7 @@ validate_stmt(struct validator *state, stmt_ty stmt)
     case While_kind:
         ret = validate_expr(state, stmt->v.While.test, Load) &&
             validate_body(state, stmt->v.While.body, "While") &&
+            validate_stmts(state, stmt->v.While.if_break) &&
             validate_stmts(state, stmt->v.While.orelse);
         break;
     case If_kind:

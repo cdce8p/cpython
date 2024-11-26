@@ -2031,6 +2031,8 @@ symtable_visit_stmt(struct symtable *st, stmt_ty s)
     case While_kind:
         VISIT(st, expr, s->v.While.test);
         VISIT_SEQ(st, stmt, s->v.While.body);
+        if (s->v.While.if_break)
+            VISIT_SEQ(st, stmt, s->v.While.if_break);
         if (s->v.While.orelse)
             VISIT_SEQ(st, stmt, s->v.While.orelse);
         break;

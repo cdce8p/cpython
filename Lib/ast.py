@@ -1114,6 +1114,10 @@ class _Unparser(NodeVisitor):
         self.traverse(node.test)
         with self.block():
             self.traverse(node.body)
+        if node.if_break:
+            self.fill("if_break")
+            with self.block():
+                self.traverse(node.if_break)
         if node.orelse:
             self.fill("else")
             with self.block():
