@@ -279,6 +279,7 @@ struct _stmt {
         struct {
             expr_ty test;
             asdl_stmt_seq *body;
+            asdl_stmt_seq *if_break;
             asdl_stmt_seq *orelse;
         } While;
 
@@ -742,8 +743,9 @@ stmt_ty _PyAST_AsyncFor(expr_ty target, expr_ty iter, asdl_stmt_seq * body,
                         string type_comment, int lineno, int col_offset, int
                         end_lineno, int end_col_offset, PyArena *arena);
 stmt_ty _PyAST_While(expr_ty test, asdl_stmt_seq * body, asdl_stmt_seq *
-                     orelse, int lineno, int col_offset, int end_lineno, int
-                     end_col_offset, PyArena *arena);
+                     if_break, asdl_stmt_seq * orelse, int lineno, int
+                     col_offset, int end_lineno, int end_col_offset, PyArena
+                     *arena);
 stmt_ty _PyAST_If(expr_ty test, asdl_stmt_seq * body, asdl_stmt_seq * orelse,
                   int lineno, int col_offset, int end_lineno, int
                   end_col_offset, PyArena *arena);

@@ -2086,6 +2086,8 @@ symtable_visit_stmt(struct symtable *st, stmt_ty s)
         VISIT(st, expr, s->v.While.test);
         ENTER_CONDITIONAL_BLOCK(st);
         VISIT_SEQ(st, stmt, s->v.While.body);
+        if (s->v.While.if_break)
+            VISIT_SEQ(st, stmt, s->v.While.if_break);
         if (s->v.While.orelse)
             VISIT_SEQ(st, stmt, s->v.While.orelse);
         LEAVE_CONDITIONAL_BLOCK(st);

@@ -2222,10 +2222,11 @@ codegen_while(compiler *c, stmt_ty s)
     NEW_JUMP_TARGET_LABEL(c, loop);
     NEW_JUMP_TARGET_LABEL(c, end);
     NEW_JUMP_TARGET_LABEL(c, anchor);
+    NEW_JUMP_TARGET_LABEL(c, if_break);
 
     USE_LABEL(c, loop);
 
-    RETURN_IF_ERROR(_PyCompile_PushFBlock(c, LOC(s), COMPILE_FBLOCK_WHILE_LOOP, loop, end, NULL));
+    RETURN_IF_ERROR(_PyCompile_PushFBlock(c, LOC(s), COMPILE_FBLOCK_WHILE_LOOP, loop, if_break, NULL));
     RETURN_IF_ERROR(codegen_jump_if(c, LOC(s), s->v.While.test, anchor, 0));
 
     VISIT_SEQ(c, stmt, s->v.While.body);
@@ -2237,6 +2238,10 @@ codegen_while(compiler *c, stmt_ty s)
     if (s->v.While.orelse) {
         VISIT_SEQ(c, stmt, s->v.While.orelse);
     }
+    ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+    USE_LABEL(c, if_break);
+    VISIT_SEQ(c, stmt, s->v.While.if_break);
 
     USE_LABEL(c, end);
     return SUCCESS;

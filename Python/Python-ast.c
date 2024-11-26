@@ -490,6 +490,7 @@ static const char * const AsyncFor_fields[]={
 static const char * const While_fields[]={
     "test",
     "body",
+    "if_break",
     "orelse",
 };
 static const char * const If_fields[]={
@@ -1789,6 +1790,21 @@ add_ast_annotations(struct ast_state *state)
             return 0;
         }
         cond = PyDict_SetItemString(While_annotations, "body", type) == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(While_annotations);
+            return 0;
+        }
+    }
+    {
+        PyObject *type = state->stmt_type;
+        type = Py_GenericAlias((PyObject *)&PyList_Type, type);
+        cond = type != NULL;
+        if (!cond) {
+            Py_DECREF(While_annotations);
+            return 0;
+        }
+        cond = PyDict_SetItemString(While_annotations, "if_break", type) == 0;
         Py_DECREF(type);
         if (!cond) {
             Py_DECREF(While_annotations);
@@ -6284,7 +6300,7 @@ init_types(void *arg)
         "     | AnnAssign(expr target, expr annotation, expr? value, int simple)\n"
         "     | For(expr target, expr iter, stmt* body, stmt* if_break, stmt* orelse, string? type_comment)\n"
         "     | AsyncFor(expr target, expr iter, stmt* body, stmt* if_break, stmt* orelse, string? type_comment)\n"
-        "     | While(expr test, stmt* body, stmt* orelse)\n"
+        "     | While(expr test, stmt* body, stmt* if_break, stmt* orelse)\n"
         "     | If(expr test, stmt* body, stmt* orelse)\n"
         "     | With(withitem* items, stmt* body, string? type_comment)\n"
         "     | AsyncWith(withitem* items, stmt* body, string? type_comment)\n"
@@ -6378,8 +6394,8 @@ init_types(void *arg)
         -1)
         return -1;
     state->While_type = make_type(state, "While", state->stmt_type,
-                                  While_fields, 3,
-        "While(expr test, stmt* body, stmt* orelse)");
+                                  While_fields, 4,
+        "While(expr test, stmt* body, stmt* if_break, stmt* orelse)");
     if (!state->While_type) return -1;
     state->If_type = make_type(state, "If", state->stmt_type, If_fields, 3,
         "If(expr test, stmt* body, stmt* orelse)");
@@ -7485,9 +7501,9 @@ _PyAST_AsyncFor(expr_ty target, expr_ty iter, asdl_stmt_seq * body,
 }
 
 stmt_ty
-_PyAST_While(expr_ty test, asdl_stmt_seq * body, asdl_stmt_seq * orelse, int
-             lineno, int col_offset, int end_lineno, int end_col_offset,
-             PyArena *arena)
+_PyAST_While(expr_ty test, asdl_stmt_seq * body, asdl_stmt_seq * if_break,
+             asdl_stmt_seq * orelse, int lineno, int col_offset, int
+             end_lineno, int end_col_offset, PyArena *arena)
 {
     stmt_ty p;
     if (!test) {
@@ -7501,6 +7517,7 @@ _PyAST_While(expr_ty test, asdl_stmt_seq * body, asdl_stmt_seq * orelse, int
     p->kind = While_kind;
     p->v.While.test = test;
     p->v.While.body = body;
+    p->v.While.if_break = if_break;
     p->v.While.orelse = orelse;
     p->lineno = lineno;
     p->col_offset = col_offset;
@@ -9375,6 +9392,12 @@ ast2obj_stmt(struct ast_state *state, void* _o)
         value = ast2obj_list(state, (asdl_seq*)o->v.While.body, ast2obj_stmt);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->body, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_list(state, (asdl_seq*)o->v.While.if_break,
+                             ast2obj_stmt);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->if_break, value) == -1)
             goto failed;
         Py_DECREF(value);
         value = ast2obj_list(state, (asdl_seq*)o->v.While.orelse, ast2obj_stmt);
@@ -12730,6 +12753,7 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, PyArena*
     if (isinstance) {
         expr_ty test;
         asdl_stmt_seq* body;
+        asdl_stmt_seq* if_break;
         asdl_stmt_seq* orelse;
 
         if (PyObject_GetOptionalAttr(obj, state->test, &tmp) < 0) {
@@ -12787,6 +12811,44 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, PyArena*
             }
             Py_CLEAR(tmp);
         }
+        if (PyObject_GetOptionalAttr(obj, state->if_break, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            tmp = PyList_New(0);
+            if (tmp == NULL) {
+                return -1;
+            }
+        }
+        {
+            int res;
+            Py_ssize_t len;
+            Py_ssize_t i;
+            if (!PyList_Check(tmp)) {
+                PyErr_Format(PyExc_TypeError, "While field \"if_break\" must be a list, not a %.200s", _PyType_Name(Py_TYPE(tmp)));
+                goto failed;
+            }
+            len = PyList_GET_SIZE(tmp);
+            if_break = _Py_asdl_stmt_seq_new(len, arena);
+            if (if_break == NULL) goto failed;
+            for (i = 0; i < len; i++) {
+                stmt_ty val;
+                PyObject *tmp2 = Py_NewRef(PyList_GET_ITEM(tmp, i));
+                if (_Py_EnterRecursiveCall(" while traversing 'While' node")) {
+                    goto failed;
+                }
+                res = obj2ast_stmt(state, tmp2, &val, arena);
+                _Py_LeaveRecursiveCall();
+                Py_DECREF(tmp2);
+                if (res != 0) goto failed;
+                if (len != PyList_GET_SIZE(tmp)) {
+                    PyErr_SetString(PyExc_RuntimeError, "While field \"if_break\" changed size during iteration");
+                    goto failed;
+                }
+                asdl_seq_SET(if_break, i, val);
+            }
+            Py_CLEAR(tmp);
+        }
         if (PyObject_GetOptionalAttr(obj, state->orelse, &tmp) < 0) {
             return -1;
         }
@@ -12825,8 +12887,8 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, PyArena*
             }
             Py_CLEAR(tmp);
         }
-        *out = _PyAST_While(test, body, orelse, lineno, col_offset, end_lineno,
-                            end_col_offset, arena);
+        *out = _PyAST_While(test, body, if_break, orelse, lineno, col_offset,
+                            end_lineno, end_col_offset, arena);
         if (*out == NULL) goto failed;
         return 0;
     }
