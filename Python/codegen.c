@@ -209,6 +209,8 @@ static int codegen_annassign(compiler *, stmt_ty);
 static int codegen_subscript(compiler *, expr_ty);
 static int codegen_slice_two_parts(compiler *, expr_ty);
 static int codegen_slice(compiler *, expr_ty);
+static int codegen_none_aware_attribute(compiler *, expr_ty);
+static int codegen_none_aware_subscript(compiler *, expr_ty);
 
 static int codegen_body(compiler *, location, asdl_stmt_seq *, bool);
 static int codegen_with(compiler *, stmt_ty);
@@ -4196,6 +4198,8 @@ maybe_optimize_method_call(compiler *c, expr_ty e)
 
     ret = can_optimize_super_call(c, meth);
     RETURN_IF_ERROR(ret);
+    NEW_JUMP_TARGET_LABEL(c, end);
+    int use_jump_target = 0;
     if (ret) {
         RETURN_IF_ERROR(load_args_for_super(c, meth->v.Attribute.value));
         int opcode = asdl_seq_LEN(meth->v.Attribute.value->v.Call.args) ?
@@ -4204,11 +4208,14 @@ maybe_optimize_method_call(compiler *c, expr_ty e)
         loc = update_start_location_to_match_attr(c, loc, meth);
         ADDOP(c, loc, NOP);
     } else {
+        use_jump_target = _PyCompile_PushNATarget(c, loc, meth->v.Attribute.value, end);
         VISIT(c, expr, meth->v.Attribute.value);
+        _PyCompile_PopNATarget(c);
         loc = update_start_location_to_match_attr(c, loc, meth);
         ADDOP_NAME(c, loc, LOAD_METHOD, meth->v.Attribute.attr, names);
     }
 
+    _PyCompile_PushNABlock(c, loc);
     VISIT_SEQ(c, expr, e->v.Call.args);
 
     if (kwdsl) {
@@ -4221,6 +4228,11 @@ maybe_optimize_method_call(compiler *c, expr_ty e)
     else {
         loc = update_start_location_to_match_attr(c, LOC(e), meth);
         ADDOP_I(c, loc, CALL, argsl);
+    }
+    _PyCompile_PopNABlock(c);
+
+    if (use_jump_target == 1) {
+        USE_LABEL(c, end);
     }
     return 1;
 }
@@ -4257,7 +4269,12 @@ codegen_call(compiler *c, expr_ty e)
     }
     NEW_JUMP_TARGET_LABEL(c, skip_normal_call);
     RETURN_IF_ERROR(check_caller(c, e->v.Call.func));
+    NEW_JUMP_TARGET_LABEL(c, end);
+    int use_jump_target = _PyCompile_PushNATarget(c, LOC(e), e->v.Call.func, end);
     VISIT(c, expr, e->v.Call.func);
+    _PyCompile_PopNATarget(c);
+
+    _PyCompile_PushNABlock(c, LOC(e));
     RETURN_IF_ERROR(maybe_optimize_function_call(c, e, skip_normal_call));
     location loc = LOC(e->v.Call.func);
     ADDOP(c, loc, PUSH_NULL);
@@ -4265,7 +4282,11 @@ codegen_call(compiler *c, expr_ty e)
     ret = codegen_call_helper(c, loc, 0,
                               e->v.Call.args,
                               e->v.Call.keywords);
+    _PyCompile_PopNABlock(c);
     USE_LABEL(c, skip_normal_call);
+    if (use_jump_target == 1) {
+        USE_LABEL(c, end);
+    }
     return ret;
 }
 
@@ -5586,11 +5607,15 @@ codegen_visit_expr_impl(compiler *c, expr_ty e, bool result_is_unused)
             }
         }
         RETURN_IF_ERROR(_PyCompile_MaybeAddStaticAttributeToClass(c, e));
+        NEW_JUMP_TARGET_LABEL(c, end);
+        int use_jump_target = 0;
         loc = LOC(e);
         loc = update_start_location_to_match_attr(c, loc, e);
         switch (e->v.Attribute.ctx) {
         case Load:
+            use_jump_target = _PyCompile_PushNATarget(c, loc, e->v.Attribute.value, end);
             VISIT(c, expr, e->v.Attribute.value);
+            _PyCompile_PopNATarget(c);
             ADDOP_NAME(c, loc, LOAD_ATTR, e->v.Attribute.attr, names);
             break;
         case Store:
@@ -5603,7 +5628,15 @@ codegen_visit_expr_impl(compiler *c, expr_ty e, bool result_is_unused)
             ADDOP_NAME(c, loc, STORE_ATTR, e->v.Attribute.attr, names);
             break;
         }
+
+        if (use_jump_target == 1) {
+            USE_LABEL(c, end);
+        }
         break;
+    case NoneAwareAttribute_kind:
+        return codegen_none_aware_attribute(c, e);
+    case NoneAwareSubscript_kind:
+        return codegen_none_aware_subscript(c, e);
     case Subscript_kind:
         return codegen_subscript(c, e);
     case Starred_kind:
@@ -5858,7 +5891,12 @@ codegen_subscript(compiler *c, expr_ty e)
         RETURN_IF_ERROR(check_index(c, e->v.Subscript.value, e->v.Subscript.slice));
     }
 
+    NEW_JUMP_TARGET_LABEL(c, end);
+    int use_jump_target = _PyCompile_PushNATarget(c, loc, e->v.Subscript.value, end);
     VISIT(c, expr, e->v.Subscript.value);
+    _PyCompile_PopNATarget(c);
+
+    _PyCompile_PushNABlock(c, loc);
     if (should_apply_two_element_slice_optimization(e->v.Subscript.slice) &&
         ctx != Del
     ) {
@@ -5884,6 +5922,66 @@ codegen_subscript(compiler *c, expr_ty e)
                 ADDOP(c, loc, DELETE_SUBSCR);
                 break;
         }
+    }
+    _PyCompile_PopNABlock(c);
+
+    if (use_jump_target == 1) {
+        USE_LABEL(c, end);
+    }
+    return SUCCESS;
+}
+
+static int
+codegen_none_aware_attribute(compiler *c, expr_ty e)
+{
+    assert(e->kind == NoneAwareAttribute_kind);
+    NEW_JUMP_TARGET_LABEL(c, end);
+    location loc = LOC(e);
+    int use_jump_target = _PyCompile_PushNATarget(c, loc, e->v.NoneAwareAttribute.value, end);
+    jump_target_label next = _PyCompile_TopNATarget(c);
+
+    VISIT(c, expr, e->v.NoneAwareAttribute.value);
+    _PyCompile_PopNATarget(c);
+    ADDOP_I(c, loc, COPY, 1);
+    ADDOP_JUMP(c, loc, POP_JUMP_IF_NONE, next);
+    ADDOP_NAME(c, loc, LOAD_ATTR, e->v.NoneAwareAttribute.attr, names);
+
+    if (use_jump_target == 1) {
+        USE_LABEL(c, end);
+    }
+    return SUCCESS;
+}
+
+static int
+codegen_none_aware_subscript(compiler *c, expr_ty e)
+{
+    assert(e->kind == NoneAwareSubscript_kind);
+    location loc = LOC(e);
+    RETURN_IF_ERROR(check_subscripter(c, e->v.NoneAwareSubscript.value));
+    RETURN_IF_ERROR(check_index(c, e->v.NoneAwareSubscript.value, e->v.NoneAwareSubscript.slice));
+
+    NEW_JUMP_TARGET_LABEL(c, end);
+    int use_jump_target = _PyCompile_PushNATarget(c, loc, e->v.NoneAwareSubscript.value, end);
+    jump_target_label next = _PyCompile_TopNATarget(c);
+
+    VISIT(c, expr, e->v.NoneAwareSubscript.value);
+    _PyCompile_PopNATarget(c);
+    ADDOP_I(c, loc, COPY, 1);
+    ADDOP_JUMP(c, loc, POP_JUMP_IF_NONE, next);
+
+    _PyCompile_PushNABlock(c, loc);
+    if (should_apply_two_element_slice_optimization(e->v.NoneAwareSubscript.slice)) {
+        RETURN_IF_ERROR(codegen_slice_two_parts(c, e->v.NoneAwareSubscript.slice));
+        ADDOP(c, loc, BINARY_SLICE);
+    }
+    else {
+        VISIT(c, expr, e->v.Subscript.slice);
+        ADDOP_I(c, loc, BINARY_OP, NB_SUBSCR);
+    }
+    _PyCompile_PopNABlock(c);
+
+    if (use_jump_target == 1) {
+        USE_LABEL(c, end);
     }
     return SUCCESS;
 }
