@@ -2017,6 +2017,172 @@ class GrammarTests(unittest.TestCase):
 
         self.assertEqual(test2(), "")
 
+    def test_none_aware_attribute_access(self):
+        class A:
+            b = None
+            c = 1
+            d = [3, 4]
+            def func_a(self): return "Hello"
+
+        class B:
+            a = A()
+            b = None
+            c = 2
+            d = [1, 2]
+            def func_b(self): return "World"
+
+        k = None
+        l = B()
+
+        # Attribute
+        self.assertEqual(k?.a, None)
+        self.assertEqual(k?.a.c, None)
+        self.assertEqual(l?.c, 2)
+        self.assertEqual(l?.a.c, 1)
+        self.assertEqual(l.a?.c, 1)
+        self.assertEqual(l?.a?.c, 1)
+        self.assertEqual(l.b?.c, None)
+        self.assertEqual(l?.b?.c, None)
+        try:
+            self.assertEqual(k.a?.c, None)
+            self.fail("should produce Attribute error on a")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual(l?.x, None)
+            self.fail("should produce AttributeError on x")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual(l?.a.x, None)
+            self.fail("should produce AttributeError on x")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual(l.a?.x, None)
+            self.fail("should produce AttributeError on x")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual(l?.a?.x, None)
+            self.fail("should produce AttributeError on x")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual(l?.b.c, None)
+            self.fail("should produce AttributeError on c")
+        except AttributeError:
+            pass
+
+        # Subscript
+        self.assertEqual(k?.d[0], None)
+        self.assertEqual(k?.a.d[0], None)
+        self.assertEqual(l?.d[0], 1)
+        self.assertEqual(l?.a.d[0], 3)
+        self.assertEqual(l.a?.d[0], 3)
+        self.assertEqual(l?.a?.d[0], 3)
+        self.assertEqual(l.b?.b[0], None)
+        self.assertEqual(l?.b?.b[0], None)
+        try:
+            self.assertEqual(l?.b[0], None)
+            self.fail("should produce TypeError, not subscriptable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual(l?.c[0], None)
+            self.fail("should produce TypeError, not subscriptable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual(l?.a.b[0], None)
+            self.fail("should produce TypeError, not subscriptable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual(l.a?.b[0], None)
+            self.fail("should produce TypeError, not subscriptable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual(l?.a?.b[0], None)
+            self.fail("should produce TypeError, not subscriptable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual(l?.a.c[0], None)
+            self.fail("should produce TypeError, not subscriptable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual(l.a?.c[0], None)
+            self.fail("should produce TypeError, not subscriptable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual(l?.a?.c[0], None)
+            self.fail("should produce TypeError, not subscriptable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual(l?.b.c[0])
+            self.fail("should produce Attribute error on c")
+        except AttributeError:
+            pass
+
+        # Call
+        self.assertEqual(k?.func_b(), None)
+        self.assertEqual(k?.a.func_a(), None)
+        self.assertEqual(l?.func_b(), "World")
+        self.assertEqual(l?.a.func_a(), "Hello")
+        self.assertEqual(l.a?.func_a(), "Hello")
+        self.assertEqual(l?.a?.func_a(), "Hello")
+        self.assertEqual(l.b?.func_a(), None)
+        self.assertEqual(l?.b?.func_a(), None)
+        try:
+            self.assertEqual(l?.func_x(), None)
+            self.fail("should produce Attribute Error on func_x")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual(l?.a.func_x(), None)
+            self.fail("should produce Attribute Error on func_x")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual(l.a?.func_x(), None)
+            self.fail("should produce Attribute Error on func_x")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual(l?.a?.func_x(), None)
+            self.fail("should produce Attribute Error on func_x")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual(l?.b.func_x(), None)
+            self.fail("should produce Attribute Error on func_x")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual(l?.b(), None)
+            self.fail("should produce a TypeError, NoneType not callable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual(l?.a.b(), None)
+            self.fail("should produce a TypeError, NoneType not callable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual(l?.a?.b(), None)
+            self.fail("should produce a TypeError, NoneType not callable")
+        except TypeError:
+            pass
+
+        # Chain
+        self.assertEqual(k?.a.b[0].func().a.c, None)
+        self.assertEqual(l?.a.b?.func().a.b[0].c.func_x(), None)
+
 
 if __name__ == '__main__':
     unittest.main()
