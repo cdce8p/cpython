@@ -69,10 +69,13 @@ struct compiler_unit {
     int u_nfblocks;
     int u_in_inlined_comp;
     int u_in_conditional_block;
+    int u_none_aware_cnt;
 
     _PyCompile_FBlockInfo u_fblock[CO_MAXBLOCKS];
 
     _PyCompile_CodeUnitMetadata u_metadata;
+
+    _PyJumpTargetLabel u_none_aware_jump_target;
 };
 
 /* This struct captures the global state of a compilation.
@@ -785,6 +788,35 @@ _PyCompile_TopFBlock(compiler *c)
         return NULL;
     }
     return &c->u->u_fblock[c->u->u_nfblocks - 1];
+}
+
+int
+_PyCompile_PushNoneAwareJumpTarget(compiler *c, _PyJumpTargetLabel target)
+{
+    struct compiler_unit *u = c->u;
+    int ret = 0;
+    if (u->u_none_aware_cnt == 0) {
+        u->u_none_aware_jump_target = target;
+        ret = 1;
+    }
+    u->u_none_aware_cnt++;
+    return ret;
+}
+
+void
+_PyCompile_PopNoneAwareJumpTarget(compiler *c)
+{
+    struct compiler_unit *u = c->u;
+    assert(u->u_none_aware_cnt > 0);
+    u->u_none_aware_cnt--;
+}
+
+_PyJumpTargetLabel
+_PyCompile_TopNoneAwareJumpTarget(compiler *c)
+{
+    struct compiler_unit *u = c->u;
+    assert(u->u_none_aware_cnt > 0);
+    return u->u_none_aware_jump_target;
 }
 
 void
