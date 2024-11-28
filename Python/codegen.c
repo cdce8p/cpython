@@ -204,6 +204,7 @@ static int codegen_annassign(compiler *, stmt_ty);
 static int codegen_subscript(compiler *, expr_ty);
 static int codegen_slice_two_parts(compiler *, expr_ty);
 static int codegen_slice(compiler *, expr_ty);
+static int codegen_none_aware_attribute(compiler *, expr_ty);
 
 static int codegen_body(compiler *, location, asdl_stmt_seq *, bool);
 static int codegen_with(compiler *, stmt_ty);
@@ -3988,6 +3989,8 @@ maybe_optimize_method_call(compiler *c, expr_ty e)
 
     ret = can_optimize_super_call(c, meth);
     RETURN_IF_ERROR(ret);
+    NEW_JUMP_TARGET_LABEL(c, end);
+    int top_jump_target = 0;
     if (ret) {
         RETURN_IF_ERROR(load_args_for_super(c, meth->v.Attribute.value));
         int opcode = asdl_seq_LEN(meth->v.Attribute.value->v.Call.args) ?
@@ -3996,7 +3999,9 @@ maybe_optimize_method_call(compiler *c, expr_ty e)
         loc = update_start_location_to_match_attr(c, loc, meth);
         ADDOP(c, loc, NOP);
     } else {
+        top_jump_target = _PyCompile_PushNoneAwareJumpTarget(c, end);
         VISIT(c, expr, meth->v.Attribute.value);
+        _PyCompile_PopNoneAwareJumpTarget(c);
         loc = update_start_location_to_match_attr(c, loc, meth);
         ADDOP_NAME(c, loc, LOAD_METHOD, meth->v.Attribute.attr, names);
     }
@@ -4013,6 +4018,10 @@ maybe_optimize_method_call(compiler *c, expr_ty e)
     else {
         loc = update_start_location_to_match_attr(c, LOC(e), meth);
         ADDOP_I(c, loc, CALL, argsl);
+    }
+
+    if (top_jump_target == 1) {
+        USE_LABEL(c, end);
     }
     return 1;
 }
@@ -4049,8 +4058,11 @@ codegen_call(compiler *c, expr_ty e)
     }
     NEW_JUMP_TARGET_LABEL(c, skip_normal_call);
     RETURN_IF_ERROR(check_caller(c, e->v.Call.func));
+    NEW_JUMP_TARGET_LABEL(c, end);
+    int top_jump_target = _PyCompile_PushNoneAwareJumpTarget(c, end);
     VISIT(c, expr, e->v.Call.func);
     RETURN_IF_ERROR(maybe_optimize_function_call(c, e, skip_normal_call));
+    _PyCompile_PopNoneAwareJumpTarget(c);
     location loc = LOC(e->v.Call.func);
     ADDOP(c, loc, PUSH_NULL);
     loc = LOC(e);
@@ -4058,6 +4070,9 @@ codegen_call(compiler *c, expr_ty e)
                               e->v.Call.args,
                               e->v.Call.keywords);
     USE_LABEL(c, skip_normal_call);
+    if (top_jump_target == 1) {
+        USE_LABEL(c, end);
+    }
     return ret;
 }
 
@@ -5266,7 +5281,10 @@ codegen_visit_expr(compiler *c, expr_ty e)
             }
         }
         RETURN_IF_ERROR(_PyCompile_MaybeAddStaticAttributeToClass(c, e));
+        NEW_JUMP_TARGET_LABEL(c, end);
+        int top_jump_target = _PyCompile_PushNoneAwareJumpTarget(c, end);
         VISIT(c, expr, e->v.Attribute.value);
+        _PyCompile_PopNoneAwareJumpTarget(c);
         loc = LOC(e);
         loc = update_start_location_to_match_attr(c, loc, e);
         switch (e->v.Attribute.ctx) {
@@ -5280,7 +5298,13 @@ codegen_visit_expr(compiler *c, expr_ty e)
             ADDOP_NAME(c, loc, DELETE_ATTR, e->v.Attribute.attr, names);
             break;
         }
+
+        if (top_jump_target == 1) {
+            USE_LABEL(c, end);
+        }
         break;
+    case NoneAwareAttribute_kind:
+        return codegen_none_aware_attribute(c, e);
     case Subscript_kind:
         return codegen_subscript(c, e);
     case Starred_kind:
@@ -5540,7 +5564,11 @@ codegen_subscript(compiler *c, expr_ty e)
         RETURN_IF_ERROR(check_index(c, e->v.Subscript.value, e->v.Subscript.slice));
     }
 
+    NEW_JUMP_TARGET_LABEL(c, end);
+    int top_jump_target = _PyCompile_PushNoneAwareJumpTarget(c, end);
     VISIT(c, expr, e->v.Subscript.value);
+    _PyCompile_PopNoneAwareJumpTarget(c);
+
     if (should_apply_two_element_slice_optimization(e->v.Subscript.slice) &&
         ctx != Del
     ) {
@@ -5566,6 +5594,31 @@ codegen_subscript(compiler *c, expr_ty e)
                 ADDOP(c, loc, DELETE_SUBSCR);
                 break;
         }
+    }
+
+    if (top_jump_target == 1) {
+        USE_LABEL(c, end);
+    }
+    return SUCCESS;
+}
+
+static int
+codegen_none_aware_attribute(compiler *c, expr_ty e)
+{
+    assert(e->kind == NoneAwareAttribute_kind);
+    NEW_JUMP_TARGET_LABEL(c, end);
+    location loc = LOC(e);
+    _PyCompile_PushNoneAwareJumpTarget(c, end);
+    jump_target_label next = _PyCompile_TopNoneAwareJumpTarget(c);
+
+    VISIT(c, expr, e->v.NoneAwareAttribute.value);
+    _PyCompile_PopNoneAwareJumpTarget(c);
+    ADDOP_I(c, loc, COPY, 1);
+    ADDOP_JUMP(c, loc, POP_JUMP_IF_NONE, next);
+    ADDOP_NAME(c, loc, LOAD_ATTR, e->v.NoneAwareAttribute.attr, names);
+
+    if (SAME_JUMP_TARGET_LABEL(end, next)) {
+        USE_LABEL(c, end);
     }
     return SUCCESS;
 }
