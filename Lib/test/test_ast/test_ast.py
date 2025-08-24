@@ -942,6 +942,11 @@ class AST_Tests(unittest.TestCase):
         with self.assertRaises(SyntaxError):
             ast.parse(code, feature_version=(3, 13))
 
+    def test_match_expression_feature_version(self):
+        ast.parse("(x match int())", feature_version=(3, 16))
+        with self.assertRaises(SyntaxError):
+            ast.parse("(x match int())", feature_version=(3, 15))
+
     def test_conditional_context_managers_parse_with_low_feature_version(self):
         # regression test for gh-115881
         ast.parse('with (x() if y else z()): ...', feature_version=(3, 8))
@@ -1037,6 +1042,7 @@ class AST_Tests(unittest.TestCase):
             NAMED_EXPR = enum.auto()      # <target> := <expr1>
             TUPLE = enum.auto()           # <expr1>, <expr2>
             YIELD = enum.auto()           # 'yield', 'yield from'
+            MATCH_EXPR = enum.auto()      # <subject> match <pattern>
             TEST = enum.auto()            # 'if'-'else', 'lambda'
             OR = enum.auto()              # 'or'
             AND = enum.auto()             # 'and'
