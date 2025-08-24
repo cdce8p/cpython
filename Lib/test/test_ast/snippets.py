@@ -376,6 +376,8 @@ eval_tests = [
   "t'{a!r}'",
   "t'{a!r:.2f}'",
   "t'foo({a})'",
+  # Match expression
+  "(x match int())",
 ]
 
 
@@ -618,5 +620,6 @@ eval_results = [
 ('Expression', ('TemplateStr', (1, 0, 1, 8), [('Interpolation', (1, 2, 1, 7), ('Name', (1, 3, 1, 4), 'a', ('Load',)), 'a', 114, None)])),
 ('Expression', ('TemplateStr', (1, 0, 1, 12), [('Interpolation', (1, 2, 1, 11), ('Name', (1, 3, 1, 4), 'a', ('Load',)), 'a', 114, ('JoinedStr', (1, 6, 1, 10), [('Constant', (1, 7, 1, 10), '.2f', None)]))])),
 ('Expression', ('TemplateStr', (1, 0, 1, 11), [('Constant', (1, 2, 1, 6), 'foo(', None), ('Interpolation', (1, 6, 1, 9), ('Name', (1, 7, 1, 8), 'a', ('Load',)), 'a', -1, None), ('Constant', (1, 9, 1, 10), ')', None)])),
+('Expression', ('MatchExp', (1, 1, 1, 14), ('Name', (1, 1, 1, 2), 'x', ('Load',)), ('MatchClass', (1, 9, 1, 14), ('Name', (1, 9, 1, 12), 'int', ('Load',)), [], [], []))),
 ]
 main()

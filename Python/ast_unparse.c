@@ -18,6 +18,8 @@ expr_as_unicode(expr_ty e, int level);
 static int
 append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level);
 static int
+append_ast_pattern(PyUnicodeWriter *writer, pattern_ty p, int level);
+static int
 append_templatestr(PyUnicodeWriter *writer, expr_ty e);
 static int
 append_joinedstr(PyUnicodeWriter *writer, expr_ty e, bool is_format_spec);
@@ -77,6 +79,12 @@ append_charp(PyUnicodeWriter *writer, const char *charp)
         } \
     } while (0)
 
+#define APPEND_PATTERN(pattern, pr)  do { \
+        if (-1 == append_ast_pattern(writer, (pattern), (pr))) { \
+            return -1; \
+        } \
+    } while (0)
+
 #define APPEND(type, value)  do { \
         if (-1 == append_ast_ ## type(writer, (value))) { \
             return -1; \
@@ -117,6 +125,7 @@ append_repr(PyUnicodeWriter *writer, PyObject *obj)
 
 enum {
     PR_TUPLE,
+    PR_MATCH_EXPR,      /* <subject> match <pattern> */
     PR_TEST,            /* 'if'-'else', 'lambda' */
     PR_OR,              /* 'or' */
     PR_AND,             /* 'and' */
@@ -320,6 +329,17 @@ append_ast_ifexp(PyUnicodeWriter *writer, expr_ty e, int level)
     APPEND_STR(" else ");
     APPEND_EXPR(e->v.IfExp.orelse, PR_TEST);
     APPEND_STR_IF(level > PR_TEST, ")");
+    return 0;
+}
+
+static int
+append_ast_matchexp(PyUnicodeWriter *writer, expr_ty e, int level)
+{
+    APPEND_STR_IF(level > PR_MATCH_EXPR, "(");
+    APPEND_EXPR(e->v.MatchExp.subject, PR_MATCH_EXPR + 1);
+    APPEND_STR(" match ");
+    APPEND_PATTERN(e->v.MatchExp.pattern, PR_MATCH_EXPR + 1);
+    APPEND_STR_IF(level > PR_MATCH_EXPR, ")");
     return 0;
 }
 
@@ -950,6 +970,8 @@ append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
         return append_ast_lambda(writer, e, level);
     case IfExp_kind:
         return append_ast_ifexp(writer, e, level);
+    case MatchExp_kind:
+        return append_ast_matchexp(writer, e, level);
     case Dict_kind:
         return append_ast_dict(writer, e);
     case Set_kind:
@@ -1010,6 +1032,155 @@ append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
     }
     PyErr_SetString(PyExc_SystemError,
                     "unknown expression kind");
+    return -1;
+}
+
+static int
+append_ast_match_value(PyUnicodeWriter *writer, pattern_ty p, int level) {
+    APPEND_EXPR(p->v.MatchValue.value, level);
+    return 0;
+}
+
+static int
+append_ast_match_sequence(PyUnicodeWriter *writer, pattern_ty p, int level) {
+    APPEND_CHAR('[');
+    Py_ssize_t pattern_count = asdl_seq_LEN(p->v.MatchSequence.patterns);
+    for (Py_ssize_t i = 0; i < pattern_count; ++i) {
+        APPEND_PATTERN((pattern_ty)asdl_seq_GET(p->v.MatchSequence.patterns, i), level);
+        if (i != pattern_count - 1) {
+            APPEND_STR(", ");
+        }
+    }
+    APPEND_CHAR_FINISH(']');
+    return 0;
+}
+
+static int
+append_ast_match_star(PyUnicodeWriter *writer, pattern_ty p, int level) {
+    APPEND_CHAR('*');
+    if (p->v.MatchStar.name != NULL) {
+        return PyUnicodeWriter_WriteStr(writer, p->v.MatchStar.name);
+    }
+
+    APPEND_CHAR('_');
+    return 0;
+}
+
+static int
+append_ast_match_mapping(PyUnicodeWriter *writer, pattern_ty p, int level) {
+    APPEND_CHAR('{');
+    Py_ssize_t key_count = asdl_seq_LEN(p->v.MatchMapping.keys);
+    for (Py_ssize_t i = 0; i < key_count; ++i) {
+        APPEND_EXPR((expr_ty)asdl_seq_GET(p->v.MatchMapping.keys, i), level);
+        APPEND_STR(": ");
+        APPEND_PATTERN((pattern_ty)asdl_seq_GET(p->v.MatchMapping.patterns, i), level);
+        if (i != key_count - 1) {
+            APPEND_STR(", ");
+        }
+    }
+    if (p->v.MatchMapping.rest != NULL) {
+        if (key_count > 0) {
+            APPEND_STR(", ");
+        }
+        APPEND_STR("**");
+        if (PyUnicodeWriter_WriteStr(writer, p->v.MatchMapping.rest) < 0) {
+            return -1;
+        }
+    }
+    APPEND_CHAR_FINISH('}');
+    return 0;
+}
+
+static int
+append_ast_match_class(PyUnicodeWriter *writer, pattern_ty p, int level) {
+    APPEND_EXPR(p->v.MatchClass.cls, level);
+    APPEND_CHAR('(');
+    int pattern_count = asdl_seq_LEN(p->v.MatchClass.patterns);
+    for (Py_ssize_t i = 0; i < pattern_count; ++i) {
+        APPEND_PATTERN((pattern_ty)asdl_seq_GET(p->v.MatchClass.patterns, i), level);
+        if (i != pattern_count - 1) {
+            APPEND_STR(", ");
+        }
+    }
+    Py_ssize_t attrs_count = asdl_seq_LEN(p->v.MatchClass.kwd_attrs);
+    if (attrs_count > 0) {
+        if (pattern_count > 0) {
+            APPEND_STR(", ");
+        }
+        for (Py_ssize_t j = 0; j < attrs_count; ++j) {
+            identifier kw_attr = asdl_seq_GET(p->v.MatchClass.kwd_attrs, j);
+            pattern_ty kw_pattern = asdl_seq_GET(p->v.MatchClass.kwd_patterns, j);
+            if (PyUnicodeWriter_WriteStr(writer, kw_attr) < 0) {
+                return -1;
+            }
+            APPEND_CHAR('=');
+            APPEND_PATTERN(kw_pattern, level);
+            if (j != attrs_count - 1) {
+                APPEND_STR(", ");
+            }
+        }
+    }
+    APPEND_CHAR_FINISH(')');
+    return 0;
+}
+
+static int
+append_ast_match_as(PyUnicodeWriter *writer, pattern_ty p, int level) {
+    if (p->v.MatchAs.name == NULL) {
+        APPEND_CHAR('_');
+        return 0;
+    }
+    if (p->v.MatchAs.pattern == NULL) {
+        return PyUnicodeWriter_WriteStr(writer, p->v.MatchAs.name);
+    }
+    APPEND_STR_IF(level > PR_TEST, "(");
+    APPEND_PATTERN(p->v.MatchAs.pattern, PR_BOR + 1);
+    APPEND_STR(" as ");
+    if (PyUnicodeWriter_WriteStr(writer, p->v.MatchAs.name) < 0) {
+        return -1;
+    }
+    APPEND_STR_IF(level > PR_TEST, ")");
+    return 0;
+}
+
+static int
+append_ast_match_or(PyUnicodeWriter *writer, pattern_ty p, int level) {
+    APPEND_STR_IF(level > PR_BOR, "(");
+    int pattern_count = asdl_seq_LEN(p->v.MatchOr.patterns);
+    for (Py_ssize_t i = 0; i < pattern_count; ++i) {
+        APPEND_PATTERN((pattern_ty)asdl_seq_GET(p->v.MatchOr.patterns, i), PR_BOR + 1);
+        if (i != pattern_count - 1) {
+            APPEND_STR(" | ");
+        }
+    }
+    APPEND_STR_IF(level > PR_BOR, ")");
+    return 0;
+}
+
+static int
+append_ast_pattern(PyUnicodeWriter *writer, pattern_ty p, int level)
+{
+    switch (p->kind) {
+    case MatchValue_kind:
+        return append_ast_match_value(writer, p, level);
+    case MatchSingleton_kind:
+        return append_ast_constant(writer, p->v.MatchSingleton.value);
+    case MatchSequence_kind:
+        return append_ast_match_sequence(writer, p, level);
+    case MatchStar_kind:
+        return append_ast_match_star(writer, p, level);
+    case MatchMapping_kind:
+        return append_ast_match_mapping(writer, p, level);
+    case MatchClass_kind:
+        return append_ast_match_class(writer, p, PR_ATOM);
+    case MatchAs_kind:
+        return append_ast_match_as(writer, p, level);
+    case MatchOr_kind:
+        return append_ast_match_or(writer, p, level);
+    // No default so compiler emits a warning for unhandled cases
+    }
+    PyErr_SetString(PyExc_SystemError,
+                    "unknown pattern kind");
     return -1;
 }
 

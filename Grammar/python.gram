@@ -714,12 +714,18 @@ expressions[expr_ty]:
     | expression
 
 expression[expr_ty] (memo):
+    | invalid_match_expression
     | invalid_if_expression
     | invalid_expression
     | invalid_legacy_expression
+    | match_expression
     | if_expression
     | disjunction
     | lambdef
+
+match_expression[expr_ty]:
+    | subject=disjunction "match" ~ pattern=patterns {
+        CHECK_VERSION(expr_ty, 16, "Match expr is", _PyAST_MatchExp(subject, pattern, EXTRA))}
 
 if_expression[expr_ty]:
     | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
@@ -1278,6 +1284,11 @@ invalid_expression:
         RAISE_SYNTAX_ERROR_KNOWN_RANGE(a, b, "f-string: lambda expressions are not allowed without parentheses") }
    | a='lambda' [lambda_params] b=':' &TSTRING_MIDDLE  {
         RAISE_SYNTAX_ERROR_KNOWN_RANGE(a, b, "t-string: lambda expressions are not allowed without parentheses") }
+
+invalid_match_expression:
+    | disjunction "match" ~ a=disjunction {
+        RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, "%s is not a valid pattern. "
+        "Maybe you meant to wrap the MatchExp with (...)?", _PyPegen_get_expr_name(a)) }
 
 invalid_if_expression:
    | disjunction 'if' b=disjunction 'else' a='*' {

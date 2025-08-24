@@ -298,6 +298,19 @@ class UnparseTestCase(ASTTestCase):
             '''t"{'foo'!r}"''',
         )
 
+    def test_match_expression(self):
+        self.check_ast_roundtrip("(x match None)")
+        self.check_ast_roundtrip("(x match (1 | 2) as var)")
+        self.check_ast_roundtrip("(x match int(1))")
+        self.check_ast_roundtrip("(x match int(a=2))")
+        self.check_ast_roundtrip("(x match int(1, 2, a=2, b=3))")
+        self.check_ast_roundtrip("(x match [1])")
+        self.check_ast_roundtrip("(x match [*var])")
+        self.check_ast_roundtrip("(x match [1, *_, var])")
+        self.check_ast_roundtrip("(x match {1: True, 2: True | None, **rest})")
+        self.check_ast_roundtrip("(x match {1: True as x})")
+        self.check_ast_roundtrip("(x match {**rest})")
+
     def test_strings(self):
         self.check_ast_roundtrip("u'foo'")
         self.check_ast_roundtrip("r'foo'")
