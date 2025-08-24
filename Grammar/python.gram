@@ -717,12 +717,18 @@ expressions[expr_ty]:
     | expression
 
 expression[expr_ty] (memo):
+    | invalid_match_expression
     | invalid_if_expression
     | invalid_expression
     | invalid_legacy_expression
+    | match_expression
     | if_expression
     | disjunction
     | lambdef
+
+match_expression[expr_ty]:
+    | subject=disjunction "match" ~ pattern=patterns {
+        CHECK_VERSION(expr_ty, 16, "Match expr is", _PyAST_MatchExp(subject, pattern, EXTRA))}
 
 if_expression[expr_ty]:
     | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }

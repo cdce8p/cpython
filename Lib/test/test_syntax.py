@@ -2469,6 +2469,20 @@ Invalid pattern matching constructs:
     Traceback (most recent call last):
     SyntaxError: double star pattern must be the last (right-most) subpattern in the mapping pattern
 
+Invalid match expressions:
+
+    >>> var match a and b
+    Traceback (most recent call last):
+    SyntaxError: expression is not a valid pattern. Maybe you meant to wrap the match expressions with (...)?
+
+    >>> var match a or b
+    Traceback (most recent call last):
+    SyntaxError: expression is not a valid pattern. Maybe you meant to wrap the match expressions with (...)?
+
+    >>> var match a & b
+    Traceback (most recent call last):
+    SyntaxError: expression is not a valid pattern. Maybe you meant to wrap the match expressions with (...)?
+
 Uses of the star operator which should fail:
 
 A[:*b]
