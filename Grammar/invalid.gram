@@ -78,6 +78,11 @@ invalid_expression:
    | a='lambda' [lambda_params] b=':' &TSTRING_MIDDLE  {
         RAISE_SYNTAX_ERROR_KNOWN_RANGE(a, b, "t-string: lambda expressions are not allowed without parentheses") }
 
+invalid_match_expression:
+    | disjunction "match" ~ a=disjunction {
+        RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, "%s is not a valid pattern. "
+        "Maybe you meant to wrap the MatchExp with (...)?", _PyPegen_get_expr_name(a)) }
+
 invalid_if_expression:
    | disjunction 'if' b=disjunction 'else' a='*' {
         RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, "cannot unpack only part of a conditional expression") }
