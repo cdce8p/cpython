@@ -752,8 +752,14 @@ assignment_expression[expr_ty]:
         CHECK_VERSION(expr_ty, 8, "Assignment expressions are",
         _PyAST_NamedExpr(CHECK(expr_ty, _PyPegen_set_expr_context(p, a, Store)), b, EXTRA)) }
 
+match_expression[expr_ty]:
+    | invalid_match_expression
+    | subject=subject_expr "match" ~ pattern=patterns {
+        CHECK_VERSION(expr_ty, 15, "Match expr is", _PyAST_MatchExp(subject, pattern, EXTRA))}
+
 named_expression[expr_ty]:
     | assignment_expression
+    | match_expression
     | invalid_named_expression
     | expression !':='
 
@@ -1289,6 +1295,11 @@ invalid_named_expression(memo):
     | !(list|tuple|genexp|'True'|'None'|'False') a=bitwise_or b='=' bitwise_or !('='|':=') {
         RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, "cannot assign to %s here. Maybe you meant '==' instead of '='?",
                                           _PyPegen_get_expr_name(a)) }
+
+invalid_match_expression:
+    | subject_expr "match" a=disjunction {
+        RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, "%s is not a valid pattern. "
+        "Maybe you meant to wrap the MatchExp with (...)?", _PyPegen_get_expr_name(a)) }
 
 invalid_assignment:
     | a=invalid_ann_assign_target ':' expression {

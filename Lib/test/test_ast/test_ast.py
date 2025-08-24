@@ -961,6 +961,7 @@ class AST_Tests(unittest.TestCase):
     def test_precedence_enum(self):
         class _Precedence(enum.IntEnum):
             """Precedence table that originated from python grammar."""
+            MATCH_EXPR = enum.auto()      # <subject> match <pattern>
             NAMED_EXPR = enum.auto()      # <target> := <expr1>
             TUPLE = enum.auto()           # <expr1>, <expr2>
             YIELD = enum.auto()           # 'yield', 'yield from'

@@ -115,6 +115,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->MatMult_type);
     Py_CLEAR(state->MatchAs_type);
     Py_CLEAR(state->MatchClass_type);
+    Py_CLEAR(state->MatchExp_type);
     Py_CLEAR(state->MatchMapping_type);
     Py_CLEAR(state->MatchOr_type);
     Py_CLEAR(state->MatchSequence_type);
@@ -578,6 +579,10 @@ static const char * const IfExp_fields[]={
     "test",
     "body",
     "orelse",
+};
+static const char * const MatchExp_fields[]={
+    "subject",
+    "pattern",
 };
 static const char * const Dict_fields[]={
     "keys",
@@ -2728,6 +2733,41 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(IfExp_annotations);
+    PyObject *MatchExp_annotations = PyDict_New();
+    if (!MatchExp_annotations) return 0;
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(MatchExp_annotations, "subject", type) == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(MatchExp_annotations);
+            return 0;
+        }
+    }
+    {
+        PyObject *type = state->pattern_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(MatchExp_annotations, "pattern", type) == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(MatchExp_annotations);
+            return 0;
+        }
+    }
+    cond = PyObject_SetAttrString(state->MatchExp_type, "_field_types",
+                                  MatchExp_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(MatchExp_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->MatchExp_type, "__annotations__",
+                                  MatchExp_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(MatchExp_annotations);
+        return 0;
+    }
+    Py_DECREF(MatchExp_annotations);
     PyObject *Dict_annotations = PyDict_New();
     if (!Dict_annotations) return 0;
     {
@@ -6432,6 +6472,7 @@ init_types(void *arg)
         "     | UnaryOp(unaryop op, expr operand)\n"
         "     | Lambda(arguments args, expr body)\n"
         "     | IfExp(expr test, expr body, expr orelse)\n"
+        "     | MatchExp(expr subject, pattern pattern)\n"
         "     | Dict(expr?* keys, expr* values)\n"
         "     | Set(expr* elts)\n"
         "     | ListComp(expr elt, comprehension* generators)\n"
@@ -6487,6 +6528,10 @@ init_types(void *arg)
                                   IfExp_fields, 3,
         "IfExp(expr test, expr body, expr orelse)");
     if (!state->IfExp_type) return -1;
+    state->MatchExp_type = make_type(state, "MatchExp", state->expr_type,
+                                     MatchExp_fields, 2,
+        "MatchExp(expr subject, pattern pattern)");
+    if (!state->MatchExp_type) return -1;
     state->Dict_type = make_type(state, "Dict", state->expr_type, Dict_fields,
                                  2,
         "Dict(expr?* keys, expr* values)");
@@ -7954,6 +7999,34 @@ _PyAST_IfExp(expr_ty test, expr_ty body, expr_ty orelse, int lineno, int
     p->v.IfExp.test = test;
     p->v.IfExp.body = body;
     p->v.IfExp.orelse = orelse;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_MatchExp(expr_ty subject, pattern_ty pattern, int lineno, int
+                col_offset, int end_lineno, int end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!subject) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'subject' is required for MatchExp");
+        return NULL;
+    }
+    if (!pattern) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'pattern' is required for MatchExp");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = MatchExp_kind;
+    p->v.MatchExp.subject = subject;
+    p->v.MatchExp.pattern = pattern;
     p->lineno = lineno;
     p->col_offset = col_offset;
     p->end_lineno = end_lineno;
@@ -9728,6 +9801,21 @@ ast2obj_expr(struct ast_state *state, void* _o)
         value = ast2obj_expr(state, o->v.IfExp.orelse);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->orelse, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case MatchExp_kind:
+        tp = (PyTypeObject *)state->MatchExp_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.MatchExp.subject);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->subject, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_pattern(state, o->v.MatchExp.pattern);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->pattern, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -14306,6 +14394,54 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, PyArena*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->MatchExp_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty subject;
+        pattern_ty pattern;
+
+        if (PyObject_GetOptionalAttr(obj, state->subject, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"subject\" missing from MatchExp");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'MatchExp' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &subject, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->pattern, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"pattern\" missing from MatchExp");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'MatchExp' node")) {
+                goto failed;
+            }
+            res = obj2ast_pattern(state, tmp, &pattern, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_MatchExp(subject, pattern, lineno, col_offset,
+                               end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Dict_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -18211,6 +18347,9 @@ astmodule_exec(PyObject *m)
         return -1;
     }
     if (PyModule_AddObjectRef(m, "IfExp", state->IfExp_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "MatchExp", state->MatchExp_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Dict", state->Dict_type) < 0) {

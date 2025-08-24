@@ -1134,6 +1134,8 @@ _PyPegen_get_expr_name(expr_ty e)
             return "comparison";
         case IfExp_kind:
             return "conditional expression";
+        case MatchExp_kind:
+            return "match expression";
         case NamedExpr_kind:
             return "named expression";
         default:
