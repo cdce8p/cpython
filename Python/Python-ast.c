@@ -116,6 +116,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, MatMult_type),
         offsetof(struct ast_state, MatchAs_type),
         offsetof(struct ast_state, MatchClass_type),
+        offsetof(struct ast_state, MatchExp_type),
         offsetof(struct ast_state, MatchMapping_type),
         offsetof(struct ast_state, MatchOr_type),
         offsetof(struct ast_state, MatchSequence_type),
@@ -586,6 +587,10 @@ static const char * const IfExp_fields[]={
     "body",
     "orelse",
 };
+static const char * const MatchExp_fields[]={
+    "subject",
+    "pattern",
+};
 static const char * const Dict_fields[]={
     "keys",
     "values",
@@ -1045,6 +1050,10 @@ add_ast_annotations(struct ast_state *state)
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, orelse),
          offsetof(struct ast_state, expr_type), 0},
+        {offsetof(struct ast_state, subject),
+         offsetof(struct ast_state, expr_type), 0},
+        {offsetof(struct ast_state, pattern),
+         offsetof(struct ast_state, pattern_type), 0},
         {offsetof(struct ast_state, keys),
          offsetof(struct ast_state, expr_type), FIELD_SEQUENCE},
         {offsetof(struct ast_state, values),
@@ -1285,81 +1294,82 @@ add_ast_annotations(struct ast_state *state)
         {offsetof(struct ast_state, UnaryOp_type), 93, 2},
         {offsetof(struct ast_state, Lambda_type), 95, 2},
         {offsetof(struct ast_state, IfExp_type), 97, 3},
-        {offsetof(struct ast_state, Dict_type), 100, 2},
-        {offsetof(struct ast_state, Set_type), 102, 1},
-        {offsetof(struct ast_state, ListComp_type), 103, 2},
-        {offsetof(struct ast_state, SetComp_type), 105, 2},
-        {offsetof(struct ast_state, DictComp_type), 107, 3},
-        {offsetof(struct ast_state, GeneratorExp_type), 110, 2},
-        {offsetof(struct ast_state, Await_type), 112, 1},
-        {offsetof(struct ast_state, Yield_type), 113, 1},
-        {offsetof(struct ast_state, YieldFrom_type), 114, 1},
-        {offsetof(struct ast_state, Compare_type), 115, 3},
-        {offsetof(struct ast_state, Call_type), 118, 3},
-        {offsetof(struct ast_state, FormattedValue_type), 121, 3},
-        {offsetof(struct ast_state, Interpolation_type), 124, 4},
-        {offsetof(struct ast_state, JoinedStr_type), 128, 1},
-        {offsetof(struct ast_state, TemplateStr_type), 129, 1},
-        {offsetof(struct ast_state, Constant_type), 130, 2},
-        {offsetof(struct ast_state, Attribute_type), 132, 3},
-        {offsetof(struct ast_state, Subscript_type), 135, 3},
-        {offsetof(struct ast_state, Starred_type), 138, 2},
-        {offsetof(struct ast_state, Name_type), 140, 2},
-        {offsetof(struct ast_state, List_type), 142, 2},
-        {offsetof(struct ast_state, Tuple_type), 144, 2},
-        {offsetof(struct ast_state, Slice_type), 146, 3},
-        {offsetof(struct ast_state, Load_type), 149, 0},
-        {offsetof(struct ast_state, Store_type), 149, 0},
-        {offsetof(struct ast_state, Del_type), 149, 0},
-        {offsetof(struct ast_state, And_type), 149, 0},
-        {offsetof(struct ast_state, Or_type), 149, 0},
-        {offsetof(struct ast_state, Add_type), 149, 0},
-        {offsetof(struct ast_state, Sub_type), 149, 0},
-        {offsetof(struct ast_state, Mult_type), 149, 0},
-        {offsetof(struct ast_state, MatMult_type), 149, 0},
-        {offsetof(struct ast_state, Div_type), 149, 0},
-        {offsetof(struct ast_state, Mod_type), 149, 0},
-        {offsetof(struct ast_state, Pow_type), 149, 0},
-        {offsetof(struct ast_state, LShift_type), 149, 0},
-        {offsetof(struct ast_state, RShift_type), 149, 0},
-        {offsetof(struct ast_state, BitOr_type), 149, 0},
-        {offsetof(struct ast_state, BitXor_type), 149, 0},
-        {offsetof(struct ast_state, BitAnd_type), 149, 0},
-        {offsetof(struct ast_state, FloorDiv_type), 149, 0},
-        {offsetof(struct ast_state, Invert_type), 149, 0},
-        {offsetof(struct ast_state, Not_type), 149, 0},
-        {offsetof(struct ast_state, UAdd_type), 149, 0},
-        {offsetof(struct ast_state, USub_type), 149, 0},
-        {offsetof(struct ast_state, Eq_type), 149, 0},
-        {offsetof(struct ast_state, NotEq_type), 149, 0},
-        {offsetof(struct ast_state, Lt_type), 149, 0},
-        {offsetof(struct ast_state, LtE_type), 149, 0},
-        {offsetof(struct ast_state, Gt_type), 149, 0},
-        {offsetof(struct ast_state, GtE_type), 149, 0},
-        {offsetof(struct ast_state, Is_type), 149, 0},
-        {offsetof(struct ast_state, IsNot_type), 149, 0},
-        {offsetof(struct ast_state, In_type), 149, 0},
-        {offsetof(struct ast_state, NotIn_type), 149, 0},
-        {offsetof(struct ast_state, comprehension_type), 149, 4},
-        {offsetof(struct ast_state, ExceptHandler_type), 153, 3},
-        {offsetof(struct ast_state, arguments_type), 156, 7},
-        {offsetof(struct ast_state, arg_type), 163, 3},
-        {offsetof(struct ast_state, keyword_type), 166, 2},
-        {offsetof(struct ast_state, alias_type), 168, 2},
-        {offsetof(struct ast_state, withitem_type), 170, 2},
-        {offsetof(struct ast_state, match_case_type), 172, 3},
-        {offsetof(struct ast_state, MatchValue_type), 175, 1},
-        {offsetof(struct ast_state, MatchSingleton_type), 176, 1},
-        {offsetof(struct ast_state, MatchSequence_type), 177, 1},
-        {offsetof(struct ast_state, MatchMapping_type), 178, 3},
-        {offsetof(struct ast_state, MatchClass_type), 181, 4},
-        {offsetof(struct ast_state, MatchStar_type), 185, 1},
-        {offsetof(struct ast_state, MatchAs_type), 186, 2},
-        {offsetof(struct ast_state, MatchOr_type), 188, 1},
-        {offsetof(struct ast_state, TypeIgnore_type), 189, 2},
-        {offsetof(struct ast_state, TypeVar_type), 191, 3},
-        {offsetof(struct ast_state, ParamSpec_type), 194, 2},
-        {offsetof(struct ast_state, TypeVarTuple_type), 196, 2},
+        {offsetof(struct ast_state, MatchExp_type), 100, 2},
+        {offsetof(struct ast_state, Dict_type), 102, 2},
+        {offsetof(struct ast_state, Set_type), 104, 1},
+        {offsetof(struct ast_state, ListComp_type), 105, 2},
+        {offsetof(struct ast_state, SetComp_type), 107, 2},
+        {offsetof(struct ast_state, DictComp_type), 109, 3},
+        {offsetof(struct ast_state, GeneratorExp_type), 112, 2},
+        {offsetof(struct ast_state, Await_type), 114, 1},
+        {offsetof(struct ast_state, Yield_type), 115, 1},
+        {offsetof(struct ast_state, YieldFrom_type), 116, 1},
+        {offsetof(struct ast_state, Compare_type), 117, 3},
+        {offsetof(struct ast_state, Call_type), 120, 3},
+        {offsetof(struct ast_state, FormattedValue_type), 123, 3},
+        {offsetof(struct ast_state, Interpolation_type), 126, 4},
+        {offsetof(struct ast_state, JoinedStr_type), 130, 1},
+        {offsetof(struct ast_state, TemplateStr_type), 131, 1},
+        {offsetof(struct ast_state, Constant_type), 132, 2},
+        {offsetof(struct ast_state, Attribute_type), 134, 3},
+        {offsetof(struct ast_state, Subscript_type), 137, 3},
+        {offsetof(struct ast_state, Starred_type), 140, 2},
+        {offsetof(struct ast_state, Name_type), 142, 2},
+        {offsetof(struct ast_state, List_type), 144, 2},
+        {offsetof(struct ast_state, Tuple_type), 146, 2},
+        {offsetof(struct ast_state, Slice_type), 148, 3},
+        {offsetof(struct ast_state, Load_type), 151, 0},
+        {offsetof(struct ast_state, Store_type), 151, 0},
+        {offsetof(struct ast_state, Del_type), 151, 0},
+        {offsetof(struct ast_state, And_type), 151, 0},
+        {offsetof(struct ast_state, Or_type), 151, 0},
+        {offsetof(struct ast_state, Add_type), 151, 0},
+        {offsetof(struct ast_state, Sub_type), 151, 0},
+        {offsetof(struct ast_state, Mult_type), 151, 0},
+        {offsetof(struct ast_state, MatMult_type), 151, 0},
+        {offsetof(struct ast_state, Div_type), 151, 0},
+        {offsetof(struct ast_state, Mod_type), 151, 0},
+        {offsetof(struct ast_state, Pow_type), 151, 0},
+        {offsetof(struct ast_state, LShift_type), 151, 0},
+        {offsetof(struct ast_state, RShift_type), 151, 0},
+        {offsetof(struct ast_state, BitOr_type), 151, 0},
+        {offsetof(struct ast_state, BitXor_type), 151, 0},
+        {offsetof(struct ast_state, BitAnd_type), 151, 0},
+        {offsetof(struct ast_state, FloorDiv_type), 151, 0},
+        {offsetof(struct ast_state, Invert_type), 151, 0},
+        {offsetof(struct ast_state, Not_type), 151, 0},
+        {offsetof(struct ast_state, UAdd_type), 151, 0},
+        {offsetof(struct ast_state, USub_type), 151, 0},
+        {offsetof(struct ast_state, Eq_type), 151, 0},
+        {offsetof(struct ast_state, NotEq_type), 151, 0},
+        {offsetof(struct ast_state, Lt_type), 151, 0},
+        {offsetof(struct ast_state, LtE_type), 151, 0},
+        {offsetof(struct ast_state, Gt_type), 151, 0},
+        {offsetof(struct ast_state, GtE_type), 151, 0},
+        {offsetof(struct ast_state, Is_type), 151, 0},
+        {offsetof(struct ast_state, IsNot_type), 151, 0},
+        {offsetof(struct ast_state, In_type), 151, 0},
+        {offsetof(struct ast_state, NotIn_type), 151, 0},
+        {offsetof(struct ast_state, comprehension_type), 151, 4},
+        {offsetof(struct ast_state, ExceptHandler_type), 155, 3},
+        {offsetof(struct ast_state, arguments_type), 158, 7},
+        {offsetof(struct ast_state, arg_type), 165, 3},
+        {offsetof(struct ast_state, keyword_type), 168, 2},
+        {offsetof(struct ast_state, alias_type), 170, 2},
+        {offsetof(struct ast_state, withitem_type), 172, 2},
+        {offsetof(struct ast_state, match_case_type), 174, 3},
+        {offsetof(struct ast_state, MatchValue_type), 177, 1},
+        {offsetof(struct ast_state, MatchSingleton_type), 178, 1},
+        {offsetof(struct ast_state, MatchSequence_type), 179, 1},
+        {offsetof(struct ast_state, MatchMapping_type), 180, 3},
+        {offsetof(struct ast_state, MatchClass_type), 183, 4},
+        {offsetof(struct ast_state, MatchStar_type), 187, 1},
+        {offsetof(struct ast_state, MatchAs_type), 188, 2},
+        {offsetof(struct ast_state, MatchOr_type), 190, 1},
+        {offsetof(struct ast_state, TypeIgnore_type), 191, 2},
+        {offsetof(struct ast_state, TypeVar_type), 193, 3},
+        {offsetof(struct ast_state, ParamSpec_type), 196, 2},
+        {offsetof(struct ast_state, TypeVarTuple_type), 198, 2},
     };
     char *base = (char *)state;
     PyObject *annotations = NULL;
@@ -2597,6 +2607,7 @@ init_types(void *arg)
         "     | UnaryOp(unaryop op, expr operand)\n"
         "     | Lambda(arguments args, expr body)\n"
         "     | IfExp(expr test, expr body, expr orelse)\n"
+        "     | MatchExp(expr subject, pattern pattern)\n"
         "     | Dict(expr?* keys, expr* values)\n"
         "     | Set(expr* elts)\n"
         "     | ListComp(expr elt, comprehension* generators)\n"
@@ -2653,6 +2664,10 @@ init_types(void *arg)
                                   IfExp_fields, 3,
         "IfExp(expr test, expr body, expr orelse)");
     if (!state->IfExp_type) return -1;
+    state->MatchExp_type = make_type(state, "MatchExp", state->expr_type,
+                                     MatchExp_fields, 2,
+        "MatchExp(expr subject, pattern pattern)");
+    if (!state->MatchExp_type) return -1;
     state->Dict_type = make_type(state, "Dict", state->expr_type, Dict_fields,
                                  2,
         "Dict(expr?* keys, expr* values)");
@@ -4141,6 +4156,34 @@ _PyAST_IfExp(expr_ty test, expr_ty body, expr_ty orelse, int lineno, int
     p->v.IfExp.test = test;
     p->v.IfExp.body = body;
     p->v.IfExp.orelse = orelse;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_MatchExp(expr_ty subject, pattern_ty pattern, int lineno, int
+                col_offset, int end_lineno, int end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!subject) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'subject' is required for MatchExp");
+        return NULL;
+    }
+    if (!pattern) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'pattern' is required for MatchExp");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = MatchExp_kind;
+    p->v.MatchExp.subject = subject;
+    p->v.MatchExp.pattern = pattern;
     p->lineno = lineno;
     p->col_offset = col_offset;
     p->end_lineno = end_lineno;
@@ -5915,6 +5958,21 @@ ast2obj_expr(struct ast_state *state, void* _o)
         value = ast2obj_expr(state, o->v.IfExp.orelse);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->orelse, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case MatchExp_kind:
+        tp = (PyTypeObject *)state->MatchExp_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.MatchExp.subject);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->subject, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_pattern(state, o->v.MatchExp.pattern);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->pattern, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -10528,6 +10586,54 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, const char*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->MatchExp_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty subject;
+        pattern_ty pattern;
+
+        if (PyObject_GetOptionalAttr(obj, state->subject, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"subject\" missing from MatchExp");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'MatchExp' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &subject, "subject", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->pattern, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"pattern\" missing from MatchExp");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'MatchExp' node")) {
+                goto failed;
+            }
+            res = obj2ast_pattern(state, tmp, &pattern, "pattern", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_MatchExp(subject, pattern, lineno, col_offset,
+                               end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Dict_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -14495,6 +14601,9 @@ astmodule_exec(PyObject *m)
         return -1;
     }
     if (PyModule_AddObjectRef(m, "IfExp", state->IfExp_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "MatchExp", state->MatchExp_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Dict", state->Dict_type) < 0) {
