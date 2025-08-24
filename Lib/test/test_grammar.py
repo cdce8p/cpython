@@ -2063,6 +2063,24 @@ class GrammarTests(unittest.TestCase):
 
         self.assertEqual(test2(), "")
 
+    def test_match_expression(self):
+        x = 2
+        self.assertEqual((x match int()), True)
+        self.assertEqual((x match None), False)
+        self.assertEqual((x match 2) and x == 2, True)
+        self.assertEqual((x match None) or x == 2, True)
+        self.assertEqual(not (x match None) or x == 2, True)
+        if x match int():
+            pass
+        elif (x match int(a)) and a == 2:
+            pass
+        elif not (x match None):
+            pass
+        elif (x match None) or x == 2:
+            pass
+        elif (x match 2) and x == 2:
+            pass
+
 
 if __name__ == '__main__':
     unittest.main()

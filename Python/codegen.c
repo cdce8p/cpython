@@ -247,6 +247,8 @@ static int codegen_async_comprehension_generator(
                                       expr_ty elt, expr_ty val, int type,
                                       IterStackPosition iter_pos);
 
+static int emit_and_reset_fail_pop(compiler *, location loc,
+                                   pattern_context *);
 static int codegen_pattern(compiler *, pattern_ty, pattern_context *);
 static int codegen_match(compiler *, stmt_ty);
 static int codegen_pattern_subpattern(compiler *,
@@ -2036,6 +2038,50 @@ codegen_ifexp(compiler *c, expr_ty e)
     VISIT(c, expr, e->v.IfExp.orelse);
 
     USE_LABEL(c, end);
+    return SUCCESS;
+}
+
+static int
+codegen_matchexp(compiler *c, expr_ty e)
+{
+    assert(e->kind == MatchExp_kind);
+    VISIT(c, expr, e->v.MatchExp.subject);
+    NEW_JUMP_TARGET_LABEL(c, end);
+
+    pattern_context pc;
+    pc.stores = PyList_New(0);
+    if (pc.stores == NULL) {
+        return ERROR;
+    }
+    pc.fail_pop = NULL;
+    pc.allow_irrefutable = 1;
+    pc.fail_pop_size = 0;
+    pc.on_top = 0;
+    // NOTE: Can't use returning macros here (they'll leak pc->stores)!
+    if (codegen_pattern(c, e->v.MatchExp.pattern, &pc) < 0) {
+        Py_DECREF(pc.stores);
+        return ERROR;
+    }
+    assert(!pc.on_top);
+    Py_ssize_t nstores = PyList_GET_SIZE(pc.stores);
+    for (Py_ssize_t n = 0; n < nstores; n++) {
+        PyObject *name = PyList_GetItem(pc.stores, n);
+        if (codegen_nameop(c, LOC(e->v.MatchExp.pattern), name, Store) < 0) {
+            Py_DECREF(pc.stores);
+            return ERROR;
+        }
+    }
+    Py_DECREF(pc.stores);
+    // NOTE: Returning macros are safe again.
+    ADDOP_LOAD_CONST(c, LOC(e), Py_True);
+    ADDOP_JUMP(c, NO_LOCATION, JUMP, end);
+    // If the pattern fails to match, we want the line number of the
+    // cleanup to be associated with the failed pattern
+    RETURN_IF_ERROR(emit_and_reset_fail_pop(c, LOC(e->v.MatchExp.pattern), &pc));
+    ADDOP_LOAD_CONST(c, LOC(e), Py_False);
+
+    USE_LABEL(c, end);
+    PyMem_Free(pc.fail_pop);
     return SUCCESS;
 }
 
@@ -5377,6 +5423,8 @@ codegen_visit_expr(compiler *c, expr_ty e)
         return codegen_lambda(c, e);
     case IfExp_kind:
         return codegen_ifexp(c, e);
+    case MatchExp_kind:
+        return codegen_matchexp(c, e);
     case Dict_kind:
         return codegen_dict(c, e);
     case Set_kind:

@@ -2496,6 +2496,10 @@ symtable_visit_expr(struct symtable *st, expr_ty e)
         VISIT(st, expr, e->v.IfExp.body);
         VISIT(st, expr, e->v.IfExp.orelse);
         break;
+    case MatchExp_kind:
+        VISIT(st, expr, e->v.MatchExp.subject);
+        VISIT(st, pattern, e->v.MatchExp.pattern);
+        break;
     case Dict_kind:
         VISIT_SEQ_WITH_NULL(st, expr, e->v.Dict.keys);
         VISIT_SEQ(st, expr, e->v.Dict.values);

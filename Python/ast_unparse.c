@@ -324,6 +324,13 @@ append_ast_ifexp(PyUnicodeWriter *writer, expr_ty e, int level)
 }
 
 static int
+append_ast_matchexp(PyUnicodeWriter *writer, expr_ty e, int level)
+{
+    // TODO
+    return 0;
+}
+
+static int
 append_ast_dict(PyUnicodeWriter *writer, expr_ty e)
 {
     Py_ssize_t i, value_count;
@@ -944,6 +951,8 @@ append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
         return append_ast_lambda(writer, e, level);
     case IfExp_kind:
         return append_ast_ifexp(writer, e, level);
+    case MatchExp_kind:
+        return append_ast_matchexp(writer, e, level);
     case Dict_kind:
         return append_ast_dict(writer, e);
     case Set_kind:

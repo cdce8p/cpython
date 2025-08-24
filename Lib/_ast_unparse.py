@@ -14,6 +14,7 @@ _INFSTR = "1e" + repr(sys.float_info.max_10_exp + 1)
 class _Precedence:
     """Precedence table that originated from python grammar."""
 
+    MATCH_EXPR = auto()      # <subject> match <pattern>
     NAMED_EXPR = auto()      # <target> := <expr1>
     TUPLE = auto()           # <expr1>, <expr2>
     YIELD = auto()           # 'yield', 'yield from'
@@ -767,6 +768,13 @@ class Unparser(NodeVisitor):
             self.write(" else ")
             self.set_precedence(_Precedence.TEST, node.orelse)
             self.traverse(node.orelse)
+
+    def visit_MatchExp(self, node):
+        with self.require_parens(_Precedence.MATCH_EXPR, node):
+            self.set_precedence(_Precedence.MATCH_EXPR.next(), node.subject, node.pattern)
+            self.traverse(node.subject)
+            self.write(" match ")
+            self.traverse(node.pattern)
 
     def visit_Set(self, node):
         if node.elts:
