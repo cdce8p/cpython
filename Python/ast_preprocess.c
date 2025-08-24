@@ -540,6 +540,10 @@ astfold_expr(expr_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
         CALL(astfold_expr, expr_ty, node_->v.IfExp.body);
         CALL(astfold_expr, expr_ty, node_->v.IfExp.orelse);
         break;
+    case MatchExp_kind:
+        CALL(astfold_expr, expr_ty, node_->v.MatchExp.subject);
+        CALL(astfold_pattern, expr_ty, node_->v.MatchExp.pattern);
+        break;
     case Dict_kind:
         CALL_SEQ(astfold_expr, expr, node_->v.Dict.keys);
         CALL_SEQ(astfold_expr, expr, node_->v.Dict.values);
