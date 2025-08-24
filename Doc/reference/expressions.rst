@@ -2426,6 +2426,16 @@ evaluated and its value is returned.
 See :pep:`308` for more details about conditional expressions.
 
 
+.. _match_expr:
+
+Match expressions
+=================
+
+TODO
+
+.. versionadded:: 3.16
+
+
 .. _lambdas:
 .. _lambda:
 
@@ -2603,6 +2613,8 @@ precedence and have a left-to-right chaining feature as described in the
 | :keyword:`or`                                 | Boolean OR                          |
 +-----------------------------------------------+-------------------------------------+
 | :keyword:`if <if_expr>` -- :keyword:`!else`   | Conditional expression              |
++-----------------------------------------------+-------------------------------------+
+| :keyword:`match <match_expr>`                 | Match expression                    |
 +-----------------------------------------------+-------------------------------------+
 | :keyword:`lambda`                             | Lambda expression                   |
 +-----------------------------------------------+-------------------------------------+
