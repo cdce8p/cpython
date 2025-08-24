@@ -430,6 +430,17 @@ class AnnotationsFutureTestCase(unittest.TestCase):
         eq("t'{a!s}'")
         eq("t'{a:b}'")
         eq("t'{a:b=}'")
+        eq("(x match None)")
+        eq("(x match (1 | 2) as var)")
+        eq("(x match int(1))")
+        eq("(x match int(a=2))")
+        eq("(x match int(1, 2, a=2, b=3))")
+        eq("(x match [1])")
+        eq("(x match [*var])")
+        eq("(x match [1, *_, var])")
+        eq("(x match {1: True, 2: True | None, **rest})")
+        eq("(x match {1: True as x})")
+        eq("(x match {**rest})")
 
     def test_fstring_debug_annotations(self):
         # f-strings with '=' don't round trip very well, so set the expected
