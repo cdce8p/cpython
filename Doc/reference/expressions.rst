@@ -1949,6 +1949,16 @@ evaluated and its value is returned.
 See :pep:`308` for more details about conditional expressions.
 
 
+.. _match_expr:
+
+Match expressions
+=================
+
+TODO
+
+.. versionadded:: 3.15
+
+
 .. _lambdas:
 .. _lambda:
 
@@ -2114,6 +2124,8 @@ precedence and have a left-to-right chaining feature as described in the
 | :keyword:`lambda`                             | Lambda expression                   |
 +-----------------------------------------------+-------------------------------------+
 | ``:=``                                        | Assignment expression               |
++-----------------------------------------------+-------------------------------------+
+| :keyword:`match <match_expr>`                 | Match expression                    |
 +-----------------------------------------------+-------------------------------------+
 
 
