@@ -63,6 +63,7 @@ module Python
          | UnaryOp(unaryop op, expr operand)
          | Lambda(arguments args, expr body)
          | IfExp(expr test, expr body, expr orelse)
+         | MatchExp(expr subject, pattern pattern)
          | Dict(expr?* keys, expr* values)
          | Set(expr* elts)
          | ListComp(expr elt, comprehension* generators)
