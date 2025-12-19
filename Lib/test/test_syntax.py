@@ -2890,6 +2890,10 @@ Invalid none subscript expressions
     >>> a?[b] = 2
     Traceback (most recent call last):
     SyntaxError: cannot assign to none aware subscript expression
+
+    >>> a..b = 2
+    Traceback (most recent call last):
+    SyntaxError: cannot assign to cascade expression here. Maybe you meant '==' instead of '='?
 """
 
 import re
@@ -3131,6 +3135,7 @@ class SyntaxErrorTestCase(unittest.TestCase):
         self._check_error("del (a := 5)", "cannot delete named expression")
         self._check_error("del a?.b", "cannot delete none aware expression")
         self._check_error("del a?[b]", "cannot delete none aware subscript")
+        self._check_error("del a..b", "cannot delete cascade expression")
         # We don't have a special message for this, but make sure we don't
         # report "cannot delete name"
         self._check_error("del a += b", "invalid syntax")

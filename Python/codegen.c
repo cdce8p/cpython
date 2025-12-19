@@ -208,6 +208,7 @@ static int codegen_slice_two_parts(compiler *, expr_ty);
 static int codegen_slice(compiler *, expr_ty);
 static int codegen_none_aware_attribute(compiler *, expr_ty);
 static int codegen_none_aware_subscript(compiler *, expr_ty);
+static int codegen_cascade_expr(compiler *, expr_ty);
 
 static int codegen_body(compiler *, location, asdl_stmt_seq *, bool);
 static int codegen_with(compiler *, stmt_ty);
@@ -5622,6 +5623,11 @@ codegen_visit_expr_impl(compiler *c, expr_ty e, bool result_is_unused)
         return codegen_none_aware_attribute(c, e);
     case NoneAwareSubscript_kind:
         return codegen_none_aware_subscript(c, e);
+    case Cascade_kind:
+        return codegen_cascade_expr(c, e);
+    case CascadeAttribute_kind:
+        ADDOP_NAME(c, LOC(e), LOAD_ATTR, e->v.CascadeAttribute.attr, names);
+        break;
     case Subscript_kind:
         return codegen_subscript(c, e);
     case Starred_kind:
@@ -5961,6 +5967,21 @@ codegen_none_aware_subscript(compiler *c, expr_ty e)
 
     if (use_jump_target == 1) {
         USE_LABEL(c, end);
+    }
+    return SUCCESS;
+}
+
+static int
+codegen_cascade_expr(compiler *c, expr_ty e)
+{
+    assert(e->kind == Cascade_kind);
+    location loc = LOC(e);
+    VISIT(c, expr, e->v.Cascade.base);
+    Py_ssize_t n = asdl_seq_LEN(e->v.Cascade.calls);
+    for (Py_ssize_t i = 0; i < n; i++) {
+        ADDOP_I(c, loc, COPY, 1);
+        VISIT(c, expr, (expr_ty)asdl_seq_GET(e->v.Cascade.calls, i));
+        ADDOP(c, loc, POP_TOP);
     }
     return SUCCESS;
 }
