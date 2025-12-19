@@ -404,7 +404,15 @@ validate_expr(expr_ty exp, expr_context_ty ctx)
         ret = validate_expr(exp->v.NoneAwareSubscript.slice, Load) &&
             validate_expr(exp->v.NoneAwareSubscript.value, Load);
         break;
-    /* This last case doesn't have any checking. */
+    case Cascade_kind:
+        ret = validate_expr(exp->v.Cascade.base, ctx) &&
+            validate_exprs(exp->v.Cascade.calls, ctx, 0);
+        break;
+    case CascadeSubscript_kind:
+        ret = validate_expr(exp->v.CascadeSubscript.slice, Load);
+        break;
+    /* These cases don't have any checking. */
+    case CascadeAttribute_kind:
     case Name_kind:
         ret = 1;
         break;
