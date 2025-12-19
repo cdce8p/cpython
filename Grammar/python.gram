@@ -227,11 +227,12 @@ import_stmt[stmt_ty](memo):
 import_name[stmt_ty]:
     | lazy="lazy"? 'import' a=dotted_as_names { _PyAST_Import(a, lazy ? 1 : 0, EXTRA) }
 
-# note below: the ('.' | '...') is necessary because '...' is tokenized as ELLIPSIS
+# note below: the ('.' | '..' | '...')  is necessary because '..' is tokenized
+# as CASCADE and '...' as ELLIPSIS
 import_from[stmt_ty]:
-    | lazy="lazy"? 'from' a=('.' | '...')* b=dotted_name 'import' c=import_from_targets {
+    | lazy="lazy"? 'from' a=('.' | '..' | '...')* b=dotted_name 'import' c=import_from_targets {
         _PyPegen_checked_future_import(p, b->v.Name.id, c, _PyPegen_seq_count_dots(a), lazy, EXTRA) }
-    | lazy="lazy"? 'from' a=('.' | '...')+ 'import' b=import_from_targets {
+    | lazy="lazy"? 'from' a=('.' | '..' | '...')+ 'import' b=import_from_targets {
         _PyAST_ImportFrom(NULL, b, _PyPegen_seq_count_dots(a), lazy ? 1 : 0, EXTRA) }
 import_from_targets[asdl_alias_seq*]:
     | '(' a=import_from_as_names [','] ')' { a }
@@ -865,8 +866,27 @@ power[expr_ty]:
 # Primary elements are things like "obj.something.something", "obj[something]", "obj(something)", "obj" ...
 
 await_primary[expr_ty] (memo):
-    | 'await' a=primary { CHECK_VERSION(expr_ty, 5, "Await expressions are", _PyAST_Await(a, EXTRA)) }
+    | 'await' a=cascade { CHECK_VERSION(expr_ty, 5, "Await expressions are", _PyAST_Await(a, EXTRA)) }
+    | cascade
+
+cascade[expr_ty]:
+    | a=primary b=('..' c=cascade_primary { c })+ {
+        CHECK_VERSION(expr_ty, 15, "Cascade expressions are",
+                      _PyAST_Cascade(a, CHECK(asdl_expr_seq*, b), EXTRA)) }
     | primary
+
+cascade_primary[expr_ty]:
+    | a=cascade_primary '.' b=NAME {
+        _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA) }
+    | a=cascade_primary b=genexp { _PyAST_Call(a, CHECK(asdl_expr_seq*, (asdl_expr_seq*)_PyPegen_singleton_seq(p, b)), NULL, EXTRA) }
+    | a=cascade_primary '(' b=[arguments] ')' {
+        _PyAST_Call(a,
+                 (b) ? ((expr_ty) b)->v.Call.args : NULL,
+                 (b) ? ((expr_ty) b)->v.Call.keywords : NULL,
+                 EXTRA) }
+    | a=cascade_primary '[' b=slices ']' {
+        _PyAST_Subscript(a, b, Load, EXTRA) }
+    | a=NAME { _PyAST_CascadeAttribute(a->v.Name.id, Load, EXTRA) }
 
 primary[expr_ty]:
     | a=primary '.' b=NAME { _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA) }

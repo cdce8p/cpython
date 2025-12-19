@@ -926,6 +926,16 @@ class Unparser(NodeVisitor):
         self.write(".")
         self.write(node.attr)
 
+    def visit_Cascade(self, node):
+        self.set_precedence(_Precedence.ATOM, node.base)
+        self.traverse(node.base)
+        for e in node.calls:
+            self.write("..")
+            self.traverse(e)
+
+    def visit_CascadeAttribute(self, node):
+        self.write(node.attr)
+
     def visit_Call(self, node):
         self.set_precedence(_Precedence.ATOM, node.func)
         self.traverse(node.func)
