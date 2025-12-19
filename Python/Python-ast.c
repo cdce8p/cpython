@@ -58,6 +58,9 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, BoolOp_type),
         offsetof(struct ast_state, Break_type),
         offsetof(struct ast_state, Call_type),
+        offsetof(struct ast_state, CascadeAttribute_type),
+        offsetof(struct ast_state, CascadeSubscript_type),
+        offsetof(struct ast_state, Cascade_type),
         offsetof(struct ast_state, ClassDef_type),
         offsetof(struct ast_state, Compare_type),
         offsetof(struct ast_state, Constant_type),
@@ -192,10 +195,12 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, asname),
         offsetof(struct ast_state, ast),
         offsetof(struct ast_state, attr),
+        offsetof(struct ast_state, base),
         offsetof(struct ast_state, bases),
         offsetof(struct ast_state, body),
         offsetof(struct ast_state, boolop_type),
         offsetof(struct ast_state, bound),
+        offsetof(struct ast_state, calls),
         offsetof(struct ast_state, cases),
         offsetof(struct ast_state, cause),
         offsetof(struct ast_state, cls),
@@ -310,9 +315,11 @@ static int init_identifiers(struct ast_state *state)
     if ((state->asname = PyUnicode_InternFromString("asname")) == NULL) return -1;
     if ((state->ast = PyUnicode_InternFromString("ast")) == NULL) return -1;
     if ((state->attr = PyUnicode_InternFromString("attr")) == NULL) return -1;
+    if ((state->base = PyUnicode_InternFromString("base")) == NULL) return -1;
     if ((state->bases = PyUnicode_InternFromString("bases")) == NULL) return -1;
     if ((state->body = PyUnicode_InternFromString("body")) == NULL) return -1;
     if ((state->bound = PyUnicode_InternFromString("bound")) == NULL) return -1;
+    if ((state->calls = PyUnicode_InternFromString("calls")) == NULL) return -1;
     if ((state->cases = PyUnicode_InternFromString("cases")) == NULL) return -1;
     if ((state->cause = PyUnicode_InternFromString("cause")) == NULL) return -1;
     if ((state->cls = PyUnicode_InternFromString("cls")) == NULL) return -1;
@@ -667,6 +674,16 @@ static const char * const Attribute_fields[]={
     "value",
     "attr",
     "ctx",
+};
+static const char * const Cascade_fields[]={
+    "base",
+    "calls",
+};
+static const char * const CascadeAttribute_fields[]={
+    "attr",
+};
+static const char * const CascadeSubscript_fields[]={
+    "slice",
 };
 static const char * const Subscript_fields[]={
     "value",
@@ -1136,6 +1153,14 @@ add_ast_annotations(struct ast_state *state)
          0, FIELD_BUILTIN},
         {offsetof(struct ast_state, ctx),
          offsetof(struct ast_state, expr_context_type), 0},
+        {offsetof(struct ast_state, base),
+         offsetof(struct ast_state, expr_type), 0},
+        {offsetof(struct ast_state, calls),
+         offsetof(struct ast_state, expr_type), FIELD_SEQUENCE},
+        {offsetof(struct ast_state, attr),
+         0, FIELD_BUILTIN},
+        {offsetof(struct ast_state, slice),
+         offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, value),
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, slice),
@@ -1325,64 +1350,67 @@ add_ast_annotations(struct ast_state *state)
         {offsetof(struct ast_state, TemplateStr_type), 133, 1},
         {offsetof(struct ast_state, Constant_type), 134, 2},
         {offsetof(struct ast_state, Attribute_type), 136, 3},
-        {offsetof(struct ast_state, Subscript_type), 139, 3},
-        {offsetof(struct ast_state, Starred_type), 142, 2},
-        {offsetof(struct ast_state, Name_type), 144, 2},
-        {offsetof(struct ast_state, List_type), 146, 2},
-        {offsetof(struct ast_state, Tuple_type), 148, 2},
-        {offsetof(struct ast_state, Slice_type), 150, 3},
-        {offsetof(struct ast_state, Load_type), 153, 0},
-        {offsetof(struct ast_state, Store_type), 153, 0},
-        {offsetof(struct ast_state, Del_type), 153, 0},
-        {offsetof(struct ast_state, And_type), 153, 0},
-        {offsetof(struct ast_state, Or_type), 153, 0},
-        {offsetof(struct ast_state, Add_type), 153, 0},
-        {offsetof(struct ast_state, Sub_type), 153, 0},
-        {offsetof(struct ast_state, Mult_type), 153, 0},
-        {offsetof(struct ast_state, MatMult_type), 153, 0},
-        {offsetof(struct ast_state, Div_type), 153, 0},
-        {offsetof(struct ast_state, Mod_type), 153, 0},
-        {offsetof(struct ast_state, Pow_type), 153, 0},
-        {offsetof(struct ast_state, LShift_type), 153, 0},
-        {offsetof(struct ast_state, RShift_type), 153, 0},
-        {offsetof(struct ast_state, BitOr_type), 153, 0},
-        {offsetof(struct ast_state, BitXor_type), 153, 0},
-        {offsetof(struct ast_state, BitAnd_type), 153, 0},
-        {offsetof(struct ast_state, FloorDiv_type), 153, 0},
-        {offsetof(struct ast_state, Invert_type), 153, 0},
-        {offsetof(struct ast_state, Not_type), 153, 0},
-        {offsetof(struct ast_state, UAdd_type), 153, 0},
-        {offsetof(struct ast_state, USub_type), 153, 0},
-        {offsetof(struct ast_state, Eq_type), 153, 0},
-        {offsetof(struct ast_state, NotEq_type), 153, 0},
-        {offsetof(struct ast_state, Lt_type), 153, 0},
-        {offsetof(struct ast_state, LtE_type), 153, 0},
-        {offsetof(struct ast_state, Gt_type), 153, 0},
-        {offsetof(struct ast_state, GtE_type), 153, 0},
-        {offsetof(struct ast_state, Is_type), 153, 0},
-        {offsetof(struct ast_state, IsNot_type), 153, 0},
-        {offsetof(struct ast_state, In_type), 153, 0},
-        {offsetof(struct ast_state, NotIn_type), 153, 0},
-        {offsetof(struct ast_state, comprehension_type), 153, 4},
-        {offsetof(struct ast_state, ExceptHandler_type), 157, 3},
-        {offsetof(struct ast_state, arguments_type), 160, 7},
-        {offsetof(struct ast_state, arg_type), 167, 3},
-        {offsetof(struct ast_state, keyword_type), 170, 2},
-        {offsetof(struct ast_state, alias_type), 172, 2},
-        {offsetof(struct ast_state, withitem_type), 174, 2},
-        {offsetof(struct ast_state, match_case_type), 176, 3},
-        {offsetof(struct ast_state, MatchValue_type), 179, 1},
-        {offsetof(struct ast_state, MatchSingleton_type), 180, 1},
-        {offsetof(struct ast_state, MatchSequence_type), 181, 1},
-        {offsetof(struct ast_state, MatchMapping_type), 182, 3},
-        {offsetof(struct ast_state, MatchClass_type), 185, 4},
-        {offsetof(struct ast_state, MatchStar_type), 189, 1},
-        {offsetof(struct ast_state, MatchAs_type), 190, 2},
-        {offsetof(struct ast_state, MatchOr_type), 192, 1},
-        {offsetof(struct ast_state, TypeIgnore_type), 193, 2},
-        {offsetof(struct ast_state, TypeVar_type), 195, 3},
-        {offsetof(struct ast_state, ParamSpec_type), 198, 2},
-        {offsetof(struct ast_state, TypeVarTuple_type), 200, 2},
+        {offsetof(struct ast_state, Cascade_type), 139, 2},
+        {offsetof(struct ast_state, CascadeAttribute_type), 141, 1},
+        {offsetof(struct ast_state, CascadeSubscript_type), 142, 1},
+        {offsetof(struct ast_state, Subscript_type), 143, 3},
+        {offsetof(struct ast_state, Starred_type), 146, 2},
+        {offsetof(struct ast_state, Name_type), 148, 2},
+        {offsetof(struct ast_state, List_type), 150, 2},
+        {offsetof(struct ast_state, Tuple_type), 152, 2},
+        {offsetof(struct ast_state, Slice_type), 154, 3},
+        {offsetof(struct ast_state, Load_type), 157, 0},
+        {offsetof(struct ast_state, Store_type), 157, 0},
+        {offsetof(struct ast_state, Del_type), 157, 0},
+        {offsetof(struct ast_state, And_type), 157, 0},
+        {offsetof(struct ast_state, Or_type), 157, 0},
+        {offsetof(struct ast_state, Add_type), 157, 0},
+        {offsetof(struct ast_state, Sub_type), 157, 0},
+        {offsetof(struct ast_state, Mult_type), 157, 0},
+        {offsetof(struct ast_state, MatMult_type), 157, 0},
+        {offsetof(struct ast_state, Div_type), 157, 0},
+        {offsetof(struct ast_state, Mod_type), 157, 0},
+        {offsetof(struct ast_state, Pow_type), 157, 0},
+        {offsetof(struct ast_state, LShift_type), 157, 0},
+        {offsetof(struct ast_state, RShift_type), 157, 0},
+        {offsetof(struct ast_state, BitOr_type), 157, 0},
+        {offsetof(struct ast_state, BitXor_type), 157, 0},
+        {offsetof(struct ast_state, BitAnd_type), 157, 0},
+        {offsetof(struct ast_state, FloorDiv_type), 157, 0},
+        {offsetof(struct ast_state, Invert_type), 157, 0},
+        {offsetof(struct ast_state, Not_type), 157, 0},
+        {offsetof(struct ast_state, UAdd_type), 157, 0},
+        {offsetof(struct ast_state, USub_type), 157, 0},
+        {offsetof(struct ast_state, Eq_type), 157, 0},
+        {offsetof(struct ast_state, NotEq_type), 157, 0},
+        {offsetof(struct ast_state, Lt_type), 157, 0},
+        {offsetof(struct ast_state, LtE_type), 157, 0},
+        {offsetof(struct ast_state, Gt_type), 157, 0},
+        {offsetof(struct ast_state, GtE_type), 157, 0},
+        {offsetof(struct ast_state, Is_type), 157, 0},
+        {offsetof(struct ast_state, IsNot_type), 157, 0},
+        {offsetof(struct ast_state, In_type), 157, 0},
+        {offsetof(struct ast_state, NotIn_type), 157, 0},
+        {offsetof(struct ast_state, comprehension_type), 157, 4},
+        {offsetof(struct ast_state, ExceptHandler_type), 161, 3},
+        {offsetof(struct ast_state, arguments_type), 164, 7},
+        {offsetof(struct ast_state, arg_type), 171, 3},
+        {offsetof(struct ast_state, keyword_type), 174, 2},
+        {offsetof(struct ast_state, alias_type), 176, 2},
+        {offsetof(struct ast_state, withitem_type), 178, 2},
+        {offsetof(struct ast_state, match_case_type), 180, 3},
+        {offsetof(struct ast_state, MatchValue_type), 183, 1},
+        {offsetof(struct ast_state, MatchSingleton_type), 184, 1},
+        {offsetof(struct ast_state, MatchSequence_type), 185, 1},
+        {offsetof(struct ast_state, MatchMapping_type), 186, 3},
+        {offsetof(struct ast_state, MatchClass_type), 189, 4},
+        {offsetof(struct ast_state, MatchStar_type), 193, 1},
+        {offsetof(struct ast_state, MatchAs_type), 194, 2},
+        {offsetof(struct ast_state, MatchOr_type), 196, 1},
+        {offsetof(struct ast_state, TypeIgnore_type), 197, 2},
+        {offsetof(struct ast_state, TypeVar_type), 199, 3},
+        {offsetof(struct ast_state, ParamSpec_type), 202, 2},
+        {offsetof(struct ast_state, TypeVarTuple_type), 204, 2},
     };
     char *base = (char *)state;
     PyObject *annotations = NULL;
@@ -2639,6 +2667,9 @@ init_types(void *arg)
         "     | TemplateStr(expr* values)\n"
         "     | Constant(constant value, string? kind)\n"
         "     | Attribute(expr value, identifier attr, expr_context ctx)\n"
+        "     | Cascade(expr base, expr* calls)\n"
+        "     | CascadeAttribute(identifier attr)\n"
+        "     | CascadeSubscript(expr slice)\n"
         "     | Subscript(expr value, expr slice, expr_context ctx)\n"
         "     | Starred(expr value, expr_context ctx)\n"
         "     | Name(identifier id, expr_context ctx)\n"
@@ -2772,6 +2803,20 @@ init_types(void *arg)
                                       Attribute_fields, 3,
         "Attribute(expr value, identifier attr, expr_context ctx)");
     if (!state->Attribute_type) return -1;
+    state->Cascade_type = make_type(state, "Cascade", state->expr_type,
+                                    Cascade_fields, 2,
+        "Cascade(expr base, expr* calls)");
+    if (!state->Cascade_type) return -1;
+    state->CascadeAttribute_type = make_type(state, "CascadeAttribute",
+                                             state->expr_type,
+                                             CascadeAttribute_fields, 1,
+        "CascadeAttribute(identifier attr)");
+    if (!state->CascadeAttribute_type) return -1;
+    state->CascadeSubscript_type = make_type(state, "CascadeSubscript",
+                                             state->expr_type,
+                                             CascadeSubscript_fields, 1,
+        "CascadeSubscript(expr slice)");
+    if (!state->CascadeSubscript_type) return -1;
     state->Subscript_type = make_type(state, "Subscript", state->expr_type,
                                       Subscript_fields, 3,
         "Subscript(expr value, expr slice, expr_context ctx)");
@@ -4663,6 +4708,76 @@ _PyAST_Attribute(expr_ty value, identifier attr, expr_context_ty ctx, int
 }
 
 expr_ty
+_PyAST_Cascade(expr_ty base, asdl_expr_seq * calls, int group, int lineno, int
+               col_offset, int end_lineno, int end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!base) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'base' is required for Cascade");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = Cascade_kind;
+    p->v.Cascade.base = base;
+    p->v.Cascade.calls = calls;
+    p->group = group;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_CascadeAttribute(identifier attr, int group, int lineno, int col_offset,
+                        int end_lineno, int end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!attr) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'attr' is required for CascadeAttribute");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = CascadeAttribute_kind;
+    p->v.CascadeAttribute.attr = attr;
+    p->group = group;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_CascadeSubscript(expr_ty slice, int group, int lineno, int col_offset,
+                        int end_lineno, int end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!slice) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'slice' is required for CascadeSubscript");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = CascadeSubscript_kind;
+    p->v.CascadeSubscript.slice = slice;
+    p->group = group;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
 _PyAST_Subscript(expr_ty value, expr_ty slice, expr_context_ty ctx, int group,
                  int lineno, int col_offset, int end_lineno, int
                  end_col_offset, PyArena *arena)
@@ -6348,6 +6463,42 @@ ast2obj_expr(struct ast_state *state, void* _o)
         value = ast2obj_expr_context(state, o->v.Attribute.ctx);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->ctx, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case Cascade_kind:
+        tp = (PyTypeObject *)state->Cascade_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.Cascade.base);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->base, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_list(state, (asdl_seq*)o->v.Cascade.calls,
+                             ast2obj_expr);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->calls, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case CascadeAttribute_kind:
+        tp = (PyTypeObject *)state->CascadeAttribute_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_identifier(state, o->v.CascadeAttribute.attr);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->attr, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case CascadeSubscript_kind:
+        tp = (PyTypeObject *)state->CascadeSubscript_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.CascadeSubscript.slice);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->slice, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -11917,6 +12068,135 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, const char*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->Cascade_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty base;
+        asdl_expr_seq* calls;
+
+        if (PyObject_GetOptionalAttr(obj, state->base, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"base\" missing from Cascade");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'Cascade' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &base, "base", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->calls, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            tmp = PyList_New(0);
+            if (tmp == NULL) {
+                return -1;
+            }
+        }
+        {
+            int res;
+            Py_ssize_t len;
+            Py_ssize_t i;
+            if (!PyList_Check(tmp)) {
+                PyErr_Format(PyExc_TypeError, "Cascade field \"calls\" must be a list, not a %T", tmp);
+                goto failed;
+            }
+            len = PyList_GET_SIZE(tmp);
+            calls = _Py_asdl_expr_seq_new(len, arena);
+            if (calls == NULL) goto failed;
+            for (i = 0; i < len; i++) {
+                expr_ty val;
+                PyObject *tmp2 = Py_NewRef(PyList_GET_ITEM(tmp, i));
+                if (_Py_EnterRecursiveCall(" while traversing 'Cascade' node")) {
+                    goto failed;
+                }
+                res = obj2ast_expr(state, tmp2, &val, "calls", arena);
+                _Py_LeaveRecursiveCall();
+                Py_DECREF(tmp2);
+                if (res != 0) goto failed;
+                if (len != PyList_GET_SIZE(tmp)) {
+                    PyErr_SetString(PyExc_RuntimeError, "Cascade field \"calls\" changed size during iteration");
+                    goto failed;
+                }
+                asdl_seq_SET(calls, i, val);
+            }
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_Cascade(base, calls, group, lineno, col_offset,
+                              end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
+    tp = state->CascadeAttribute_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        identifier attr;
+
+        if (PyObject_GetOptionalAttr(obj, state->attr, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"attr\" missing from CascadeAttribute");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'CascadeAttribute' node")) {
+                goto failed;
+            }
+            res = obj2ast_identifier(state, tmp, &attr, "attr", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_CascadeAttribute(attr, group, lineno, col_offset,
+                                       end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
+    tp = state->CascadeSubscript_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty slice;
+
+        if (PyObject_GetOptionalAttr(obj, state->slice, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"slice\" missing from CascadeSubscript");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'CascadeSubscript' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &slice, "slice", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_CascadeSubscript(slice, group, lineno, col_offset,
+                                       end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Subscript_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -14837,6 +15117,17 @@ astmodule_exec(PyObject *m)
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Attribute", state->Attribute_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "Cascade", state->Cascade_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "CascadeAttribute",
+        state->CascadeAttribute_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "CascadeSubscript",
+        state->CascadeSubscript_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Subscript", state->Subscript_type) < 0) {

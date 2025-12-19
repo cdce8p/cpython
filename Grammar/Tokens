@@ -60,6 +60,7 @@ ELLIPSIS                '...'
 COLONEQUAL              ':='
 EXCLAMATION             '!'
 QUESTION                '?'
+CASCADE                 '..'
 
 OP
 TYPE_IGNORE
