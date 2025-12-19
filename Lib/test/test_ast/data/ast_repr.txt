@@ -216,3 +216,4 @@ Module(body=[Expr(value=TemplateStr(values=[Interpolation(...)]))], type_ignores
 Module(body=[Expr(value=TemplateStr(values=[Interpolation(...)]))], type_ignores=[])
 Module(body=[Expr(value=TemplateStr(values=[Interpolation(...)]))], type_ignores=[])
 Module(body=[Expr(value=TemplateStr(values=[Constant(...), ..., Constant(...)]))], type_ignores=[])
+Module(body=[Expr(value=Cascade(base=Name(...), calls=[CascadeAttribute(...)]))], type_ignores=[])
