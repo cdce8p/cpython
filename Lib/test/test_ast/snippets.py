@@ -376,6 +376,9 @@ eval_tests = [
   "t'{a!r}'",
   "t'{a!r:.2f}'",
   "t'foo({a})'",
+  # Cascade
+  "a..b",
+  "a..[2]",
 ]
 
 
@@ -618,5 +621,7 @@ eval_results = [
 ('Expression', ('TemplateStr', (1, 0, 1, 8), [('Interpolation', (1, 2, 1, 7), ('Name', (1, 3, 1, 4), 'a', ('Load',)), 'a', 114, None)])),
 ('Expression', ('TemplateStr', (1, 0, 1, 12), [('Interpolation', (1, 2, 1, 11), ('Name', (1, 3, 1, 4), 'a', ('Load',)), 'a', 114, ('JoinedStr', (1, 6, 1, 10), [('Constant', (1, 7, 1, 10), '.2f', None)]))])),
 ('Expression', ('TemplateStr', (1, 0, 1, 11), [('Constant', (1, 2, 1, 6), 'foo(', None), ('Interpolation', (1, 6, 1, 9), ('Name', (1, 7, 1, 8), 'a', ('Load',)), 'a', -1, None), ('Constant', (1, 9, 1, 10), ')', None)])),
+('Expression', ('Cascade', (1, 0, 1, 4), ('Name', (1, 0, 1, 1), 'a', ('Load',)), [('CascadeAttribute', (1, 3, 1, 4), 'b')])),
+('Expression', ('Cascade', (1, 0, 1, 6), ('Name', (1, 0, 1, 1), 'a', ('Load',)), [('CascadeSubscript', (1, 3, 1, 6), ('Constant', (1, 4, 1, 5), 2, None))])),
 ]
 main()

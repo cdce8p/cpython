@@ -2636,6 +2636,18 @@ symtable_visit_expr(struct symtable *st, expr_ty e)
     case Constant_kind:
         /* Nothing to do here. */
         break;
+    case Cascade_kind:
+        VISIT(st, expr, e->v.Cascade.base);
+        VISIT_SEQ(st, expr, e->v.Cascade.calls);
+        break;
+    case CascadeAttribute_kind:
+        if (!check_name(st, e->v.CascadeAttribute.attr, LOCATION(e), Load)) {
+            return 0;
+        }
+        break;
+    case CascadeSubscript_kind:
+        VISIT(st, expr, e->v.CascadeSubscript.slice);
+        break;
     /* The following exprs can be assignment targets. */
     case Attribute_kind:
         if (!check_name(st, e->v.Attribute.attr, LOCATION(e), e->v.Attribute.ctx)) {
