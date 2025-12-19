@@ -931,6 +931,25 @@ append_named_expr(PyUnicodeWriter *writer, expr_ty e, int level)
 }
 
 static int
+append_cascade_expr(PyUnicodeWriter *writer, expr_ty e)
+{
+    Py_ssize_t i, call_count;
+    APPEND_EXPR(e->v.Cascade.base, PR_ATOM);
+    call_count = asdl_seq_LEN(e->v.Cascade.calls);
+    for (i = 0; i < call_count; i++) {
+        APPEND_STR("..");
+        APPEND_EXPR((expr_ty)asdl_seq_GET(e->v.Cascade.calls, i), PR_ATOM);
+    }
+    return 0;
+}
+
+static int
+append_ast_cascade_attribute(PyUnicodeWriter *writer, expr_ty e)
+{
+    return PyUnicodeWriter_WriteStr(writer, e->v.CascadeAttribute.attr);
+}
+
+static int
 append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
 {
     switch (e->kind) {
@@ -1000,6 +1019,10 @@ append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
         return append_ast_tuple(writer, e, level);
     case NamedExpr_kind:
         return append_named_expr(writer, e, level);
+    case Cascade_kind:
+        return append_cascade_expr(writer, e);
+    case CascadeAttribute_kind:
+        return append_ast_cascade_attribute(writer, e);
     // No default so compiler emits a warning for unhandled cases
     }
     PyErr_SetString(PyExc_SystemError,
