@@ -379,6 +379,8 @@ eval_tests = [
   # None-aware expression
   "a?.b",
   "a?[b]",
+  # Cascade
+  "a..b",
 ]
 
 
@@ -623,5 +625,6 @@ eval_results = [
 ('Expression', ('TemplateStr', (1, 0, 1, 11), [('Constant', (1, 2, 1, 6), 'foo(', None), ('Interpolation', (1, 6, 1, 9), ('Name', (1, 7, 1, 8), 'a', ('Load',)), 'a', -1, None), ('Constant', (1, 9, 1, 10), ')', None)])),
 ('Expression', ('NoneAwareAttribute', (1, 0, 1, 4), ('Name', (1, 0, 1, 1), 'a', ('Load',)), 'b')),
 ('Expression', ('NoneAwareSubscript', (1, 0, 1, 5), ('Name', (1, 0, 1, 1), 'a', ('Load',)), ('Name', (1, 3, 1, 4), 'b', ('Load',)))),
+('Expression', ('Cascade', (1, 0, 1, 4), ('Name', (1, 0, 1, 1), 'a', ('Load',)), [('CascadeAttribute', (1, 3, 1, 4), 'b', ('Load',))])),
 ]
 main()
