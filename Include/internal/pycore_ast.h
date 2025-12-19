@@ -366,8 +366,9 @@ enum _expr_kind {BoolOp_kind=1, NamedExpr_kind=2, BinOp_kind=3, UnaryOp_kind=4,
                   YieldFrom_kind=17, Compare_kind=18, Call_kind=19,
                   FormattedValue_kind=20, Interpolation_kind=21,
                   JoinedStr_kind=22, TemplateStr_kind=23, Constant_kind=24,
-                  Attribute_kind=25, Subscript_kind=26, Starred_kind=27,
-                  Name_kind=28, List_kind=29, Tuple_kind=30, Slice_kind=31};
+                  Attribute_kind=25, Cascade_kind=26, CascadeAttribute_kind=27,
+                  Subscript_kind=28, Starred_kind=29, Name_kind=30,
+                  List_kind=31, Tuple_kind=32, Slice_kind=33};
 struct _expr {
     enum _expr_kind kind;
     union {
@@ -498,6 +499,16 @@ struct _expr {
             identifier attr;
             expr_context_ty ctx;
         } Attribute;
+
+        struct {
+            expr_ty base;
+            asdl_expr_seq *calls;
+        } Cascade;
+
+        struct {
+            identifier attr;
+            expr_context_ty ctx;
+        } CascadeAttribute;
 
         struct {
             expr_ty value;
@@ -870,6 +881,12 @@ expr_ty _PyAST_Constant(constant value, string kind, int group, int lineno, int
 expr_ty _PyAST_Attribute(expr_ty value, identifier attr, expr_context_ty ctx,
                          int group, int lineno, int col_offset, int end_lineno,
                          int end_col_offset, PyArena *arena);
+expr_ty _PyAST_Cascade(expr_ty base, asdl_expr_seq * calls, int group, int
+                       lineno, int col_offset, int end_lineno, int
+                       end_col_offset, PyArena *arena);
+expr_ty _PyAST_CascadeAttribute(identifier attr, expr_context_ty ctx, int
+                                group, int lineno, int col_offset, int
+                                end_lineno, int end_col_offset, PyArena *arena);
 expr_ty _PyAST_Subscript(expr_ty value, expr_ty slice, expr_context_ty ctx, int
                          group, int lineno, int col_offset, int end_lineno, int
                          end_col_offset, PyArena *arena);

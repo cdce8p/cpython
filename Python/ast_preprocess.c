@@ -639,6 +639,13 @@ astfold_expr(expr_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
         CALL(astfold_expr, expr_ty, node_->v.NoneAwareSubscript.value);
         CALL(astfold_expr, expr_ty, node_->v.NoneAwareSubscript.slice);
         break;
+    case Cascade_kind:
+        CALL(astfold_expr, expr_ty, node_->v.Cascade.base);
+        CALL_SEQ(astfold_expr, expr, node_->v.Cascade.calls);
+        break;
+    case CascadeAttribute_kind:
+        // Only attribute name, nothing further to do
+        break;
     case Constant_kind:
         // Already a constant, nothing further to do
         break;
