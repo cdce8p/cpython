@@ -2879,6 +2879,15 @@ Asserts:
     Traceback (most recent call last):
     SyntaxError: cannot assign to literal here. Maybe you meant '==' instead of '='?
 
+Invalid cascade expressions:
+
+    >>> a..b = 2
+    Traceback (most recent call last):
+    SyntaxError: cannot assign to cascade expression here. Maybe you meant '==' instead of '='?
+
+    >>> a..[2] = 2
+    Traceback (most recent call last):
+    SyntaxError: cannot assign to cascade expression here. Maybe you meant '==' instead of '='?
 """
 
 import re
@@ -3118,6 +3127,8 @@ class SyntaxErrorTestCase(unittest.TestCase):
         self._check_error("del (a, b, (c, d.e.f + 2))", "cannot delete expression")
         self._check_error("del [a, b, (c, d.e.f[0] + 2)]", "cannot delete expression")
         self._check_error("del (a := 5)", "cannot delete named expression")
+        self._check_error("del a..b", "cannot delete cascade expression")
+        self._check_error("del a..[2]", "cannot delete cascade expression")
         # We don't have a special message for this, but make sure we don't
         # report "cannot delete name"
         self._check_error("del a += b", "invalid syntax")
