@@ -955,6 +955,30 @@ class Unparser(NodeVisitor):
         self.write("?.")
         self.write(node.attr)
 
+    def visit_Cascade(self, node):
+        self.set_precedence(_Precedence.ATOM, node.base)
+        self.traverse(node.base)
+        for e in node.calls:
+            self.write("..")
+            self.traverse(e)
+
+    def visit_CascadeAttribute(self, node):
+        self.write(node.attr)
+
+    def visit_CascadeSubscript(self, node):
+        def is_non_empty_tuple(slice_value):
+            return (
+                isinstance(slice_value, Tuple)
+                and slice_value.elts
+            )
+
+        with self.delimit("[", "]"):
+            if is_non_empty_tuple(node.slice):
+                # parentheses can be omitted if the tuple isn't empty
+                self.items_view(self.traverse, node.slice.elts)
+            else:
+                self.traverse(node.slice)
+
     def visit_Call(self, node):
         self.set_precedence(_Precedence.ATOM, node.func)
         self.traverse(node.func)

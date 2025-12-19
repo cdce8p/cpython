@@ -473,6 +473,8 @@ class AnnotationsFutureTestCase(unittest.TestCase):
         eq("a?.func_c(b?.c)[d?.e:2][0]")
         eq("[1, a?.b, c]?[2].d")
         eq("[x for x in (1, a?.b, c)]?[2].d")
+        eq("a..b..c()")
+        eq("a..[2]..b[2]")
 
     def test_fstring_debug_annotations(self):
         # f-strings with '=' don't round trip very well, so set the expected

@@ -360,10 +360,10 @@ _PyLexer_get_normal(struct tok_state *tok, ftstring_state *current, struct token
                 p_end = tok->cur;
                 return MAKE_TOKEN(ELLIPSIS);
             }
-            else {
-                tok_backup(tok, c);
-            }
-            tok_backup(tok, '.');
+            p_start = tok->start;
+            p_end = tok->cur - 1;
+            tok_backup(tok, c);
+            return MAKE_TOKEN(CASCADE);
         }
         else {
             tok_backup(tok, c);

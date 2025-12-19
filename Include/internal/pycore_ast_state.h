@@ -40,6 +40,9 @@ struct ast_state {
     PyObject *BoolOp_type;
     PyObject *Break_type;
     PyObject *Call_type;
+    PyObject *CascadeAttribute_type;
+    PyObject *CascadeSubscript_type;
+    PyObject *Cascade_type;
     PyObject *ClassDef_type;
     PyObject *Compare_type;
     PyObject *Constant_type;
@@ -174,10 +177,12 @@ struct ast_state {
     PyObject *asname;
     PyObject *ast;
     PyObject *attr;
+    PyObject *base;
     PyObject *bases;
     PyObject *body;
     PyObject *boolop_type;
     PyObject *bound;
+    PyObject *calls;
     PyObject *cases;
     PyObject *cause;
     PyObject *cls;

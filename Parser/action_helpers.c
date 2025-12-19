@@ -149,6 +149,9 @@ _PyPegen_seq_count_dots(asdl_seq *seq)
             case ELLIPSIS:
                 number_of_dots += 3;
                 break;
+            case CASCADE:
+                number_of_dots += 2;
+                break;
             case DOT:
                 number_of_dots += 1;
                 break;
@@ -1187,6 +1190,12 @@ _PyPegen_get_expr_name(expr_ty e)
             return "none-aware expression";
         case NoneAwareSubscript_kind:
             return "none-aware subscript expression";
+        case Cascade_kind:
+            return "cascade expression";
+        case CascadeAttribute_kind:
+            return "cascade attribute";
+        case CascadeSubscript_kind:
+            return "cascade subscript";
         default:
             PyErr_Format(PyExc_SystemError,
                          "unexpected expression in assignment %d (line %d)",
