@@ -57,6 +57,8 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->BoolOp_type);
     Py_CLEAR(state->Break_type);
     Py_CLEAR(state->Call_type);
+    Py_CLEAR(state->CascadeAttribute_type);
+    Py_CLEAR(state->Cascade_type);
     Py_CLEAR(state->ClassDef_type);
     Py_CLEAR(state->Compare_type);
     Py_CLEAR(state->Constant_type);
@@ -188,10 +190,12 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->asname);
     Py_CLEAR(state->ast);
     Py_CLEAR(state->attr);
+    Py_CLEAR(state->base);
     Py_CLEAR(state->bases);
     Py_CLEAR(state->body);
     Py_CLEAR(state->boolop_type);
     Py_CLEAR(state->bound);
+    Py_CLEAR(state->calls);
     Py_CLEAR(state->cases);
     Py_CLEAR(state->cause);
     Py_CLEAR(state->cls);
@@ -300,9 +304,11 @@ static int init_identifiers(struct ast_state *state)
     if ((state->asname = PyUnicode_InternFromString("asname")) == NULL) return -1;
     if ((state->ast = PyUnicode_InternFromString("ast")) == NULL) return -1;
     if ((state->attr = PyUnicode_InternFromString("attr")) == NULL) return -1;
+    if ((state->base = PyUnicode_InternFromString("base")) == NULL) return -1;
     if ((state->bases = PyUnicode_InternFromString("bases")) == NULL) return -1;
     if ((state->body = PyUnicode_InternFromString("body")) == NULL) return -1;
     if ((state->bound = PyUnicode_InternFromString("bound")) == NULL) return -1;
+    if ((state->calls = PyUnicode_InternFromString("calls")) == NULL) return -1;
     if ((state->cases = PyUnicode_InternFromString("cases")) == NULL) return -1;
     if ((state->cause = PyUnicode_InternFromString("cause")) == NULL) return -1;
     if ((state->cls = PyUnicode_InternFromString("cls")) == NULL) return -1;
@@ -645,6 +651,14 @@ static const char * const Constant_fields[]={
 };
 static const char * const Attribute_fields[]={
     "value",
+    "attr",
+    "ctx",
+};
+static const char * const Cascade_fields[]={
+    "base",
+    "calls",
+};
+static const char * const CascadeAttribute_fields[]={
     "attr",
     "ctx",
 };
@@ -3437,6 +3451,84 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(Attribute_annotations);
+    PyObject *Cascade_annotations = PyDict_New();
+    if (!Cascade_annotations) return 0;
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(Cascade_annotations, "base", type) == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(Cascade_annotations);
+            return 0;
+        }
+    }
+    {
+        PyObject *type = state->expr_type;
+        type = Py_GenericAlias((PyObject *)&PyList_Type, type);
+        cond = type != NULL;
+        if (!cond) {
+            Py_DECREF(Cascade_annotations);
+            return 0;
+        }
+        cond = PyDict_SetItemString(Cascade_annotations, "calls", type) == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(Cascade_annotations);
+            return 0;
+        }
+    }
+    cond = PyObject_SetAttrString(state->Cascade_type, "_field_types",
+                                  Cascade_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(Cascade_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->Cascade_type, "__annotations__",
+                                  Cascade_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(Cascade_annotations);
+        return 0;
+    }
+    Py_DECREF(Cascade_annotations);
+    PyObject *CascadeAttribute_annotations = PyDict_New();
+    if (!CascadeAttribute_annotations) return 0;
+    {
+        PyObject *type = (PyObject *)&PyUnicode_Type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(CascadeAttribute_annotations, "attr", type)
+                                    == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(CascadeAttribute_annotations);
+            return 0;
+        }
+    }
+    {
+        PyObject *type = state->expr_context_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(CascadeAttribute_annotations, "ctx", type)
+                                    == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(CascadeAttribute_annotations);
+            return 0;
+        }
+    }
+    cond = PyObject_SetAttrString(state->CascadeAttribute_type, "_field_types",
+                                  CascadeAttribute_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(CascadeAttribute_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->CascadeAttribute_type,
+                                  "__annotations__",
+                                  CascadeAttribute_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(CascadeAttribute_annotations);
+        return 0;
+    }
+    Py_DECREF(CascadeAttribute_annotations);
     PyObject *Subscript_annotations = PyDict_New();
     if (!Subscript_annotations) return 0;
     {
@@ -6449,6 +6541,8 @@ init_types(void *arg)
         "     | TemplateStr(expr* values)\n"
         "     | Constant(constant value, string? kind)\n"
         "     | Attribute(expr value, identifier attr, expr_context ctx)\n"
+        "     | Cascade(expr base, expr* calls)\n"
+        "     | CascadeAttribute(identifier attr, expr_context ctx)\n"
         "     | Subscript(expr value, expr slice, expr_context ctx)\n"
         "     | Starred(expr value, expr_context ctx)\n"
         "     | Name(identifier id, expr_context ctx)\n"
@@ -6569,6 +6663,15 @@ init_types(void *arg)
                                       Attribute_fields, 3,
         "Attribute(expr value, identifier attr, expr_context ctx)");
     if (!state->Attribute_type) return -1;
+    state->Cascade_type = make_type(state, "Cascade", state->expr_type,
+                                    Cascade_fields, 2,
+        "Cascade(expr base, expr* calls)");
+    if (!state->Cascade_type) return -1;
+    state->CascadeAttribute_type = make_type(state, "CascadeAttribute",
+                                             state->expr_type,
+                                             CascadeAttribute_fields, 2,
+        "CascadeAttribute(identifier attr, expr_context ctx)");
+    if (!state->CascadeAttribute_type) return -1;
     state->Subscript_type = make_type(state, "Subscript", state->expr_type,
                                       Subscript_fields, 3,
         "Subscript(expr value, expr slice, expr_context ctx)");
@@ -8353,6 +8456,58 @@ _PyAST_Attribute(expr_ty value, identifier attr, expr_context_ty ctx, int
 }
 
 expr_ty
+_PyAST_Cascade(expr_ty base, asdl_expr_seq * calls, int lineno, int col_offset,
+               int end_lineno, int end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!base) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'base' is required for Cascade");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = Cascade_kind;
+    p->v.Cascade.base = base;
+    p->v.Cascade.calls = calls;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_CascadeAttribute(identifier attr, expr_context_ty ctx, int lineno, int
+                        col_offset, int end_lineno, int end_col_offset, PyArena
+                        *arena)
+{
+    expr_ty p;
+    if (!attr) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'attr' is required for CascadeAttribute");
+        return NULL;
+    }
+    if (!ctx) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'ctx' is required for CascadeAttribute");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = CascadeAttribute_kind;
+    p->v.CascadeAttribute.attr = attr;
+    p->v.CascadeAttribute.ctx = ctx;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
 _PyAST_Subscript(expr_ty value, expr_ty slice, expr_context_ty ctx, int lineno,
                  int col_offset, int end_lineno, int end_col_offset, PyArena
                  *arena)
@@ -10000,6 +10155,37 @@ ast2obj_expr(struct ast_state *state, void* _o)
             goto failed;
         Py_DECREF(value);
         value = ast2obj_expr_context(state, o->v.Attribute.ctx);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->ctx, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case Cascade_kind:
+        tp = (PyTypeObject *)state->Cascade_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.Cascade.base);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->base, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_list(state, (asdl_seq*)o->v.Cascade.calls,
+                             ast2obj_expr);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->calls, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case CascadeAttribute_kind:
+        tp = (PyTypeObject *)state->CascadeAttribute_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_identifier(state, o->v.CascadeAttribute.attr);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->attr, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_expr_context(state, o->v.CascadeAttribute.ctx);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->ctx, value) == -1)
             goto failed;
@@ -15415,6 +15601,123 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, PyArena*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->Cascade_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty base;
+        asdl_expr_seq* calls;
+
+        if (PyObject_GetOptionalAttr(obj, state->base, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"base\" missing from Cascade");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'Cascade' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &base, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->calls, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            tmp = PyList_New(0);
+            if (tmp == NULL) {
+                return -1;
+            }
+        }
+        {
+            int res;
+            Py_ssize_t len;
+            Py_ssize_t i;
+            if (!PyList_Check(tmp)) {
+                PyErr_Format(PyExc_TypeError, "Cascade field \"calls\" must be a list, not a %.200s", _PyType_Name(Py_TYPE(tmp)));
+                goto failed;
+            }
+            len = PyList_GET_SIZE(tmp);
+            calls = _Py_asdl_expr_seq_new(len, arena);
+            if (calls == NULL) goto failed;
+            for (i = 0; i < len; i++) {
+                expr_ty val;
+                PyObject *tmp2 = Py_NewRef(PyList_GET_ITEM(tmp, i));
+                if (_Py_EnterRecursiveCall(" while traversing 'Cascade' node")) {
+                    goto failed;
+                }
+                res = obj2ast_expr(state, tmp2, &val, arena);
+                _Py_LeaveRecursiveCall();
+                Py_DECREF(tmp2);
+                if (res != 0) goto failed;
+                if (len != PyList_GET_SIZE(tmp)) {
+                    PyErr_SetString(PyExc_RuntimeError, "Cascade field \"calls\" changed size during iteration");
+                    goto failed;
+                }
+                asdl_seq_SET(calls, i, val);
+            }
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_Cascade(base, calls, lineno, col_offset, end_lineno,
+                              end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
+    tp = state->CascadeAttribute_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        identifier attr;
+        expr_context_ty ctx;
+
+        if (PyObject_GetOptionalAttr(obj, state->attr, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"attr\" missing from CascadeAttribute");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'CascadeAttribute' node")) {
+                goto failed;
+            }
+            res = obj2ast_identifier(state, tmp, &attr, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->ctx, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"ctx\" missing from CascadeAttribute");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'CascadeAttribute' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr_context(state, tmp, &ctx, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_CascadeAttribute(attr, ctx, lineno, col_offset,
+                                       end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Subscript_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -18265,6 +18568,13 @@ astmodule_exec(PyObject *m)
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Attribute", state->Attribute_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "Cascade", state->Cascade_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "CascadeAttribute",
+        state->CascadeAttribute_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Subscript", state->Subscript_type) < 0) {

@@ -2063,6 +2063,34 @@ class GrammarTests(unittest.TestCase):
 
         self.assertEqual(test2(), "")
 
+    def test_cascade_notation(self):
+        class A:
+            cnt = 0
+
+            b = None
+            c = 1
+            l = [1, 2]
+
+            def func_a(self, var=None):
+                self.cnt += 1
+
+            def __await__(self):
+                yield from ()
+
+        a = A()
+
+        self.assertEqual(a..b, a)
+        self.assertEqual(a..b..func_a()..c, a)
+        self.assertEqual(a..b..func_a(x for x in range(3))..l, a)
+        self.assertEqual(a..l[0].bit_length()..c, a)
+        self.assertEqual(a.cnt, 2)
+
+        async def test_async():
+            # Only the grammar is tested here!
+            # Await will be called on the return of the cascade expression,
+            # i.e. a itself.
+            await a..func_a()
+
 
 if __name__ == '__main__':
     unittest.main()

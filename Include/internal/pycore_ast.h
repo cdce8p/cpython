@@ -365,8 +365,9 @@ enum _expr_kind {BoolOp_kind=1, NamedExpr_kind=2, BinOp_kind=3, UnaryOp_kind=4,
                   YieldFrom_kind=15, Compare_kind=16, Call_kind=17,
                   FormattedValue_kind=18, Interpolation_kind=19,
                   JoinedStr_kind=20, TemplateStr_kind=21, Constant_kind=22,
-                  Attribute_kind=23, Subscript_kind=24, Starred_kind=25,
-                  Name_kind=26, List_kind=27, Tuple_kind=28, Slice_kind=29};
+                  Attribute_kind=23, Cascade_kind=24, CascadeAttribute_kind=25,
+                  Subscript_kind=26, Starred_kind=27, Name_kind=28,
+                  List_kind=29, Tuple_kind=30, Slice_kind=31};
 struct _expr {
     enum _expr_kind kind;
     union {
@@ -487,6 +488,16 @@ struct _expr {
             identifier attr;
             expr_context_ty ctx;
         } Attribute;
+
+        struct {
+            expr_ty base;
+            asdl_expr_seq *calls;
+        } Cascade;
+
+        struct {
+            identifier attr;
+            expr_context_ty ctx;
+        } CascadeAttribute;
 
         struct {
             expr_ty value;
@@ -849,6 +860,12 @@ expr_ty _PyAST_Constant(constant value, string kind, int lineno, int
 expr_ty _PyAST_Attribute(expr_ty value, identifier attr, expr_context_ty ctx,
                          int lineno, int col_offset, int end_lineno, int
                          end_col_offset, PyArena *arena);
+expr_ty _PyAST_Cascade(expr_ty base, asdl_expr_seq * calls, int lineno, int
+                       col_offset, int end_lineno, int end_col_offset, PyArena
+                       *arena);
+expr_ty _PyAST_CascadeAttribute(identifier attr, expr_context_ty ctx, int
+                                lineno, int col_offset, int end_lineno, int
+                                end_col_offset, PyArena *arena);
 expr_ty _PyAST_Subscript(expr_ty value, expr_ty slice, expr_context_ty ctx, int
                          lineno, int col_offset, int end_lineno, int
                          end_col_offset, PyArena *arena);
