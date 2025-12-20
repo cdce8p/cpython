@@ -873,6 +873,9 @@ cascade[expr_ty]:
     | a=primary b=('..' c=cascade_primary { c })+ {
         CHECK_VERSION(expr_ty, 15, "Cascade expressions are",
                       _PyAST_Cascade(a, CHECK(asdl_expr_seq*, b), EXTRA)) }
+    | a=primary '{' b=','.('.' c=cascade_primary { c })+ [','] '}' {
+        CHECK_VERSION(expr_ty, 15, "Cascade expressions are",
+                      _PyAST_Cascade(a, CHECK(asdl_expr_seq*, b), EXTRA)) }
     | primary
 
 cascade_primary[expr_ty]:

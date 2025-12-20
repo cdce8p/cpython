@@ -2085,11 +2085,18 @@ class GrammarTests(unittest.TestCase):
         self.assertEqual(a..l[0].bit_length()..c, a)
         self.assertEqual(a.cnt, 2)
 
+        self.assertEqual(a {.b}, a)
+        self.assertEqual(a {.b, .func_a(), .c}, a)
+        self.assertEqual(a {.b, .func_a(x for x in range(3)), .c}, a)
+        self.assertEqual(a {.l[0].bit_length(), .c}, a)
+        self.assertEqual(a.cnt, 4)
+
         async def test_async():
             # Only the grammar is tested here!
             # Await will be called on the return of the cascade expression,
             # i.e. a itself.
             await a..func_a()
+            await a {.func_a()}
 
 
 if __name__ == '__main__':
