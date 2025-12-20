@@ -310,6 +310,7 @@ class UnparseTestCase(ASTTestCase):
     def test_cascade(self):
         self.check_ast_roundtrip("a..b..c()")
         self.check_ast_roundtrip("a..[2]..b[2]")
+        self.check_ast_roundtrip("a {.b, .c()}")
 
     def test_strings(self):
         self.check_ast_roundtrip("u'foo'")
