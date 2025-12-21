@@ -540,6 +540,13 @@ astfold_expr(expr_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
         CALL(astfold_expr, expr_ty, node_->v.IfExp.body);
         CALL(astfold_expr, expr_ty, node_->v.IfExp.orelse);
         break;
+    case IfElement_kind:
+        CALL(astfold_expr, expr_ty, node_->v.IfElement.test);
+        CALL(astfold_expr, expr_ty, node_->v.IfElement.item);
+        break;
+    case NoneAwareElement_kind:
+        CALL(astfold_expr, expr_ty, node_->v.NoneAwareElement.item);
+        break;
     case Dict_kind:
         CALL_SEQ(astfold_expr, expr, node_->v.Dict.keys);
         CALL_SEQ(astfold_expr, expr, node_->v.Dict.values);
