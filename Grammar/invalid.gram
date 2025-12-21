@@ -61,6 +61,10 @@ invalid_type_param:
         }
 
 invalid_expression:
+    | invalid_element_expression
+    | a=disjunction 'if' b=disjunction !('else'|':') { RAISE_SYNTAX_ERROR_KNOWN_RANGE(a, b, "expected 'else' after 'if' expression") }
+
+invalid_element_expression:
    |  STRING a=(!STRING expression_without_invalid)+ STRING {
         RAISE_SYNTAX_ERROR_KNOWN_RANGE( PyPegen_first_item(a, expr_ty), PyPegen_last_item(a, expr_ty),
         "invalid syntax. Is this intended to be part of the string?") }

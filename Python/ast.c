@@ -280,6 +280,13 @@ validate_expr(expr_ty exp, expr_context_ty ctx)
             validate_expr(exp->v.IfExp.body, Load) &&
             validate_expr(exp->v.IfExp.orelse, Load);
         break;
+    case IfElement_kind:
+        ret = validate_expr(exp->v.IfElement.test, Load) &&
+            validate_expr(exp->v.IfElement.item, Load);
+        break;
+    case NoneAwareElement_kind:
+        ret = validate_expr(exp->v.NoneAwareElement.item, Load);
+        break;
     case Dict_kind:
         if (asdl_seq_LEN(exp->v.Dict.keys) != asdl_seq_LEN(exp->v.Dict.values)) {
             PyErr_SetString(PyExc_ValueError,
