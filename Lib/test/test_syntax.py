@@ -162,11 +162,15 @@ SyntaxError: expected 'else' after 'if' expression
 
 >>> a = (42 if True)
 Traceback (most recent call last):
-SyntaxError: expected 'else' after 'if' expression
+SyntaxError: if element expression must be in a list, tuple, set or dict
 
->>> a = [1, 42 if True, 4]
+# >>> a = [1, 42 if True, 4]
+# Traceback (most recent call last):
+# SyntaxError: expected 'else' after 'if' expression
+
+>>> a = [1, *?([1] if False)]
 Traceback (most recent call last):
-SyntaxError: expected 'else' after 'if' expression
+SyntaxError: if element expression must be in a list, tuple, set, dict or f-string
 
 >>> x = 1 if 1 else pass
 Traceback (most recent call last):
