@@ -772,6 +772,19 @@ class Unparser(NodeVisitor):
             self.set_precedence(_Precedence.TEST, node.orelse)
             self.traverse(node.orelse)
 
+    def visit_IfElement(self, node):
+        with self.require_parens(_Precedence.TEST, node):
+            self.set_precedence(_Precedence.TEST.next(), node.item, node.test)
+            self.traverse(node.item)
+            self.write(" if ")
+            self.traverse(node.test)
+
+    def visit_NoneAwareElement(self, node):
+        # with self.require_parens(_Precedence.TEST, node):
+        #     self.set_precedence(_Precedence.TEST.next(), node.item)
+        self.write("?")
+        self.traverse(node.item)
+
     def visit_Set(self, node):
         if node.elts:
             with self.delimit("{", "}"):

@@ -724,6 +724,18 @@ expression[expr_ty] (memo):
     | disjunction
     | lambdef
 
+element_expression[expr_ty]:
+    | invalid_if_expression
+    | invalid_element_expression
+    | invalid_legacy_expression
+    | if_expression
+    | a=disjunction 'if' b=disjunction { CHECK_VERSION(
+        expr_ty, 16, "if element expressions are", _PyAST_IfElement(b, a, EXTRA)) }
+    | '?' a=bitwise_or { CHECK_VERSION(
+        expr_ty, 16, "none aware element expressions are", _PyAST_NoneAwareElement(a, EXTRA)) }
+    | disjunction
+    | lambdef
+
 if_expression[expr_ty]:
     | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
 
@@ -744,8 +756,15 @@ star_expression[expr_ty] (memo):
 star_named_expressions[asdl_expr_seq*]: a[asdl_expr_seq*]=','.star_named_expression+ [','] { a }
 
 star_named_expression[expr_ty]:
-    | '*' a=bitwise_or { _PyAST_Starred(a, Load, EXTRA) }
-    | named_expression
+    | '*' a=none_aware_bitwise_or { _PyAST_Starred(a, Load, EXTRA) }
+    | '?' a=named_expression { CHECK_VERSION(
+        expr_ty, 16, "none aware element expressions are", _PyAST_NoneAwareElement(a, EXTRA)) }
+    | element_named_expression
+
+none_aware_bitwise_or[expr_ty]:
+    | '?' a=bitwise_or { CHECK_VERSION(
+        expr_ty, 16, "none aware element expressions are", _PyAST_NoneAwareElement(a, EXTRA)) }
+    | bitwise_or
 
 assignment_expression[expr_ty]:
     | a=NAME ':=' ~ b=expression {
@@ -756,6 +775,11 @@ named_expression[expr_ty]:
     | assignment_expression
     | invalid_named_expression
     | expression !':='
+
+element_named_expression[expr_ty]:
+    | assignment_expression
+    | invalid_named_expression
+    | element_expression !':='
 
 disjunction[expr_ty] (memo, fastpath=_PyPegen_atom_fast_path):
     | a=conjunction b=('or' c=conjunction { c })+ { _PyAST_BoolOp(
@@ -892,7 +916,7 @@ atom[expr_ty]:
     | '...' { _PyAST_Constant(Py_Ellipsis, NULL, EXTRA) }
 
 group[expr_ty]:
-    | '(' a=(yield_expr | named_expression) ')' { a }
+    | '(' a=(yield_expr | element_named_expression) ')' { a }
     | invalid_group
 
 # Lambda functions
@@ -1030,10 +1054,18 @@ dict[expr_ty]:
 double_starred_kvpairs[asdl_seq*]: a=','.double_starred_kvpair+ [','] { a }
 
 double_starred_kvpair[KeyValuePair*]:
-    | '**' a=bitwise_or { _PyPegen_key_value_pair(p, NULL, a) }
+    | '**' '?' a=bitwise_or { CHECK_VERSION(
+        KeyValuePair*, 16, "none aware unpacking expressions are", _PyPegen_key_value_pair(p, NULL, a, 1)) }
+    | '**' a=bitwise_or { _PyPegen_key_value_pair(p, NULL, a, 0) }
     | kvpair
 
-kvpair[KeyValuePair*]: a=expression ':' b=expression { _PyPegen_key_value_pair(p, a, b) }
+kvpair[KeyValuePair*]:
+    | a=none_aware_element_expression ':' b=none_aware_element_expression { _PyPegen_key_value_pair(p, a, b, 0) }
+
+none_aware_element_expression[expr_ty]:
+    | '?' a=expression { CHECK_VERSION(
+        expr_ty, 16, "none aware element expressions are", _PyAST_NoneAwareElement(a, EXTRA)) }
+    | element_expression
 
 # Comprehensions & Generators
 # ---------------------------

@@ -376,6 +376,9 @@ eval_tests = [
   "t'{a!r}'",
   "t'{a!r:.2f}'",
   "t'foo({a})'",
+  # IfElement and NoneAwareElement
+  "[1, 2 if i is not None]",
+  "[1, ?i]",
 ]
 
 
@@ -618,5 +621,7 @@ eval_results = [
 ('Expression', ('TemplateStr', (1, 0, 1, 8), [('Interpolation', (1, 2, 1, 7), ('Name', (1, 3, 1, 4), 'a', ('Load',)), 'a', 114, None)])),
 ('Expression', ('TemplateStr', (1, 0, 1, 12), [('Interpolation', (1, 2, 1, 11), ('Name', (1, 3, 1, 4), 'a', ('Load',)), 'a', 114, ('JoinedStr', (1, 6, 1, 10), [('Constant', (1, 7, 1, 10), '.2f', None)]))])),
 ('Expression', ('TemplateStr', (1, 0, 1, 11), [('Constant', (1, 2, 1, 6), 'foo(', None), ('Interpolation', (1, 6, 1, 9), ('Name', (1, 7, 1, 8), 'a', ('Load',)), 'a', -1, None), ('Constant', (1, 9, 1, 10), ')', None)])),
+('Expression', ('List', (1, 0, 1, 23), [('Constant', (1, 1, 1, 2), 1, None), ('IfElement', (1, 4, 1, 22), ('Compare', (1, 9, 1, 22), ('Name', (1, 9, 1, 10), 'i', ('Load',)), [('IsNot',)], [('Constant', (1, 18, 1, 22), None, None)]), ('Constant', (1, 4, 1, 5), 2, None))], ('Load',))),
+('Expression', ('List', (1, 0, 1, 7), [('Constant', (1, 1, 1, 2), 1, None), ('NoneAwareElement', (1, 4, 1, 6), ('Name', (1, 5, 1, 6), 'i', ('Load',)))], ('Load',))),
 ]
 main()
