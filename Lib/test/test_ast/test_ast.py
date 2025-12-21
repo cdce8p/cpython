@@ -942,6 +942,16 @@ class AST_Tests(unittest.TestCase):
         with self.assertRaises(SyntaxError):
             ast.parse(code, feature_version=(3, 13))
 
+    def test_if_element_feature_version(self):
+        ast.parse("[1, 2 if i is not None]", feature_version=(3, 16))
+        with self.assertRaises(SyntaxError):
+            ast.parse("[1, 2 if i is not None]", feature_version=(3, 15))
+
+    def test_none_aware_element_feature_version(self):
+        ast.parse("[1, ?i]", feature_version=(3, 16))
+        with self.assertRaises(SyntaxError):
+            ast.parse("[1, ?i]", feature_version=(3, 15))
+
     def test_conditional_context_managers_parse_with_low_feature_version(self):
         # regression test for gh-115881
         ast.parse('with (x() if y else z()): ...', feature_version=(3, 8))

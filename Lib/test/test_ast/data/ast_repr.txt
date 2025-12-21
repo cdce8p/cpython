@@ -216,3 +216,5 @@ Module(body=[Expr(value=TemplateStr(values=[Interpolation(...)]))], type_ignores
 Module(body=[Expr(value=TemplateStr(values=[Interpolation(...)]))], type_ignores=[])
 Module(body=[Expr(value=TemplateStr(values=[Interpolation(...)]))], type_ignores=[])
 Module(body=[Expr(value=TemplateStr(values=[Constant(...), ..., Constant(...)]))], type_ignores=[])
+Module(body=[Expr(value=List(elts=[Constant(...), IfElement(...)], ctx=Load(...)))], type_ignores=[])
+Module(body=[Expr(value=List(elts=[Constant(...), NoneAwareElement(...)], ctx=Load(...)))], type_ignores=[])

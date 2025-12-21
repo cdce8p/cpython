@@ -298,6 +298,14 @@ class UnparseTestCase(ASTTestCase):
             '''t"{'foo'!r}"''',
         )
 
+    def test_if_and_none_aware_element(self):
+        self.check_ast_roundtrip("[1, 2 if i is not None]")
+        self.check_ast_roundtrip("[1, *(2 if i is not None)]")
+        self.check_ast_roundtrip("[1, ?i]")
+        self.check_ast_roundtrip("[1, ?i]")
+        self.check_ast_roundtrip("[1, *(?i)]")
+        self.check_ast_roundtrip("{1: 1, **?k}")
+
     def test_strings(self):
         self.check_ast_roundtrip("u'foo'")
         self.check_ast_roundtrip("r'foo'")
