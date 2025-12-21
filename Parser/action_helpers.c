@@ -338,7 +338,7 @@ _PyPegen_set_expr_context(Parser *p, expr_ty expr, expr_context_ty ctx)
 
 /* Constructs a KeyValuePair that is used when parsing a dict's key value pairs */
 KeyValuePair *
-_PyPegen_key_value_pair(Parser *p, expr_ty key, expr_ty value)
+_PyPegen_key_value_pair(Parser *p, expr_ty key, expr_ty value, int none_aware_unpacking)
 {
     KeyValuePair *a = _PyArena_Malloc(p->arena, sizeof(KeyValuePair));
     if (!a) {
@@ -346,6 +346,7 @@ _PyPegen_key_value_pair(Parser *p, expr_ty key, expr_ty value)
     }
     a->key = key;
     a->value = value;
+    a->none_aware_unpacking = none_aware_unpacking;
     return a;
 }
 
@@ -376,7 +377,18 @@ _PyPegen_get_values(Parser *p, asdl_seq *seq)
     }
     for (Py_ssize_t i = 0; i < len; i++) {
         KeyValuePair *pair = asdl_seq_GET_UNTYPED(seq, i);
-        asdl_seq_SET(new_seq, i, pair->value);
+        if (pair->none_aware_unpacking) {
+            expr_ty value = _PyAST_NoneAwareElement(pair->value, pair->value->lineno,
+                                                    pair->value->col_offset,
+                                                    pair->value->end_lineno,
+                                                    pair->value->end_col_offset, p->arena);
+            if (value == NULL) {
+                return NULL;
+            }
+            asdl_seq_SET(new_seq, i, value);
+        } else {
+            asdl_seq_SET(new_seq, i, pair->value);
+        }
     }
     return new_seq;
 }
@@ -1134,6 +1146,10 @@ _PyPegen_get_expr_name(expr_ty e)
             return "comparison";
         case IfExp_kind:
             return "conditional expression";
+        case IfElement_kind:
+            return "conditional element expression";
+        case NoneAwareElement_kind:
+            return "none aware element expression";
         case NamedExpr_kind:
             return "named expression";
         default:
