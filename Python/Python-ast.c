@@ -86,6 +86,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, GtE_type),
         offsetof(struct ast_state, Gt_singleton),
         offsetof(struct ast_state, Gt_type),
+        offsetof(struct ast_state, IfElement_type),
         offsetof(struct ast_state, IfExp_type),
         offsetof(struct ast_state, If_type),
         offsetof(struct ast_state, ImportFrom_type),
@@ -130,6 +131,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, Mult_type),
         offsetof(struct ast_state, Name_type),
         offsetof(struct ast_state, NamedExpr_type),
+        offsetof(struct ast_state, NoneAwareElement_type),
         offsetof(struct ast_state, Nonlocal_type),
         offsetof(struct ast_state, NotEq_singleton),
         offsetof(struct ast_state, NotEq_type),
@@ -225,6 +227,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, ifs),
         offsetof(struct ast_state, is_async),
         offsetof(struct ast_state, is_lazy),
+        offsetof(struct ast_state, item),
         offsetof(struct ast_state, items),
         offsetof(struct ast_state, iter),
         offsetof(struct ast_state, key),
@@ -336,6 +339,7 @@ static int init_identifiers(struct ast_state *state)
     if ((state->ifs = PyUnicode_InternFromString("ifs")) == NULL) return -1;
     if ((state->is_async = PyUnicode_InternFromString("is_async")) == NULL) return -1;
     if ((state->is_lazy = PyUnicode_InternFromString("is_lazy")) == NULL) return -1;
+    if ((state->item = PyUnicode_InternFromString("item")) == NULL) return -1;
     if ((state->items = PyUnicode_InternFromString("items")) == NULL) return -1;
     if ((state->iter = PyUnicode_InternFromString("iter")) == NULL) return -1;
     if ((state->key = PyUnicode_InternFromString("key")) == NULL) return -1;
@@ -586,6 +590,10 @@ static const char * const IfExp_fields[]={
     "body",
     "orelse",
 };
+static const char * const IfElement_fields[]={
+    "test",
+    "item",
+};
 static const char * const Dict_fields[]={
     "keys",
     "values",
@@ -609,6 +617,9 @@ static const char * const DictComp_fields[]={
 static const char * const GeneratorExp_fields[]={
     "elt",
     "generators",
+};
+static const char * const NoneAwareElement_fields[]={
+    "item",
 };
 static const char * const Await_fields[]={
     "value",
@@ -1045,6 +1056,10 @@ add_ast_annotations(struct ast_state *state)
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, orelse),
          offsetof(struct ast_state, expr_type), 0},
+        {offsetof(struct ast_state, test),
+         offsetof(struct ast_state, expr_type), 0},
+        {offsetof(struct ast_state, item),
+         offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, keys),
          offsetof(struct ast_state, expr_type), FIELD_SEQUENCE},
         {offsetof(struct ast_state, values),
@@ -1069,6 +1084,8 @@ add_ast_annotations(struct ast_state *state)
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, generators),
          offsetof(struct ast_state, comprehension_type), FIELD_SEQUENCE},
+        {offsetof(struct ast_state, item),
+         offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, value),
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, value),
@@ -1285,81 +1302,83 @@ add_ast_annotations(struct ast_state *state)
         {offsetof(struct ast_state, UnaryOp_type), 93, 2},
         {offsetof(struct ast_state, Lambda_type), 95, 2},
         {offsetof(struct ast_state, IfExp_type), 97, 3},
-        {offsetof(struct ast_state, Dict_type), 100, 2},
-        {offsetof(struct ast_state, Set_type), 102, 1},
-        {offsetof(struct ast_state, ListComp_type), 103, 2},
-        {offsetof(struct ast_state, SetComp_type), 105, 2},
-        {offsetof(struct ast_state, DictComp_type), 107, 3},
-        {offsetof(struct ast_state, GeneratorExp_type), 110, 2},
-        {offsetof(struct ast_state, Await_type), 112, 1},
-        {offsetof(struct ast_state, Yield_type), 113, 1},
-        {offsetof(struct ast_state, YieldFrom_type), 114, 1},
-        {offsetof(struct ast_state, Compare_type), 115, 3},
-        {offsetof(struct ast_state, Call_type), 118, 3},
-        {offsetof(struct ast_state, FormattedValue_type), 121, 3},
-        {offsetof(struct ast_state, Interpolation_type), 124, 4},
-        {offsetof(struct ast_state, JoinedStr_type), 128, 1},
-        {offsetof(struct ast_state, TemplateStr_type), 129, 1},
-        {offsetof(struct ast_state, Constant_type), 130, 2},
-        {offsetof(struct ast_state, Attribute_type), 132, 3},
-        {offsetof(struct ast_state, Subscript_type), 135, 3},
-        {offsetof(struct ast_state, Starred_type), 138, 2},
-        {offsetof(struct ast_state, Name_type), 140, 2},
-        {offsetof(struct ast_state, List_type), 142, 2},
-        {offsetof(struct ast_state, Tuple_type), 144, 2},
-        {offsetof(struct ast_state, Slice_type), 146, 3},
-        {offsetof(struct ast_state, Load_type), 149, 0},
-        {offsetof(struct ast_state, Store_type), 149, 0},
-        {offsetof(struct ast_state, Del_type), 149, 0},
-        {offsetof(struct ast_state, And_type), 149, 0},
-        {offsetof(struct ast_state, Or_type), 149, 0},
-        {offsetof(struct ast_state, Add_type), 149, 0},
-        {offsetof(struct ast_state, Sub_type), 149, 0},
-        {offsetof(struct ast_state, Mult_type), 149, 0},
-        {offsetof(struct ast_state, MatMult_type), 149, 0},
-        {offsetof(struct ast_state, Div_type), 149, 0},
-        {offsetof(struct ast_state, Mod_type), 149, 0},
-        {offsetof(struct ast_state, Pow_type), 149, 0},
-        {offsetof(struct ast_state, LShift_type), 149, 0},
-        {offsetof(struct ast_state, RShift_type), 149, 0},
-        {offsetof(struct ast_state, BitOr_type), 149, 0},
-        {offsetof(struct ast_state, BitXor_type), 149, 0},
-        {offsetof(struct ast_state, BitAnd_type), 149, 0},
-        {offsetof(struct ast_state, FloorDiv_type), 149, 0},
-        {offsetof(struct ast_state, Invert_type), 149, 0},
-        {offsetof(struct ast_state, Not_type), 149, 0},
-        {offsetof(struct ast_state, UAdd_type), 149, 0},
-        {offsetof(struct ast_state, USub_type), 149, 0},
-        {offsetof(struct ast_state, Eq_type), 149, 0},
-        {offsetof(struct ast_state, NotEq_type), 149, 0},
-        {offsetof(struct ast_state, Lt_type), 149, 0},
-        {offsetof(struct ast_state, LtE_type), 149, 0},
-        {offsetof(struct ast_state, Gt_type), 149, 0},
-        {offsetof(struct ast_state, GtE_type), 149, 0},
-        {offsetof(struct ast_state, Is_type), 149, 0},
-        {offsetof(struct ast_state, IsNot_type), 149, 0},
-        {offsetof(struct ast_state, In_type), 149, 0},
-        {offsetof(struct ast_state, NotIn_type), 149, 0},
-        {offsetof(struct ast_state, comprehension_type), 149, 4},
-        {offsetof(struct ast_state, ExceptHandler_type), 153, 3},
-        {offsetof(struct ast_state, arguments_type), 156, 7},
-        {offsetof(struct ast_state, arg_type), 163, 3},
-        {offsetof(struct ast_state, keyword_type), 166, 2},
-        {offsetof(struct ast_state, alias_type), 168, 2},
-        {offsetof(struct ast_state, withitem_type), 170, 2},
-        {offsetof(struct ast_state, match_case_type), 172, 3},
-        {offsetof(struct ast_state, MatchValue_type), 175, 1},
-        {offsetof(struct ast_state, MatchSingleton_type), 176, 1},
-        {offsetof(struct ast_state, MatchSequence_type), 177, 1},
-        {offsetof(struct ast_state, MatchMapping_type), 178, 3},
-        {offsetof(struct ast_state, MatchClass_type), 181, 4},
-        {offsetof(struct ast_state, MatchStar_type), 185, 1},
-        {offsetof(struct ast_state, MatchAs_type), 186, 2},
-        {offsetof(struct ast_state, MatchOr_type), 188, 1},
-        {offsetof(struct ast_state, TypeIgnore_type), 189, 2},
-        {offsetof(struct ast_state, TypeVar_type), 191, 3},
-        {offsetof(struct ast_state, ParamSpec_type), 194, 2},
-        {offsetof(struct ast_state, TypeVarTuple_type), 196, 2},
+        {offsetof(struct ast_state, IfElement_type), 100, 2},
+        {offsetof(struct ast_state, Dict_type), 102, 2},
+        {offsetof(struct ast_state, Set_type), 104, 1},
+        {offsetof(struct ast_state, ListComp_type), 105, 2},
+        {offsetof(struct ast_state, SetComp_type), 107, 2},
+        {offsetof(struct ast_state, DictComp_type), 109, 3},
+        {offsetof(struct ast_state, GeneratorExp_type), 112, 2},
+        {offsetof(struct ast_state, NoneAwareElement_type), 114, 1},
+        {offsetof(struct ast_state, Await_type), 115, 1},
+        {offsetof(struct ast_state, Yield_type), 116, 1},
+        {offsetof(struct ast_state, YieldFrom_type), 117, 1},
+        {offsetof(struct ast_state, Compare_type), 118, 3},
+        {offsetof(struct ast_state, Call_type), 121, 3},
+        {offsetof(struct ast_state, FormattedValue_type), 124, 3},
+        {offsetof(struct ast_state, Interpolation_type), 127, 4},
+        {offsetof(struct ast_state, JoinedStr_type), 131, 1},
+        {offsetof(struct ast_state, TemplateStr_type), 132, 1},
+        {offsetof(struct ast_state, Constant_type), 133, 2},
+        {offsetof(struct ast_state, Attribute_type), 135, 3},
+        {offsetof(struct ast_state, Subscript_type), 138, 3},
+        {offsetof(struct ast_state, Starred_type), 141, 2},
+        {offsetof(struct ast_state, Name_type), 143, 2},
+        {offsetof(struct ast_state, List_type), 145, 2},
+        {offsetof(struct ast_state, Tuple_type), 147, 2},
+        {offsetof(struct ast_state, Slice_type), 149, 3},
+        {offsetof(struct ast_state, Load_type), 152, 0},
+        {offsetof(struct ast_state, Store_type), 152, 0},
+        {offsetof(struct ast_state, Del_type), 152, 0},
+        {offsetof(struct ast_state, And_type), 152, 0},
+        {offsetof(struct ast_state, Or_type), 152, 0},
+        {offsetof(struct ast_state, Add_type), 152, 0},
+        {offsetof(struct ast_state, Sub_type), 152, 0},
+        {offsetof(struct ast_state, Mult_type), 152, 0},
+        {offsetof(struct ast_state, MatMult_type), 152, 0},
+        {offsetof(struct ast_state, Div_type), 152, 0},
+        {offsetof(struct ast_state, Mod_type), 152, 0},
+        {offsetof(struct ast_state, Pow_type), 152, 0},
+        {offsetof(struct ast_state, LShift_type), 152, 0},
+        {offsetof(struct ast_state, RShift_type), 152, 0},
+        {offsetof(struct ast_state, BitOr_type), 152, 0},
+        {offsetof(struct ast_state, BitXor_type), 152, 0},
+        {offsetof(struct ast_state, BitAnd_type), 152, 0},
+        {offsetof(struct ast_state, FloorDiv_type), 152, 0},
+        {offsetof(struct ast_state, Invert_type), 152, 0},
+        {offsetof(struct ast_state, Not_type), 152, 0},
+        {offsetof(struct ast_state, UAdd_type), 152, 0},
+        {offsetof(struct ast_state, USub_type), 152, 0},
+        {offsetof(struct ast_state, Eq_type), 152, 0},
+        {offsetof(struct ast_state, NotEq_type), 152, 0},
+        {offsetof(struct ast_state, Lt_type), 152, 0},
+        {offsetof(struct ast_state, LtE_type), 152, 0},
+        {offsetof(struct ast_state, Gt_type), 152, 0},
+        {offsetof(struct ast_state, GtE_type), 152, 0},
+        {offsetof(struct ast_state, Is_type), 152, 0},
+        {offsetof(struct ast_state, IsNot_type), 152, 0},
+        {offsetof(struct ast_state, In_type), 152, 0},
+        {offsetof(struct ast_state, NotIn_type), 152, 0},
+        {offsetof(struct ast_state, comprehension_type), 152, 4},
+        {offsetof(struct ast_state, ExceptHandler_type), 156, 3},
+        {offsetof(struct ast_state, arguments_type), 159, 7},
+        {offsetof(struct ast_state, arg_type), 166, 3},
+        {offsetof(struct ast_state, keyword_type), 169, 2},
+        {offsetof(struct ast_state, alias_type), 171, 2},
+        {offsetof(struct ast_state, withitem_type), 173, 2},
+        {offsetof(struct ast_state, match_case_type), 175, 3},
+        {offsetof(struct ast_state, MatchValue_type), 178, 1},
+        {offsetof(struct ast_state, MatchSingleton_type), 179, 1},
+        {offsetof(struct ast_state, MatchSequence_type), 180, 1},
+        {offsetof(struct ast_state, MatchMapping_type), 181, 3},
+        {offsetof(struct ast_state, MatchClass_type), 184, 4},
+        {offsetof(struct ast_state, MatchStar_type), 188, 1},
+        {offsetof(struct ast_state, MatchAs_type), 189, 2},
+        {offsetof(struct ast_state, MatchOr_type), 191, 1},
+        {offsetof(struct ast_state, TypeIgnore_type), 192, 2},
+        {offsetof(struct ast_state, TypeVar_type), 194, 3},
+        {offsetof(struct ast_state, ParamSpec_type), 197, 2},
+        {offsetof(struct ast_state, TypeVarTuple_type), 199, 2},
     };
     char *base = (char *)state;
     PyObject *annotations = NULL;
@@ -2597,12 +2616,14 @@ init_types(void *arg)
         "     | UnaryOp(unaryop op, expr operand)\n"
         "     | Lambda(arguments args, expr body)\n"
         "     | IfExp(expr test, expr body, expr orelse)\n"
+        "     | IfElement(expr test, expr item)\n"
         "     | Dict(expr?* keys, expr* values)\n"
         "     | Set(expr* elts)\n"
         "     | ListComp(expr elt, comprehension* generators)\n"
         "     | SetComp(expr elt, comprehension* generators)\n"
         "     | DictComp(expr key, expr? value, comprehension* generators)\n"
         "     | GeneratorExp(expr elt, comprehension* generators)\n"
+        "     | NoneAwareElement(expr item)\n"
         "     | Await(expr value)\n"
         "     | Yield(expr? value)\n"
         "     | YieldFrom(expr value)\n"
@@ -2653,6 +2674,10 @@ init_types(void *arg)
                                   IfExp_fields, 3,
         "IfExp(expr test, expr body, expr orelse)");
     if (!state->IfExp_type) return -1;
+    state->IfElement_type = make_type(state, "IfElement", state->expr_type,
+                                      IfElement_fields, 2,
+        "IfElement(expr test, expr item)");
+    if (!state->IfElement_type) return -1;
     state->Dict_type = make_type(state, "Dict", state->expr_type, Dict_fields,
                                  2,
         "Dict(expr?* keys, expr* values)");
@@ -2679,6 +2704,11 @@ init_types(void *arg)
                                          2,
         "GeneratorExp(expr elt, comprehension* generators)");
     if (!state->GeneratorExp_type) return -1;
+    state->NoneAwareElement_type = make_type(state, "NoneAwareElement",
+                                             state->expr_type,
+                                             NoneAwareElement_fields, 1,
+        "NoneAwareElement(expr item)");
+    if (!state->NoneAwareElement_type) return -1;
     state->Await_type = make_type(state, "Await", state->expr_type,
                                   Await_fields, 1,
         "Await(expr value)");
@@ -4149,6 +4179,34 @@ _PyAST_IfExp(expr_ty test, expr_ty body, expr_ty orelse, int lineno, int
 }
 
 expr_ty
+_PyAST_IfElement(expr_ty test, expr_ty item, int lineno, int col_offset, int
+                 end_lineno, int end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!test) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'test' is required for IfElement");
+        return NULL;
+    }
+    if (!item) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'item' is required for IfElement");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = IfElement_kind;
+    p->v.IfElement.test = test;
+    p->v.IfElement.item = item;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
 _PyAST_Dict(asdl_expr_seq * keys, asdl_expr_seq * values, int lineno, int
             col_offset, int end_lineno, int end_col_offset, PyArena *arena)
 {
@@ -4273,6 +4331,28 @@ _PyAST_GeneratorExp(expr_ty elt, asdl_comprehension_seq * generators, int
     p->kind = GeneratorExp_kind;
     p->v.GeneratorExp.elt = elt;
     p->v.GeneratorExp.generators = generators;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_NoneAwareElement(expr_ty item, int lineno, int col_offset, int
+                        end_lineno, int end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!item) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'item' is required for NoneAwareElement");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = NoneAwareElement_kind;
+    p->v.NoneAwareElement.item = item;
     p->lineno = lineno;
     p->col_offset = col_offset;
     p->end_lineno = end_lineno;
@@ -5918,6 +5998,21 @@ ast2obj_expr(struct ast_state *state, void* _o)
             goto failed;
         Py_DECREF(value);
         break;
+    case IfElement_kind:
+        tp = (PyTypeObject *)state->IfElement_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.IfElement.test);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->test, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_expr(state, o->v.IfElement.item);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->item, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
     case Dict_kind:
         tp = (PyTypeObject *)state->Dict_type;
         result = PyType_GenericNew(tp, NULL, NULL);
@@ -6009,6 +6104,16 @@ ast2obj_expr(struct ast_state *state, void* _o)
                              ast2obj_comprehension);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->generators, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case NoneAwareElement_kind:
+        tp = (PyTypeObject *)state->NoneAwareElement_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.NoneAwareElement.item);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->item, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -10528,6 +10633,54 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, const char*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->IfElement_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty test;
+        expr_ty item;
+
+        if (PyObject_GetOptionalAttr(obj, state->test, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"test\" missing from IfElement");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'IfElement' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &test, "test", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->item, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"item\" missing from IfElement");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'IfElement' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &item, "item", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_IfElement(test, item, lineno, col_offset, end_lineno,
+                                end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Dict_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -10960,6 +11113,36 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, const char*
         }
         *out = _PyAST_GeneratorExp(elt, generators, lineno, col_offset,
                                    end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
+    tp = state->NoneAwareElement_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty item;
+
+        if (PyObject_GetOptionalAttr(obj, state->item, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"item\" missing from NoneAwareElement");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'NoneAwareElement' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &item, "item", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_NoneAwareElement(item, lineno, col_offset, end_lineno,
+                                       end_col_offset, arena);
         if (*out == NULL) goto failed;
         return 0;
     }
@@ -14497,6 +14680,9 @@ astmodule_exec(PyObject *m)
     if (PyModule_AddObjectRef(m, "IfExp", state->IfExp_type) < 0) {
         return -1;
     }
+    if (PyModule_AddObjectRef(m, "IfElement", state->IfElement_type) < 0) {
+        return -1;
+    }
     if (PyModule_AddObjectRef(m, "Dict", state->Dict_type) < 0) {
         return -1;
     }
@@ -14514,6 +14700,10 @@ astmodule_exec(PyObject *m)
     }
     if (PyModule_AddObjectRef(m, "GeneratorExp", state->GeneratorExp_type) < 0)
         {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "NoneAwareElement",
+        state->NoneAwareElement_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Await", state->Await_type) < 0) {
