@@ -68,6 +68,7 @@ struct ast_state {
     PyObject *GtE_type;
     PyObject *Gt_singleton;
     PyObject *Gt_type;
+    PyObject *IfElement_type;
     PyObject *IfExp_type;
     PyObject *If_type;
     PyObject *ImportFrom_type;
@@ -112,6 +113,7 @@ struct ast_state {
     PyObject *Mult_type;
     PyObject *Name_type;
     PyObject *NamedExpr_type;
+    PyObject *NoneAwareElement_type;
     PyObject *Nonlocal_type;
     PyObject *NotEq_singleton;
     PyObject *NotEq_type;
@@ -206,6 +208,7 @@ struct ast_state {
     PyObject *ifs;
     PyObject *is_async;
     PyObject *is_lazy;
+    PyObject *item;
     PyObject *items;
     PyObject *iter;
     PyObject *key;

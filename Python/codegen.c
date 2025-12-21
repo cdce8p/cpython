@@ -3403,15 +3403,16 @@ starunpack_helper_impl(compiler *c, location loc,
 {
     Py_ssize_t n = asdl_seq_LEN(elts);
     int big = n + pushed + (injected_arg ? 1 : 0) > _PY_STACK_USE_GUIDELINE;
-    int seen_star = 0;
+    int seen_special = 0;
     for (Py_ssize_t i = 0; i < n; i++) {
         expr_ty elt = asdl_seq_GET(elts, i);
-        if (elt->kind == Starred_kind) {
-            seen_star = 1;
+        if (elt->kind == Starred_kind || elt->kind == NoneAwareElement_kind
+            || elt->kind == IfElement_kind) {
+            seen_special = 1;
             break;
         }
     }
-    if (!seen_star && !big) {
+    if (!seen_special && !big) {
         for (Py_ssize_t i = 0; i < n; i++) {
             expr_ty elt = asdl_seq_GET(elts, i);
             VISIT(c, expr, elt);
@@ -3435,13 +3436,62 @@ starunpack_helper_impl(compiler *c, location loc,
     for (Py_ssize_t i = 0; i < n; i++) {
         expr_ty elt = asdl_seq_GET(elts, i);
         if (elt->kind == Starred_kind) {
+            NEW_JUMP_TARGET_LABEL(c, cleanup);
+            NEW_JUMP_TARGET_LABEL(c, end);
             if (sequence_built == 0) {
                 ADDOP_I(c, loc, build, i+pushed);
                 sequence_built = 1;
             }
-            VISIT(c, expr, elt->v.Starred.value);
+            expr_ty value = elt->v.Starred.value;
+            if (value->kind == NoneAwareElement_kind) {
+                VISIT(c, expr, value->v.NoneAwareElement.item);
+                ADDOP_I(c, loc, COPY, 1);
+                ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+            } else if (value->kind == IfElement_kind) {
+                RETURN_IF_ERROR(
+                    codegen_jump_if(c, loc, value->v.IfElement.test, end, 0));
+                VISIT(c, expr, value->v.IfElement.item);
+            } else {
+                VISIT(c, expr, elt->v.Starred.value);
+            }
             ADDOP_I(c, loc, extend, 1);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, cleanup);
+            ADDOP(c, loc, POP_TOP);
+            USE_LABEL(c, end);
         }
+        else if (elt->kind == NoneAwareElement_kind) {
+            NEW_JUMP_TARGET_LABEL(c, cleanup);
+            NEW_JUMP_TARGET_LABEL(c, end);
+            if (sequence_built == 0) {
+                ADDOP_I(c, loc, build, i+pushed);
+                sequence_built = 1;
+            }
+            VISIT(c, expr, elt->v.NoneAwareElement.item);
+            ADDOP_I(c, loc, COPY, 1);
+            ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+
+            ADDOP_I(c, loc, add, 1);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, cleanup);
+            ADDOP(c, loc, POP_TOP);
+            USE_LABEL(c, end);
+        }
+        else if (elt->kind == IfElement_kind) {
+            NEW_JUMP_TARGET_LABEL(c, end);
+            if (sequence_built == 0) {
+                ADDOP_I(c, loc, build, i+pushed);
+                sequence_built = 1;
+            }
+            RETURN_IF_ERROR(
+                codegen_jump_if(c, loc, elt->v.IfElement.test, end, 0));
+            VISIT(c, expr, elt->v.IfElement.item);
+            ADDOP_I(c, loc, add, 1);
+            USE_LABEL(c, end);
+        }
+
         else {
             VISIT(c, expr, elt);
             if (sequence_built) {
@@ -3558,18 +3608,54 @@ codegen_subdict(compiler *c, expr_ty e, Py_ssize_t begin, Py_ssize_t end)
 {
     Py_ssize_t i, n = end - begin;
     int big = n*2 > _PY_STACK_USE_GUIDELINE;
+    int map_built = 0;
     location loc = LOC(e);
     if (big) {
         ADDOP_I(c, loc, BUILD_MAP, 0);
+        map_built = 1;
     }
     for (i = begin; i < end; i++) {
-        VISIT(c, expr, (expr_ty)asdl_seq_GET(e->v.Dict.keys, i));
-        VISIT(c, expr, (expr_ty)asdl_seq_GET(e->v.Dict.values, i));
-        if (big) {
+        NEW_JUMP_TARGET_LABEL(c, cleanup1);
+        NEW_JUMP_TARGET_LABEL(c, cleanup2);
+        NEW_JUMP_TARGET_LABEL(c, end);
+        expr_ty key = (expr_ty)asdl_seq_GET(e->v.Dict.keys, i);
+        expr_ty value = (expr_ty)asdl_seq_GET(e->v.Dict.values, i);
+        if (!map_built
+            && (key->kind == NoneAwareElement_kind
+                || value->kind == NoneAwareElement_kind)) {
+            ADDOP_I(c, loc, BUILD_MAP, i);
+            map_built = 1;
+        }
+        if (key->kind == NoneAwareElement_kind) {
+            VISIT(c, expr, key->v.NoneAwareElement.item);
+            ADDOP_I(c, loc, COPY, 1);
+            ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup1);
+        } else {
+            VISIT(c, expr, key);
+        }
+        if (value->kind == NoneAwareElement_kind) {
+            VISIT(c, expr, value->v.NoneAwareElement.item);
+            ADDOP_I(c, loc, COPY, 1);
+            ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup2);
+        } else {
+            VISIT(c, expr, value);
+        }
+        if (map_built) {
             ADDOP_I(c, loc, MAP_ADD, 1);
         }
+        ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+        USE_LABEL(c, cleanup1);
+        ADDOP(c, loc, POP_TOP);
+        ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+        USE_LABEL(c, cleanup2);
+        ADDOP(c, loc, POP_TOP);
+        ADDOP(c, loc, POP_TOP);
+
+        USE_LABEL(c, end);
     }
-    if (!big) {
+    if (!map_built) {
         ADDOP_I(c, loc, BUILD_MAP, n);
     }
     return SUCCESS;
@@ -3600,8 +3686,22 @@ codegen_dict(compiler *c, expr_ty e)
                 ADDOP_I(c, loc, BUILD_MAP, 0);
                 have_dict = 1;
             }
-            VISIT(c, expr, (expr_ty)asdl_seq_GET(e->v.Dict.values, i));
+            NEW_JUMP_TARGET_LABEL(c, cleanup);
+            NEW_JUMP_TARGET_LABEL(c, end);
+            expr_ty value = (expr_ty)asdl_seq_GET(e->v.Dict.values, i);
+            if (value->kind == NoneAwareElement_kind) {
+                VISIT(c, expr, value->v.NoneAwareElement.item);
+                ADDOP_I(c, loc, COPY, 1);
+                ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+            } else {
+                VISIT(c, expr, value);
+            }
             ADDOP_I(c, loc, DICT_UPDATE, 1);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, cleanup);
+            ADDOP(c, loc, POP_TOP);
+            USE_LABEL(c, end);
         }
         else {
             if (elements*2 > _PY_STACK_USE_GUIDELINE) {
@@ -5377,6 +5477,12 @@ codegen_visit_expr(compiler *c, expr_ty e)
         return codegen_lambda(c, e);
     case IfExp_kind:
         return codegen_ifexp(c, e);
+    case IfElement_kind:
+        return _PyCompile_Error(c, loc,
+            "if element expression must be in a list, tuple or set");
+    case NoneAwareElement_kind:
+        return _PyCompile_Error(c, loc,
+            "none aware element expression must be in a list, tuple, set or dict");
     case Dict_kind:
         return codegen_dict(c, e);
     case Set_kind:

@@ -85,6 +85,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->GtE_type);
     Py_CLEAR(state->Gt_singleton);
     Py_CLEAR(state->Gt_type);
+    Py_CLEAR(state->IfElement_type);
     Py_CLEAR(state->IfExp_type);
     Py_CLEAR(state->If_type);
     Py_CLEAR(state->ImportFrom_type);
@@ -129,6 +130,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->Mult_type);
     Py_CLEAR(state->Name_type);
     Py_CLEAR(state->NamedExpr_type);
+    Py_CLEAR(state->NoneAwareElement_type);
     Py_CLEAR(state->Nonlocal_type);
     Py_CLEAR(state->NotEq_singleton);
     Py_CLEAR(state->NotEq_type);
@@ -223,6 +225,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->ifs);
     Py_CLEAR(state->is_async);
     Py_CLEAR(state->is_lazy);
+    Py_CLEAR(state->item);
     Py_CLEAR(state->items);
     Py_CLEAR(state->iter);
     Py_CLEAR(state->key);
@@ -329,6 +332,7 @@ static int init_identifiers(struct ast_state *state)
     if ((state->ifs = PyUnicode_InternFromString("ifs")) == NULL) return -1;
     if ((state->is_async = PyUnicode_InternFromString("is_async")) == NULL) return -1;
     if ((state->is_lazy = PyUnicode_InternFromString("is_lazy")) == NULL) return -1;
+    if ((state->item = PyUnicode_InternFromString("item")) == NULL) return -1;
     if ((state->items = PyUnicode_InternFromString("items")) == NULL) return -1;
     if ((state->iter = PyUnicode_InternFromString("iter")) == NULL) return -1;
     if ((state->key = PyUnicode_InternFromString("key")) == NULL) return -1;
@@ -579,6 +583,10 @@ static const char * const IfExp_fields[]={
     "body",
     "orelse",
 };
+static const char * const IfElement_fields[]={
+    "test",
+    "item",
+};
 static const char * const Dict_fields[]={
     "keys",
     "values",
@@ -602,6 +610,9 @@ static const char * const DictComp_fields[]={
 static const char * const GeneratorExp_fields[]={
     "elt",
     "generators",
+};
+static const char * const NoneAwareElement_fields[]={
+    "item",
 };
 static const char * const Await_fields[]={
     "value",
@@ -2728,6 +2739,41 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(IfExp_annotations);
+    PyObject *IfElement_annotations = PyDict_New();
+    if (!IfElement_annotations) return 0;
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(IfElement_annotations, "test", type) == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(IfElement_annotations);
+            return 0;
+        }
+    }
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(IfElement_annotations, "item", type) == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(IfElement_annotations);
+            return 0;
+        }
+    }
+    cond = PyObject_SetAttrString(state->IfElement_type, "_field_types",
+                                  IfElement_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(IfElement_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->IfElement_type, "__annotations__",
+                                  IfElement_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(IfElement_annotations);
+        return 0;
+    }
+    Py_DECREF(IfElement_annotations);
     PyObject *Dict_annotations = PyDict_New();
     if (!Dict_annotations) return 0;
     {
@@ -2982,6 +3028,33 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(GeneratorExp_annotations);
+    PyObject *NoneAwareElement_annotations = PyDict_New();
+    if (!NoneAwareElement_annotations) return 0;
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(NoneAwareElement_annotations, "item", type)
+                                    == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(NoneAwareElement_annotations);
+            return 0;
+        }
+    }
+    cond = PyObject_SetAttrString(state->NoneAwareElement_type, "_field_types",
+                                  NoneAwareElement_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(NoneAwareElement_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->NoneAwareElement_type,
+                                  "__annotations__",
+                                  NoneAwareElement_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(NoneAwareElement_annotations);
+        return 0;
+    }
+    Py_DECREF(NoneAwareElement_annotations);
     PyObject *Await_annotations = PyDict_New();
     if (!Await_annotations) return 0;
     {
@@ -6432,12 +6505,14 @@ init_types(void *arg)
         "     | UnaryOp(unaryop op, expr operand)\n"
         "     | Lambda(arguments args, expr body)\n"
         "     | IfExp(expr test, expr body, expr orelse)\n"
+        "     | IfElement(expr test, expr item)\n"
         "     | Dict(expr?* keys, expr* values)\n"
         "     | Set(expr* elts)\n"
         "     | ListComp(expr elt, comprehension* generators)\n"
         "     | SetComp(expr elt, comprehension* generators)\n"
         "     | DictComp(expr key, expr? value, comprehension* generators)\n"
         "     | GeneratorExp(expr elt, comprehension* generators)\n"
+        "     | NoneAwareElement(expr item)\n"
         "     | Await(expr value)\n"
         "     | Yield(expr? value)\n"
         "     | YieldFrom(expr value)\n"
@@ -6487,6 +6562,10 @@ init_types(void *arg)
                                   IfExp_fields, 3,
         "IfExp(expr test, expr body, expr orelse)");
     if (!state->IfExp_type) return -1;
+    state->IfElement_type = make_type(state, "IfElement", state->expr_type,
+                                      IfElement_fields, 2,
+        "IfElement(expr test, expr item)");
+    if (!state->IfElement_type) return -1;
     state->Dict_type = make_type(state, "Dict", state->expr_type, Dict_fields,
                                  2,
         "Dict(expr?* keys, expr* values)");
@@ -6513,6 +6592,11 @@ init_types(void *arg)
                                          2,
         "GeneratorExp(expr elt, comprehension* generators)");
     if (!state->GeneratorExp_type) return -1;
+    state->NoneAwareElement_type = make_type(state, "NoneAwareElement",
+                                             state->expr_type,
+                                             NoneAwareElement_fields, 1,
+        "NoneAwareElement(expr item)");
+    if (!state->NoneAwareElement_type) return -1;
     state->Await_type = make_type(state, "Await", state->expr_type,
                                   Await_fields, 1,
         "Await(expr value)");
@@ -7962,6 +8046,34 @@ _PyAST_IfExp(expr_ty test, expr_ty body, expr_ty orelse, int lineno, int
 }
 
 expr_ty
+_PyAST_IfElement(expr_ty test, expr_ty item, int lineno, int col_offset, int
+                 end_lineno, int end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!test) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'test' is required for IfElement");
+        return NULL;
+    }
+    if (!item) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'item' is required for IfElement");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = IfElement_kind;
+    p->v.IfElement.test = test;
+    p->v.IfElement.item = item;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
 _PyAST_Dict(asdl_expr_seq * keys, asdl_expr_seq * values, int lineno, int
             col_offset, int end_lineno, int end_col_offset, PyArena *arena)
 {
@@ -8086,6 +8198,28 @@ _PyAST_GeneratorExp(expr_ty elt, asdl_comprehension_seq * generators, int
     p->kind = GeneratorExp_kind;
     p->v.GeneratorExp.elt = elt;
     p->v.GeneratorExp.generators = generators;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_NoneAwareElement(expr_ty item, int lineno, int col_offset, int
+                        end_lineno, int end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!item) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'item' is required for NoneAwareElement");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = NoneAwareElement_kind;
+    p->v.NoneAwareElement.item = item;
     p->lineno = lineno;
     p->col_offset = col_offset;
     p->end_lineno = end_lineno;
@@ -9731,6 +9865,21 @@ ast2obj_expr(struct ast_state *state, void* _o)
             goto failed;
         Py_DECREF(value);
         break;
+    case IfElement_kind:
+        tp = (PyTypeObject *)state->IfElement_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.IfElement.test);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->test, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_expr(state, o->v.IfElement.item);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->item, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
     case Dict_kind:
         tp = (PyTypeObject *)state->Dict_type;
         result = PyType_GenericNew(tp, NULL, NULL);
@@ -9822,6 +9971,16 @@ ast2obj_expr(struct ast_state *state, void* _o)
                              ast2obj_comprehension);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->generators, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case NoneAwareElement_kind:
+        tp = (PyTypeObject *)state->NoneAwareElement_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.NoneAwareElement.item);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->item, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -14306,6 +14465,54 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, PyArena*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->IfElement_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty test;
+        expr_ty item;
+
+        if (PyObject_GetOptionalAttr(obj, state->test, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"test\" missing from IfElement");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'IfElement' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &test, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->item, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"item\" missing from IfElement");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'IfElement' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &item, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_IfElement(test, item, lineno, col_offset, end_lineno,
+                                end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Dict_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -14738,6 +14945,36 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, PyArena*
         }
         *out = _PyAST_GeneratorExp(elt, generators, lineno, col_offset,
                                    end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
+    tp = state->NoneAwareElement_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty item;
+
+        if (PyObject_GetOptionalAttr(obj, state->item, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"item\" missing from NoneAwareElement");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'NoneAwareElement' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &item, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_NoneAwareElement(item, lineno, col_offset, end_lineno,
+                                       end_col_offset, arena);
         if (*out == NULL) goto failed;
         return 0;
     }
@@ -18213,6 +18450,9 @@ astmodule_exec(PyObject *m)
     if (PyModule_AddObjectRef(m, "IfExp", state->IfExp_type) < 0) {
         return -1;
     }
+    if (PyModule_AddObjectRef(m, "IfElement", state->IfElement_type) < 0) {
+        return -1;
+    }
     if (PyModule_AddObjectRef(m, "Dict", state->Dict_type) < 0) {
         return -1;
     }
@@ -18230,6 +18470,10 @@ astmodule_exec(PyObject *m)
     }
     if (PyModule_AddObjectRef(m, "GeneratorExp", state->GeneratorExp_type) < 0)
         {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "NoneAwareElement",
+        state->NoneAwareElement_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Await", state->Await_type) < 0) {

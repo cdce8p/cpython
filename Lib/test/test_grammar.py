@@ -1778,7 +1778,7 @@ class GrammarTests(unittest.TestCase):
         test_nested_front()
 
         check_syntax_error(self, "[i, s for i in nums for s in strs]")
-        check_syntax_error(self, "[x if y]")
+        # check_syntax_error(self, "[x if y]")
 
         suppliers = [
           (1, "Boeing"),
@@ -2062,6 +2062,32 @@ class GrammarTests(unittest.TestCase):
             )}"
 
         self.assertEqual(test2(), "")
+
+    def test_if_element(self):
+        i = 2
+        y = None
+        self.assertEqual([1, 2 if i is not None, 3 if y is not None], [1, 2])
+        self.assertEqual((1, 2 if i is not None, 3 if y is not None), (1, 2))
+        self.assertEqual({1, 2 if i is not None, 3 if y is not None}, {1, 2})
+        self.assertEqual(
+            [1, *([2, 3] if i is not None), *([4, 5] if y is not None)], [1, 2, 3]
+        )
+
+    def test_none_aware_element(self):
+        i = 2
+        l = [8, 9]
+        m = {2: 2}
+        y = None
+        self.assertEqual([1, ?i, ?y, 3], [1, 2, 3])
+        self.assertEqual((1, ?i, ?y, 3), (1, 2, 3))
+        self.assertEqual({1, ?i, ?y, 3}, {1, 2, 3})
+
+        self.assertEqual([1, *?l, *?y, 3], [1, 8, 9, 3])
+        self.assertEqual((1, *?l, *?y, 3), (1, 8, 9, 3))
+        self.assertEqual({1, *?l, *?y, 3}, {1, 8, 9, 3})
+
+        self.assertEqual({1: 1, ?i: y, i: ?y, ?i: ?y, 3: 3}, {1: 1, 2: None, 3: 3})
+        self.assertEqual({1: 1, **?y, **?m, 3: 3}, {1: 1, 2: 2, 3: 3})
 
 
 if __name__ == '__main__':
