@@ -101,6 +101,7 @@ typedef struct {
 typedef struct {
     expr_ty key;
     expr_ty value;
+    int none_aware_unpacking;
 } KeyValuePair;
 
 typedef struct {
@@ -320,7 +321,7 @@ CmpopExprPair *_PyPegen_cmpop_expr_pair(Parser *, cmpop_ty, expr_ty);
 asdl_int_seq *_PyPegen_get_cmpops(Parser *p, asdl_seq *);
 asdl_expr_seq *_PyPegen_get_exprs(Parser *, asdl_seq *);
 expr_ty _PyPegen_set_expr_context(Parser *, expr_ty, expr_context_ty);
-KeyValuePair *_PyPegen_key_value_pair(Parser *, expr_ty, expr_ty);
+KeyValuePair *_PyPegen_key_value_pair(Parser *, expr_ty, expr_ty, int);
 asdl_expr_seq *_PyPegen_get_keys(Parser *, asdl_seq *);
 asdl_expr_seq *_PyPegen_get_values(Parser *, asdl_seq *);
 KeyPatternPair *_PyPegen_key_pattern_pair(Parser *, expr_ty, pattern_ty);
