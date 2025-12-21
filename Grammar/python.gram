@@ -718,6 +718,16 @@ expression[expr_ty] (memo):
     | disjunction
     | lambdef
 
+element_expression[expr_ty]:
+    | invalid_if_expression
+    | invalid_element_expression
+    | invalid_legacy_expression
+    | if_expression
+    | a=disjunction 'if' b=disjunction { CHECK_VERSION(
+        expr_ty, 15, "if element expressions are", _PyAST_IfElement(b, a, EXTRA)) }
+    | disjunction
+    | lambdef
+
 if_expression[expr_ty]:
     | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
 
@@ -740,8 +750,15 @@ star_named_expressions[asdl_expr_seq*]: a[asdl_expr_seq*]=','.star_named_express
 star_named_expressions_sequence[asdl_expr_seq*]: a[asdl_expr_seq*]=','.star_named_expression_sequence+ [','] { a }
 
 star_named_expression[expr_ty]:
-    | '*' a=bitwise_or { _PyAST_Starred(a, Load, EXTRA) }
-    | named_expression
+    | '*' a=none_aware_bitwise_or { _PyAST_Starred(a, Load, EXTRA) }
+    | '?' a=element_named_expression { CHECK_VERSION(
+        expr_ty, 15, "none aware element expressions are", _PyAST_NoneAwareElement(a, EXTRA)) }
+    | element_named_expression
+
+none_aware_bitwise_or[expr_ty]:
+    | '?' a=bitwise_or { CHECK_VERSION(
+        expr_ty, 15, "none aware element expressions are", _PyAST_NoneAwareElement(a, EXTRA)) }
+    | bitwise_or
 
 star_named_expression_sequence[expr_ty]:
     | invalid_starred_expression_unpacking_sequence
@@ -756,6 +773,11 @@ named_expression[expr_ty]:
     | assignment_expression
     | invalid_named_expression
     | expression !':='
+
+element_named_expression[expr_ty]:
+    | assignment_expression
+    | invalid_named_expression
+    | element_expression !':='
 
 disjunction[expr_ty] (memo):
     | a=conjunction b=('or' c=conjunction { c })+ { _PyAST_BoolOp(
@@ -900,7 +922,7 @@ atom[expr_ty]:
     | '...' { _PyAST_Constant(Py_Ellipsis, NULL, EXTRA) }
 
 group[expr_ty]:
-    | '(' a=(yield_expr | named_expression) ')' { a }
+    | '(' a=(yield_expr | element_named_expression) ')' { a }
     | invalid_group
 
 # Lambda functions
@@ -1032,10 +1054,18 @@ dict[expr_ty]:
 double_starred_kvpairs[asdl_seq*]: a=','.double_starred_kvpair+ [','] { a }
 
 double_starred_kvpair[KeyValuePair*]:
-    | '**' a=bitwise_or { _PyPegen_key_value_pair(p, NULL, a) }
+    | '**' '?' a=bitwise_or { CHECK_VERSION(
+        KeyValuePair*, 15, "none aware unpacking expressions are", _PyPegen_key_value_pair(p, NULL, a, 1)) }
+    | '**' a=bitwise_or { _PyPegen_key_value_pair(p, NULL, a, 0) }
     | kvpair
 
-kvpair[KeyValuePair*]: a=expression ':' b=expression { _PyPegen_key_value_pair(p, a, b) }
+kvpair[KeyValuePair*]:
+    | a=none_aware_element_expression ':' b=none_aware_element_expression { _PyPegen_key_value_pair(p, a, b, 0) }
+
+none_aware_element_expression[expr_ty]:
+    | '?' a=expression { CHECK_VERSION(
+        expr_ty, 15, "none aware element expressions are", _PyAST_NoneAwareElement(a, EXTRA)) }
+    | expression
 
 # Comprehensions & Generators
 # ---------------------------
@@ -1257,6 +1287,10 @@ invalid_type_param:
         }
 
 invalid_expression:
+    | invalid_element_expression
+    | a=disjunction 'if' b=disjunction !('else'|':') { RAISE_SYNTAX_ERROR_KNOWN_RANGE(a, b, "expected 'else' after 'if' expression") }
+
+invalid_element_expression:
    |  STRING a=(!STRING expression_without_invalid)+ STRING {
         RAISE_SYNTAX_ERROR_KNOWN_RANGE( PyPegen_first_item(a, expr_ty), PyPegen_last_item(a, expr_ty),
         "invalid syntax. Is this intended to be part of the string?") }
@@ -1264,7 +1298,6 @@ invalid_expression:
     # Soft keywords need to also be ignored because they can be parsed as NAME NAME
    | !(NAME STRING | SOFT_KEYWORD) a=disjunction b=expression_without_invalid {
         _PyPegen_raise_error_for_missing_comma(p, a, b) }
-   | a=disjunction 'if' b=disjunction !('else'|':') { RAISE_SYNTAX_ERROR_KNOWN_RANGE(a, b, "expected 'else' after 'if' expression") }
    | a=disjunction 'if' b=disjunction 'else' !expression {
         RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN("expected expression after 'else', but statement is given") }
    | a[stmt_ty]=(pass_stmt|break_stmt|continue_stmt) 'if' b=disjunction 'else' c=simple_stmt {

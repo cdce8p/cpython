@@ -324,6 +324,25 @@ append_ast_ifexp(PyUnicodeWriter *writer, expr_ty e, int level)
 }
 
 static int
+append_ast_ifelement(PyUnicodeWriter *writer, expr_ty e, int level)
+{
+    APPEND_STR_IF(level > PR_TEST, "(");
+    APPEND_EXPR(e->v.IfElement.item, PR_TEST + 1);
+    APPEND_STR(" if ");
+    APPEND_EXPR(e->v.IfElement.test, PR_TEST + 1);
+    APPEND_STR_IF(level > PR_TEST, ")");
+    return 0;
+}
+
+static int
+append_ast_noneawareelement(PyUnicodeWriter *writer, expr_ty e, int level)
+{
+    APPEND_STR("?");
+    APPEND_EXPR(e->v.NoneAwareElement.item, PR_EXPR);
+    return 0;
+}
+
+static int
 append_ast_dict(PyUnicodeWriter *writer, expr_ty e)
 {
     Py_ssize_t i, value_count;
@@ -944,6 +963,10 @@ append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
         return append_ast_lambda(writer, e, level);
     case IfExp_kind:
         return append_ast_ifexp(writer, e, level);
+    case IfElement_kind:
+        return append_ast_ifelement(writer, e, level);
+    case NoneAwareElement_kind:
+        return append_ast_noneawareelement(writer, e, level);
     case Dict_kind:
         return append_ast_dict(writer, e);
     case Set_kind:
