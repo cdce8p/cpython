@@ -113,6 +113,7 @@ struct ast_state {
     PyObject *Name_type;
     PyObject *NamedExpr_type;
     PyObject *NoneAwareAttribute_type;
+    PyObject *NoneAwareSubscript_type;
     PyObject *Nonlocal_type;
     PyObject *NotEq_singleton;
     PyObject *NotEq_type;

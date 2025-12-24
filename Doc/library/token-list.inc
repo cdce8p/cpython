@@ -102,5 +102,7 @@
      - ``":="``
    * - .. data:: EXCLAMATION
      - ``"!"``
+   * - .. data:: QUESTION
+     - ``"?"``
    * - .. data:: QUESTIONDOT
      - ``"?."``

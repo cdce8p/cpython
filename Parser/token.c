@@ -61,6 +61,7 @@ const char * const _PyParser_TokenNames[] = {
     "ELLIPSIS",
     "COLONEQUAL",
     "EXCLAMATION",
+    "QUESTION",
     "QUESTIONDOT",
     "OP",
     "TYPE_IGNORE",
@@ -101,6 +102,7 @@ _PyToken_OneChar(int c1)
     case '<': return LESS;
     case '=': return EQUAL;
     case '>': return GREATER;
+    case '?': return QUESTION;
     case '@': return AT;
     case '[': return LSQB;
     case ']': return RSQB;

@@ -206,6 +206,7 @@ static int codegen_subscript(compiler *, expr_ty);
 static int codegen_slice_two_parts(compiler *, expr_ty);
 static int codegen_slice(compiler *, expr_ty);
 static int codegen_none_aware_attribute(compiler *, expr_ty);
+static int codegen_none_aware_subscript(compiler *, expr_ty);
 
 static int codegen_body(compiler *, location, asdl_stmt_seq *, bool);
 static int codegen_with(compiler *, stmt_ty);
@@ -5307,6 +5308,8 @@ codegen_visit_expr(compiler *c, expr_ty e)
         break;
     case NoneAwareAttribute_kind:
         return codegen_none_aware_attribute(c, e);
+    case NoneAwareSubscript_kind:
+        return codegen_none_aware_subscript(c, e);
     case Subscript_kind:
         return codegen_subscript(c, e);
     case Starred_kind:
@@ -5599,6 +5602,38 @@ codegen_none_aware_attribute(compiler *c, expr_ty e)
     ADDOP_I(c, loc, COPY, 1);
     ADDOP_JUMP(c, loc, POP_JUMP_IF_NONE, next);
     ADDOP_NAME(c, loc, LOAD_ATTR, e->v.NoneAwareAttribute.attr, names);
+
+    if (SAME_JUMP_TARGET_LABEL(end, next)) {
+        USE_LABEL(c, end);
+    }
+    return SUCCESS;
+}
+
+static int
+codegen_none_aware_subscript(compiler *c, expr_ty e)
+{
+    assert(e->kind == NoneAwareSubscript_kind);
+    location loc = LOC(e);
+    RETURN_IF_ERROR(check_subscripter(c, e->v.NoneAwareSubscript.value));
+    RETURN_IF_ERROR(check_index(c, e->v.NoneAwareSubscript.value, e->v.NoneAwareSubscript.slice));
+
+    NEW_JUMP_TARGET_LABEL(c, end);
+    _PyCompile_PushNoneAwareJumpTarget(c, end);
+    jump_target_label next = _PyCompile_TopNoneAwareJumpTarget(c);
+
+    VISIT(c, expr, e->v.NoneAwareSubscript.value);
+    _PyCompile_PopNoneAwareJumpTarget(c);
+    ADDOP_I(c, loc, COPY, 1);
+    ADDOP_JUMP(c, loc, POP_JUMP_IF_NONE, next);
+
+    if (should_apply_two_element_slice_optimization(e->v.NoneAwareSubscript.slice)) {
+        RETURN_IF_ERROR(codegen_slice_two_parts(c, e->v.NoneAwareSubscript.slice));
+        ADDOP(c, loc, BINARY_SLICE);
+    }
+    else {
+        VISIT(c, expr, e->v.Subscript.slice);
+        ADDOP_I(c, loc, BINARY_OP, NB_SUBSCR);
+    }
 
     if (SAME_JUMP_TARGET_LABEL(end, next)) {
         USE_LABEL(c, end);

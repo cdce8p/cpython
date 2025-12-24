@@ -2224,6 +2224,41 @@ class GrammarTests(unittest.TestCase):
         self.assertEqual(k?.a.b[0].func().a.c, None)
         self.assertEqual(l?.a.b?.func().a.b[0].c.func_x(), None)
 
+    def test_none_aware_subscript(self):
+        class A:
+            b = None
+            c = 1
+            d = [3, 4]
+            def func_a(self): return "Hello"
+
+        class B:
+            a = A()
+            b = None
+            c = 2
+            d = [1, 2]
+            def func_b(self): return "World"
+
+        k = None
+        l = [B()]
+
+        self.assertEqual(k?[0], None)
+        self.assertEqual(k?[0].c, None)
+        self.assertEqual(l?[0].c, 2)
+        self.assertEqual(l?[0].a.c, 1)
+        self.assertEqual(l[0].d?[0], 1)
+        self.assertEqual(l[0].b?[0], None)
+        self.assertEqual(l[0].b?[0].c, None)
+        try:
+            self.assertEqual(l?[1], None)
+            self.fail("should produce IndexError on l")
+        except IndexError:
+            pass
+        try:
+            self.assertEqual(l[0].d?[2], None)
+            self.fail("should produce IndexError on d")
+        except IndexError:
+            pass
+
 
 if __name__ == '__main__':
     unittest.main()

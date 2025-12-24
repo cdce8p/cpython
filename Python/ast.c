@@ -398,6 +398,10 @@ validate_expr(expr_ty exp, expr_context_ty ctx)
     case NoneAwareAttribute_kind:
         ret = validate_expr(exp->v.NoneAwareAttribute.value, Load);
         break;
+    case NoneAwareSubscript_kind:
+        ret = validate_expr(exp->v.NoneAwareSubscript.slice, Load) &&
+            validate_expr(exp->v.NoneAwareSubscript.value, Load);
+        break;
     /* This last case doesn't have any checking. */
     case Name_kind:
         ret = 1;

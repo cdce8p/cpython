@@ -360,12 +360,12 @@ enum _expr_kind {BoolOp_kind=1, NamedExpr_kind=2, BinOp_kind=3, UnaryOp_kind=4,
                   Lambda_kind=5, IfExp_kind=6, Dict_kind=7, Set_kind=8,
                   ListComp_kind=9, SetComp_kind=10, DictComp_kind=11,
                   GeneratorExp_kind=12, NoneAwareAttribute_kind=13,
-                  Await_kind=14, Yield_kind=15, YieldFrom_kind=16,
-                  Compare_kind=17, Call_kind=18, FormattedValue_kind=19,
-                  Interpolation_kind=20, JoinedStr_kind=21,
-                  TemplateStr_kind=22, Constant_kind=23, Attribute_kind=24,
-                  Subscript_kind=25, Starred_kind=26, Name_kind=27,
-                  List_kind=28, Tuple_kind=29, Slice_kind=30};
+                  NoneAwareSubscript_kind=14, Await_kind=15, Yield_kind=16,
+                  YieldFrom_kind=17, Compare_kind=18, Call_kind=19,
+                  FormattedValue_kind=20, Interpolation_kind=21,
+                  JoinedStr_kind=22, TemplateStr_kind=23, Constant_kind=24,
+                  Attribute_kind=25, Subscript_kind=26, Starred_kind=27,
+                  Name_kind=28, List_kind=29, Tuple_kind=30, Slice_kind=31};
 struct _expr {
     enum _expr_kind kind;
     union {
@@ -435,6 +435,11 @@ struct _expr {
             expr_ty value;
             identifier attr;
         } NoneAwareAttribute;
+
+        struct {
+            expr_ty value;
+            expr_ty slice;
+        } NoneAwareSubscript;
 
         struct {
             expr_ty value;
@@ -825,6 +830,9 @@ expr_ty _PyAST_GeneratorExp(expr_ty elt, asdl_comprehension_seq * generators,
                             end_col_offset, PyArena *arena);
 expr_ty _PyAST_NoneAwareAttribute(expr_ty value, identifier attr, int lineno,
                                   int col_offset, int end_lineno, int
+                                  end_col_offset, PyArena *arena);
+expr_ty _PyAST_NoneAwareSubscript(expr_ty value, expr_ty slice, int lineno, int
+                                  col_offset, int end_lineno, int
                                   end_col_offset, PyArena *arena);
 expr_ty _PyAST_Await(expr_ty value, int lineno, int col_offset, int end_lineno,
                      int end_col_offset, PyArena *arena);

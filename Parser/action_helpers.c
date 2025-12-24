@@ -1138,6 +1138,8 @@ _PyPegen_get_expr_name(expr_ty e)
             return "named expression";
         case NoneAwareAttribute_kind:
             return "none aware expression";
+        case NoneAwareSubscript_kind:
+            return "none aware subscript expression";
         default:
             PyErr_Format(PyExc_SystemError,
                          "unexpected expression in assignment %d (line %d)",
