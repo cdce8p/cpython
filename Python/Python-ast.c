@@ -129,6 +129,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->Mult_type);
     Py_CLEAR(state->Name_type);
     Py_CLEAR(state->NamedExpr_type);
+    Py_CLEAR(state->NoneAwareAccess_type);
     Py_CLEAR(state->Nonlocal_type);
     Py_CLEAR(state->NotEq_singleton);
     Py_CLEAR(state->NotEq_type);
@@ -598,6 +599,9 @@ static const char * const DictComp_fields[]={
 static const char * const GeneratorExp_fields[]={
     "elt",
     "generators",
+};
+static const char * const NoneAwareAccess_fields[]={
+    "value",
 };
 static const char * const Await_fields[]={
     "value",
@@ -2942,6 +2946,33 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(GeneratorExp_annotations);
+    PyObject *NoneAwareAccess_annotations = PyDict_New();
+    if (!NoneAwareAccess_annotations) return 0;
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(NoneAwareAccess_annotations, "value", type)
+                                    == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(NoneAwareAccess_annotations);
+            return 0;
+        }
+    }
+    cond = PyObject_SetAttrString(state->NoneAwareAccess_type, "_field_types",
+                                  NoneAwareAccess_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(NoneAwareAccess_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->NoneAwareAccess_type,
+                                  "__annotations__",
+                                  NoneAwareAccess_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(NoneAwareAccess_annotations);
+        return 0;
+    }
+    Py_DECREF(NoneAwareAccess_annotations);
     PyObject *Await_annotations = PyDict_New();
     if (!Await_annotations) return 0;
     {
@@ -6394,6 +6425,7 @@ init_types(void *arg)
         "     | SetComp(expr elt, comprehension* generators)\n"
         "     | DictComp(expr key, expr value, comprehension* generators)\n"
         "     | GeneratorExp(expr elt, comprehension* generators)\n"
+        "     | NoneAwareAccess(expr value)\n"
         "     | Await(expr value)\n"
         "     | Yield(expr? value)\n"
         "     | YieldFrom(expr value)\n"
@@ -6467,6 +6499,11 @@ init_types(void *arg)
                                          2,
         "GeneratorExp(expr elt, comprehension* generators)");
     if (!state->GeneratorExp_type) return -1;
+    state->NoneAwareAccess_type = make_type(state, "NoneAwareAccess",
+                                            state->expr_type,
+                                            NoneAwareAccess_fields, 1,
+        "NoneAwareAccess(expr value)");
+    if (!state->NoneAwareAccess_type) return -1;
     state->Await_type = make_type(state, "Await", state->expr_type,
                                   Await_fields, 1,
         "Await(expr value)");
@@ -8043,6 +8080,28 @@ _PyAST_GeneratorExp(expr_ty elt, asdl_comprehension_seq * generators, int
     p->kind = GeneratorExp_kind;
     p->v.GeneratorExp.elt = elt;
     p->v.GeneratorExp.generators = generators;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_NoneAwareAccess(expr_ty value, int lineno, int col_offset, int
+                       end_lineno, int end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!value) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'value' is required for NoneAwareAccess");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = NoneAwareAccess_kind;
+    p->v.NoneAwareAccess.value = value;
     p->lineno = lineno;
     p->col_offset = col_offset;
     p->end_lineno = end_lineno;
@@ -9769,6 +9828,16 @@ ast2obj_expr(struct ast_state *state, void* _o)
                              ast2obj_comprehension);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->generators, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case NoneAwareAccess_kind:
+        tp = (PyTypeObject *)state->NoneAwareAccess_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.NoneAwareAccess.value);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->value, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -14652,6 +14721,36 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, PyArena*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->NoneAwareAccess_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty value;
+
+        if (PyObject_GetOptionalAttr(obj, state->value, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"value\" missing from NoneAwareAccess");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'NoneAwareAccess' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &value, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_NoneAwareAccess(value, lineno, col_offset, end_lineno,
+                                      end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Await_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -18141,6 +18240,10 @@ astmodule_exec(PyObject *m)
     }
     if (PyModule_AddObjectRef(m, "GeneratorExp", state->GeneratorExp_type) < 0)
         {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "NoneAwareAccess",
+        state->NoneAwareAccess_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Await", state->Await_type) < 0) {

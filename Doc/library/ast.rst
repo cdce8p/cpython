@@ -713,6 +713,20 @@ Expressions
                 value=Name(id='snake'),
                 attr='colour'))
 
+.. class:: NoneAwareAccess(value)
+
+   None aware access, e.g. ``a?``. ``value`` is a node, typically a
+   :class:`Name`.
+
+   .. doctest::
+
+        >>> print(ast.dump(ast.parse('snake?', mode='eval'), indent=4))
+        Expression(
+            body=NoneAwareAccess(
+                value=Name(id='snake', ctx=Load()))
+
+   .. versionadded:: 3.15
+
 
 .. class:: NamedExpr(target, value)
 

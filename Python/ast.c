@@ -395,6 +395,9 @@ validate_expr(expr_ty exp, expr_context_ty ctx)
         }
         ret = validate_expr(exp->v.NamedExpr.value, Load);
         break;
+    case NoneAwareAccess_kind:
+        ret = validate_expr(exp->v.NoneAwareAccess.value, Load);
+        break;
     /* This last case doesn't have any checking. */
     case Name_kind:
         ret = 1;
