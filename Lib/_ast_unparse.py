@@ -18,6 +18,7 @@ class _Precedence:
     TUPLE = auto()           # <expr1>, <expr2>
     YIELD = auto()           # 'yield', 'yield from'
     TEST = auto()            # 'if'-'else', 'lambda'
+    COALESCE = auto()        # '??'
     OR = auto()              # 'or'
     AND = auto()             # 'and'
     NOT = auto()             # 'not'
@@ -290,6 +291,12 @@ class Unparser(NodeVisitor):
         if node.value:
             self.write(" = ")
             self.traverse(node.value)
+
+    def visit_CoalesceAssign(self, node):
+        self.fill()
+        self.traverse(node.target)
+        self.write(" ??= ")
+        self.traverse(node.value)
 
     def visit_Return(self, node):
         self.fill("return")
@@ -917,8 +924,8 @@ class Unparser(NodeVisitor):
                 self.write(" " + self.cmpops[o.__class__.__name__] + " ")
                 self.traverse(e)
 
-    boolops = {"And": "and", "Or": "or"}
-    boolop_precedence = {"and": _Precedence.AND, "or": _Precedence.OR}
+    boolops = {"And": "and", "Or": "or", "Coalesce": "??"}
+    boolop_precedence = {"and": _Precedence.AND, "or": _Precedence.OR, "??": _Precedence.COALESCE}
 
     def visit_BoolOp(self, node):
         operator = self.boolops[node.op.__class__.__name__]

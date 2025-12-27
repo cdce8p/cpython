@@ -104,3 +104,7 @@
      - ``"!"``
    * - .. data:: QUESTION
      - ``"?"``
+   * - .. data:: COALESCE
+     - ``"??"``
+   * - .. data:: COALESCEEQUAL
+     - ``"??="``
