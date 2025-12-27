@@ -200,7 +200,7 @@ static int codegen_nameop(compiler *, location, identifier, expr_context_ty);
 static int codegen_visit_stmt(compiler *, stmt_ty);
 static int codegen_visit_keyword(compiler *, keyword_ty);
 static int codegen_visit_expr(compiler *, expr_ty);
-static int codegen_augassign(compiler *, stmt_ty);
+static int codegen_augassign_coalesceassign(compiler *, stmt_ty);
 static int codegen_annassign(compiler *, stmt_ty);
 static int codegen_subscript(compiler *, expr_ty);
 static int codegen_slice_two_parts(compiler *, expr_ty);
@@ -3101,7 +3101,8 @@ codegen_visit_stmt(compiler *c, stmt_ty s)
         break;
     }
     case AugAssign_kind:
-        return codegen_augassign(c, s);
+    case CoalesceAssign_kind:
+        return codegen_augassign_coalesceassign(c, s);
     case AnnAssign_kind:
         return codegen_annassign(c, s);
     case For_kind:
@@ -3371,20 +3372,29 @@ error:
 }
 
 static int
-codegen_boolop(compiler *c, expr_ty e)
+codegen_boolop_coalesceop(compiler *c, expr_ty e)
 {
     int jumpi;
     Py_ssize_t i, n;
     asdl_expr_seq *s;
 
     location loc = LOC(e);
-    assert(e->kind == BoolOp_kind);
-    if (e->v.BoolOp.op == And)
-        jumpi = JUMP_IF_FALSE;
-    else
-        jumpi = JUMP_IF_TRUE;
+    assert(e->kind == BoolOp_kind || e->kind == CoalesceOp_kind);
+    if (e->kind == BoolOp_kind) {
+        s = e->v.BoolOp.values;
+        switch (e->v.BoolOp.op) {
+            case And:
+                jumpi = JUMP_IF_FALSE;
+                break;
+            case Or:
+                jumpi = JUMP_IF_TRUE;
+                break;
+        }
+    } else {
+        s = e->v.CoalesceOp.values;
+        jumpi = JUMP_IF_NOT_NONE;
+    }
     NEW_JUMP_TARGET_LABEL(c, end);
-    s = e->v.BoolOp.values;
     n = asdl_seq_LEN(s) - 1;
     assert(n >= 0);
     for (i = 0; i < n; ++i) {
@@ -5370,7 +5380,8 @@ codegen_visit_expr(compiler *c, expr_ty e)
         VISIT(c, expr, e->v.NamedExpr.target);
         break;
     case BoolOp_kind:
-        return codegen_boolop(c, e);
+    case CoalesceOp_kind:
+        return codegen_boolop_coalesceop(c, e);
     case BinOp_kind:
         VISIT(c, expr, e->v.BinOp.left);
         VISIT(c, expr, e->v.BinOp.right);
@@ -5541,10 +5552,18 @@ should_apply_two_element_slice_optimization(expr_ty s)
 }
 
 static int
-codegen_augassign(compiler *c, stmt_ty s)
+codegen_augassign_coalesceassign(compiler *c, stmt_ty s)
 {
-    assert(s->kind == AugAssign_kind);
-    expr_ty e = s->v.AugAssign.target;
+    expr_ty e;
+
+    assert(s->kind == AugAssign_kind || s->kind == CoalesceAssign_kind);
+    if (s->kind == AugAssign_kind) {
+        e = s->v.AugAssign.target;
+    } else {
+        e = s->v.CoalesceAssign.target;
+    }
+    NEW_JUMP_TARGET_LABEL(c, cleanup)
+    NEW_JUMP_TARGET_LABEL(c, end);
 
     location loc = LOC(e);
 
@@ -5575,16 +5594,27 @@ codegen_augassign(compiler *c, stmt_ty s)
         RETURN_IF_ERROR(codegen_nameop(c, loc, e->v.Name.id, Load));
         break;
     default:
-        PyErr_Format(PyExc_SystemError,
-            "invalid node type (%d) for augmented assignment",
-            e->kind);
+        if (s->kind == AugAssign_kind) {
+            PyErr_Format(PyExc_SystemError,
+                "invalid node type (%d) for augmented assignment",
+                e->kind);
+        } else {
+            PyErr_Format(PyExc_SystemError,
+                "invalid node type (%d) for coalesce assignment",
+                e->kind);
+        }
         return ERROR;
     }
 
     loc = LOC(s);
 
-    VISIT(c, expr, s->v.AugAssign.value);
-    ADDOP_INPLACE(c, loc, s->v.AugAssign.op);
+    if (s->kind == AugAssign_kind) {
+        VISIT(c, expr, s->v.AugAssign.value);
+        ADDOP_INPLACE(c, loc, s->v.AugAssign.op);
+    } else {
+        ADDOP_JUMP(c, loc, POP_JUMP_IF_NOT_NONE, cleanup);
+        VISIT(c, expr, s->v.CoalesceAssign.value);
+    }
 
     loc = LOC(e);
 
@@ -5608,10 +5638,36 @@ codegen_augassign(compiler *c, stmt_ty s)
         }
         break;
     case Name_kind:
-        return codegen_nameop(c, loc, e->v.Name.id, Store);
+        RETURN_IF_ERROR(codegen_nameop(c, loc, e->v.Name.id, Store));
+        break;
     default:
         Py_UNREACHABLE();
     }
+    ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+    USE_LABEL(c, cleanup);
+    switch(e->kind) {
+    case Attribute_kind:
+        ADDOP(c, loc, POP_TOP);
+        break;
+    case  Subscript_kind:
+        if (should_apply_two_element_slice_optimization(e->v.Subscript.slice)) {
+            ADDOP(c, loc, POP_TOP);
+            ADDOP(c, loc, POP_TOP);
+            ADDOP(c, loc, POP_TOP);
+        }
+        else {
+            ADDOP(c, loc, POP_TOP);
+            ADDOP(c, loc, POP_TOP);
+        }
+        break;
+    case Name_kind:
+        break;
+    default:
+        Py_UNREACHABLE();
+    }
+
+    USE_LABEL(c, end);
     return SUCCESS;
 }
 

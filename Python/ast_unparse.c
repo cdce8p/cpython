@@ -118,6 +118,7 @@ append_repr(PyUnicodeWriter *writer, PyObject *obj)
 enum {
     PR_TUPLE,
     PR_TEST,            /* 'if'-'else', 'lambda' */
+    PR_COALESCE,        /* '??' */
     PR_OR,              /* 'or' */
     PR_AND,             /* 'and' */
     PR_NOT,             /* 'not' */
@@ -137,12 +138,27 @@ enum {
 };
 
 static int
-append_ast_boolop(PyUnicodeWriter *writer, expr_ty e, int level)
+append_ast_boolop_coalesceop(PyUnicodeWriter *writer, expr_ty e, int level)
 {
     Py_ssize_t i, value_count;
     asdl_expr_seq *values;
-    const char *op = (e->v.BoolOp.op == And) ? " and " : " or ";
-    int pr = (e->v.BoolOp.op == And) ? PR_AND : PR_OR;
+    const char *op;
+    int pr;
+    if (e->kind == BoolOp_kind) {
+        switch (e->v.BoolOp.op) {
+            case And:
+                op = " and ";
+                pr = PR_AND;
+                break;
+            case Or:
+                op = " or ";
+                pr = PR_OR;
+                break;
+        }
+    } else {
+        op = " ?? ";
+        pr = PR_COALESCE;
+    }
 
     APPEND_STR_IF(level > pr, "(");
 
@@ -954,7 +970,8 @@ append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
 {
     switch (e->kind) {
     case BoolOp_kind:
-        return append_ast_boolop(writer, e, level);
+    case CoalesceOp_kind:
+        return append_ast_boolop_coalesceop(writer, e, level);
     case BinOp_kind:
         return append_ast_binop(writer, e, level);
     case UnaryOp_kind:
