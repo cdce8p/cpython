@@ -58,6 +58,9 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->Break_type);
     Py_CLEAR(state->Call_type);
     Py_CLEAR(state->ClassDef_type);
+    Py_CLEAR(state->CoalesceAssign_type);
+    Py_CLEAR(state->Coalesce_singleton);
+    Py_CLEAR(state->Coalesce_type);
     Py_CLEAR(state->Compare_type);
     Py_CLEAR(state->Constant_type);
     Py_CLEAR(state->Continue_type);
@@ -470,6 +473,10 @@ static const char * const AnnAssign_fields[]={
     "annotation",
     "value",
     "simple",
+};
+static const char * const CoalesceAssign_fields[]={
+    "target",
+    "value",
 };
 static const char * const For_fields[]={
     "target",
@@ -1581,6 +1588,44 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(AnnAssign_annotations);
+    PyObject *CoalesceAssign_annotations = PyDict_New();
+    if (!CoalesceAssign_annotations) return 0;
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(CoalesceAssign_annotations, "target", type)
+                                    == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(CoalesceAssign_annotations);
+            return 0;
+        }
+    }
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(CoalesceAssign_annotations, "value", type)
+                                    == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(CoalesceAssign_annotations);
+            return 0;
+        }
+    }
+    cond = PyObject_SetAttrString(state->CoalesceAssign_type, "_field_types",
+                                  CoalesceAssign_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(CoalesceAssign_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->CoalesceAssign_type,
+                                  "__annotations__",
+                                  CoalesceAssign_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(CoalesceAssign_annotations);
+        return 0;
+    }
+    Py_DECREF(CoalesceAssign_annotations);
     PyObject *For_annotations = PyDict_New();
     if (!For_annotations) return 0;
     {
@@ -3818,6 +3863,21 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(Or_annotations);
+    PyObject *Coalesce_annotations = PyDict_New();
+    if (!Coalesce_annotations) return 0;
+    cond = PyObject_SetAttrString(state->Coalesce_type, "_field_types",
+                                  Coalesce_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(Coalesce_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->Coalesce_type, "__annotations__",
+                                  Coalesce_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(Coalesce_annotations);
+        return 0;
+    }
+    Py_DECREF(Coalesce_annotations);
     PyObject *Add_annotations = PyDict_New();
     if (!Add_annotations) return 0;
     cond = PyObject_SetAttrString(state->Add_type, "_field_types",
@@ -6298,6 +6358,7 @@ init_types(void *arg)
         "     | TypeAlias(expr name, type_param* type_params, expr value)\n"
         "     | AugAssign(expr target, operator op, expr value)\n"
         "     | AnnAssign(expr target, expr annotation, expr? value, int simple)\n"
+        "     | CoalesceAssign(expr target, expr value)\n"
         "     | For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)\n"
         "     | AsyncFor(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)\n"
         "     | While(expr test, stmt* body, stmt* orelse)\n"
@@ -6381,6 +6442,11 @@ init_types(void *arg)
     if (!state->AnnAssign_type) return -1;
     if (PyObject_SetAttr(state->AnnAssign_type, state->value, Py_None) == -1)
         return -1;
+    state->CoalesceAssign_type = make_type(state, "CoalesceAssign",
+                                           state->stmt_type,
+                                           CoalesceAssign_fields, 2,
+        "CoalesceAssign(expr target, expr value)");
+    if (!state->CoalesceAssign_type) return -1;
     state->For_type = make_type(state, "For", state->stmt_type, For_fields, 5,
         "For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)");
     if (!state->For_type) return -1;
@@ -6684,7 +6750,7 @@ init_types(void *arg)
                                              NULL, NULL);
     if (!state->Del_singleton) return -1;
     state->boolop_type = make_type(state, "boolop", state->AST_type, NULL, 0,
-        "boolop = And | Or");
+        "boolop = And | Or | Coalesce");
     if (!state->boolop_type) return -1;
     if (add_attributes(state, state->boolop_type, NULL, 0) < 0) return -1;
     state->And_type = make_type(state, "And", state->boolop_type, NULL, 0,
@@ -6699,6 +6765,14 @@ init_types(void *arg)
     state->Or_singleton = PyType_GenericNew((PyTypeObject *)state->Or_type,
                                             NULL, NULL);
     if (!state->Or_singleton) return -1;
+    state->Coalesce_type = make_type(state, "Coalesce", state->boolop_type,
+                                     NULL, 0,
+        "Coalesce");
+    if (!state->Coalesce_type) return -1;
+    state->Coalesce_singleton = PyType_GenericNew((PyTypeObject
+                                                  *)state->Coalesce_type, NULL,
+                                                  NULL);
+    if (!state->Coalesce_singleton) return -1;
     state->operator_type = make_type(state, "operator", state->AST_type, NULL,
                                      0,
         "operator = Add | Sub | Mult | MatMult | Div | Mod | Pow | LShift | RShift | BitOr | BitXor | BitAnd | FloorDiv");
@@ -7434,6 +7508,35 @@ _PyAST_AnnAssign(expr_ty target, expr_ty annotation, expr_ty value, int simple,
     p->v.AnnAssign.annotation = annotation;
     p->v.AnnAssign.value = value;
     p->v.AnnAssign.simple = simple;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+stmt_ty
+_PyAST_CoalesceAssign(expr_ty target, expr_ty value, int lineno, int
+                      col_offset, int end_lineno, int end_col_offset, PyArena
+                      *arena)
+{
+    stmt_ty p;
+    if (!target) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'target' is required for CoalesceAssign");
+        return NULL;
+    }
+    if (!value) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'value' is required for CoalesceAssign");
+        return NULL;
+    }
+    p = (stmt_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = CoalesceAssign_kind;
+    p->v.CoalesceAssign.target = target;
+    p->v.CoalesceAssign.value = value;
     p->lineno = lineno;
     p->col_offset = col_offset;
     p->end_lineno = end_lineno;
@@ -9406,6 +9509,21 @@ ast2obj_stmt(struct ast_state *state, void* _o)
             goto failed;
         Py_DECREF(value);
         break;
+    case CoalesceAssign_kind:
+        tp = (PyTypeObject *)state->CoalesceAssign_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.CoalesceAssign.target);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->target, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_expr(state, o->v.CoalesceAssign.value);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->value, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
     case For_kind:
         tp = (PyTypeObject *)state->For_type;
         result = PyType_GenericNew(tp, NULL, NULL);
@@ -10333,6 +10451,8 @@ PyObject* ast2obj_boolop(struct ast_state *state, boolop_ty o)
             return Py_NewRef(state->And_singleton);
         case Or:
             return Py_NewRef(state->Or_singleton);
+        case Coalesce:
+            return Py_NewRef(state->Coalesce_singleton);
     }
     Py_UNREACHABLE();
 }
@@ -12481,6 +12601,54 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, PyArena*
         }
         *out = _PyAST_AnnAssign(target, annotation, value, simple, lineno,
                                 col_offset, end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
+    tp = state->CoalesceAssign_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty target;
+        expr_ty value;
+
+        if (PyObject_GetOptionalAttr(obj, state->target, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"target\" missing from CoalesceAssign");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'CoalesceAssign' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &target, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->value, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"value\" missing from CoalesceAssign");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'CoalesceAssign' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &value, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_CoalesceAssign(target, value, lineno, col_offset,
+                                     end_lineno, end_col_offset, arena);
         if (*out == NULL) goto failed;
         return 0;
     }
@@ -16104,6 +16272,14 @@ obj2ast_boolop(struct ast_state *state, PyObject* obj, boolop_ty* out, PyArena*
         *out = Or;
         return 0;
     }
+    isinstance = PyObject_IsInstance(obj, state->Coalesce_type);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        *out = Coalesce;
+        return 0;
+    }
 
     PyErr_Format(PyExc_TypeError, "expected some sort of boolop, but got %R", obj);
     return -1;
@@ -18394,6 +18570,10 @@ astmodule_exec(PyObject *m)
     if (PyModule_AddObjectRef(m, "AnnAssign", state->AnnAssign_type) < 0) {
         return -1;
     }
+    if (PyModule_AddObjectRef(m, "CoalesceAssign", state->CoalesceAssign_type)
+        < 0) {
+        return -1;
+    }
     if (PyModule_AddObjectRef(m, "For", state->For_type) < 0) {
         return -1;
     }
@@ -18572,6 +18752,9 @@ astmodule_exec(PyObject *m)
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Or", state->Or_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "Coalesce", state->Coalesce_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "operator", state->operator_type) < 0) {
