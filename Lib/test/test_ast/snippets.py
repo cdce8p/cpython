@@ -223,6 +223,8 @@ exec_tests = [
     "match x:\n\tcase 1:\n\t\tpass",
     # Match with _
     "match x:\n\tcase 1:\n\t\tpass\n\tcase _:\n\t\tpass",
+    # None-coalescing assignment
+    "a ??= b",
 ]
 
 # These are compiled through "single"
@@ -379,6 +381,8 @@ eval_tests = [
   # None-aware access operators
   "a?.b",
   "a?[b]",
+  # None-coalescing operator
+  "a ?? b",
 ]
 
 
@@ -534,6 +538,7 @@ exec_results = [
 ('Module', [('FunctionDef', (1, 0, 1, 43), 'f', ('arguments', [], [], None, [], [], None, []), [('Pass', (1, 39, 1, 43))], [], None, None, [('TypeVar', (1, 6, 1, 16), 'T', ('Name', (1, 9, 1, 12), 'int', ('Load',)), ('Constant', (1, 15, 1, 16), 1, None)), ('TypeVarTuple', (1, 18, 1, 25), 'Ts', ('Constant', (1, 24, 1, 25), 2, None)), ('ParamSpec', (1, 27, 1, 34), 'P', ('Constant', (1, 33, 1, 34), 3, None))])], []),
 ('Module', [('Match', (1, 0, 3, 6), ('Name', (1, 6, 1, 7), 'x', ('Load',)), [('match_case', ('MatchValue', (2, 6, 2, 7), ('Constant', (2, 6, 2, 7), 1, None)), None, [('Pass', (3, 2, 3, 6))])])], []),
 ('Module', [('Match', (1, 0, 5, 6), ('Name', (1, 6, 1, 7), 'x', ('Load',)), [('match_case', ('MatchValue', (2, 6, 2, 7), ('Constant', (2, 6, 2, 7), 1, None)), None, [('Pass', (3, 2, 3, 6))]), ('match_case', ('MatchAs', (4, 6, 4, 7), None, None), None, [('Pass', (5, 2, 5, 6))])])], []),
+('Module', [('CoalesceAssign', (1, 0, 1, 7), ('Name', (1, 0, 1, 1), 'a', ('Store',)), ('Name', (1, 6, 1, 7), 'b', ('Load',)))], []),
 ]
 single_results = [
 ('Interactive', [('Expr', (1, 0, 1, 3), ('BinOp', (1, 0, 1, 3), ('Constant', (1, 0, 1, 1), 1, None), ('Add',), ('Constant', (1, 2, 1, 3), 2, None)))]),
@@ -623,5 +628,6 @@ eval_results = [
 ('Expression', ('TemplateStr', (1, 0, 1, 11), [('Constant', (1, 2, 1, 6), 'foo(', None), ('Interpolation', (1, 6, 1, 9), ('Name', (1, 7, 1, 8), 'a', ('Load',)), 'a', -1, None), ('Constant', (1, 9, 1, 10), ')', None)])),
 ('Expression', ('NoneAwareAttribute', (1, 0, 1, 4), ('Name', (1, 0, 1, 1), 'a', ('Load',)), 'b')),
 ('Expression', ('NoneAwareSubscript', (1, 0, 1, 5), ('Name', (1, 0, 1, 1), 'a', ('Load',)), ('Name', (1, 3, 1, 4), 'b', ('Load',)))),
+('Expression', ('BoolOp', (1, 0, 1, 6), ('Coalesce',), [('Name', (1, 0, 1, 1), 'a', ('Load',)), ('Name', (1, 5, 1, 6), 'b', ('Load',))])),
 ]
 main()
