@@ -106,3 +106,7 @@
      - ``"?"``
    * - .. data:: QUESTIONDOT
      - ``"?."``
+   * - .. data:: COALESCE
+     - ``"??"``
+   * - .. data:: COALESCEEQUAL
+     - ``"??="``

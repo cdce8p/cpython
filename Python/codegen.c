@@ -202,11 +202,13 @@ static int codegen_visit_keyword(compiler *, keyword_ty);
 static int codegen_visit_expr(compiler *, expr_ty);
 static int codegen_augassign(compiler *, stmt_ty);
 static int codegen_annassign(compiler *, stmt_ty);
+static int codegen_coalesceassign(compiler *, stmt_ty);
 static int codegen_subscript(compiler *, expr_ty);
 static int codegen_slice_two_parts(compiler *, expr_ty);
 static int codegen_slice(compiler *, expr_ty);
 static int codegen_none_aware_attribute(compiler *, expr_ty);
 static int codegen_none_aware_subscript(compiler *, expr_ty);
+static int codegen_coalesce_op(compiler *, expr_ty);
 
 static int codegen_body(compiler *, location, asdl_stmt_seq *, bool);
 static int codegen_with(compiler *, stmt_ty);
@@ -3032,6 +3034,8 @@ codegen_visit_stmt(compiler *c, stmt_ty s)
         return codegen_augassign(c, s);
     case AnnAssign_kind:
         return codegen_annassign(c, s);
+    case CoalesceAssign_kind:
+        return codegen_coalesceassign(c, s);
     case For_kind:
         CODEGEN_COND_BLOCK(codegen_for, c, s);
         break;
@@ -5310,6 +5314,8 @@ codegen_visit_expr(compiler *c, expr_ty e)
         return codegen_none_aware_attribute(c, e);
     case NoneAwareSubscript_kind:
         return codegen_none_aware_subscript(c, e);
+    case CoalesceOp_kind:
+        return codegen_coalesce_op(c, e);
     case Subscript_kind:
         return codegen_subscript(c, e);
     case Starred_kind:
@@ -5638,6 +5644,126 @@ codegen_none_aware_subscript(compiler *c, expr_ty e)
     if (SAME_JUMP_TARGET_LABEL(end, next)) {
         USE_LABEL(c, end);
     }
+    return SUCCESS;
+}
+
+static int
+codegen_coalesce_op(compiler *c, expr_ty e)
+{
+    assert(e->kind == CoalesceOp_kind);
+    location loc = LOC(e);
+    NEW_JUMP_TARGET_LABEL(c, end);
+
+    VISIT(c, expr, e->v.CoalesceOp.value);
+    ADDOP_I(c, loc, COPY, 1);
+    ADDOP_JUMP(c, loc, POP_JUMP_IF_NOT_NONE, end);
+
+    ADDOP(c, loc, POP_TOP);
+    VISIT(c, expr, e->v.CoalesceOp.fallback);
+
+    USE_LABEL(c, end);
+    return SUCCESS;
+}
+
+static int
+codegen_coalesceassign(compiler *c, stmt_ty s)
+{
+    assert(s->kind == CoalesceAssign_kind);
+    expr_ty e = s->v.CoalesceAssign.target;
+    NEW_JUMP_TARGET_LABEL(c, cleanup)
+    NEW_JUMP_TARGET_LABEL(c, end);
+
+    location loc = LOC(e);
+
+    switch (e->kind) {
+    case Attribute_kind:
+        VISIT(c, expr, e->v.Attribute.value);
+        ADDOP_I(c, loc, COPY, 1);
+        loc = update_start_location_to_match_attr(c, loc, e);
+        ADDOP_NAME(c, loc, LOAD_ATTR, e->v.Attribute.attr, names);
+        break;
+    case Subscript_kind:
+        // TODO Does ??= with subscipt **slice** make sense?
+        // TODO Should ??= be applied for each item individually?
+        VISIT(c, expr, e->v.Subscript.value);
+        if (should_apply_two_element_slice_optimization(e->v.Subscript.slice)) {
+            RETURN_IF_ERROR(codegen_slice_two_parts(c, e->v.Subscript.slice));
+            ADDOP_I(c, loc, COPY, 3);
+            ADDOP_I(c, loc, COPY, 3);
+            ADDOP_I(c, loc, COPY, 3);
+            ADDOP(c, loc, BINARY_SLICE);
+        }
+        else {
+            VISIT(c, expr, e->v.Subscript.slice);
+            ADDOP_I(c, loc, COPY, 2);
+            ADDOP_I(c, loc, COPY, 2);
+            ADDOP_I(c, loc, BINARY_OP, NB_SUBSCR);
+        }
+        break;
+    case Name_kind:
+        RETURN_IF_ERROR(codegen_nameop(c, loc, e->v.Name.id, Load));
+        break;
+    default:
+        PyErr_Format(PyExc_SystemError,
+            "invalid node type (%d) for coalesce assignment",
+            e->kind);
+        return ERROR;
+    }
+
+    loc = LOC(s);
+    ADDOP_JUMP(c, loc, POP_JUMP_IF_NOT_NONE, cleanup);
+    VISIT(c, expr, s->v.CoalesceAssign.fallback);
+
+    switch (e->kind) {
+    case Attribute_kind:
+        loc = update_start_location_to_match_attr(c, loc, e);
+        ADDOP_I(c, loc, SWAP, 2);
+        ADDOP_NAME(c, loc, STORE_ATTR, e->v.Attribute.attr, names);
+        break;
+    case Subscript_kind:
+        if (should_apply_two_element_slice_optimization(e->v.Subscript.slice)) {
+            ADDOP_I(c, loc, SWAP, 4);
+            ADDOP_I(c, loc, SWAP, 3);
+            ADDOP_I(c, loc, SWAP, 2);
+            ADDOP(c, loc, STORE_SLICE);
+        }
+        else {
+            ADDOP_I(c, loc, SWAP, 3);
+            ADDOP_I(c, loc, SWAP, 2);
+            ADDOP(c, loc, STORE_SUBSCR);
+        }
+        break;
+    case Name_kind:
+        codegen_nameop(c, loc, e->v.Name.id, Store);
+        break;
+    default:
+        Py_UNREACHABLE();
+    }
+    ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+    USE_LABEL(c, cleanup);
+    switch (e->kind) {
+    case Attribute_kind:
+        ADDOP(c, loc, POP_TOP);
+        break;
+    case Subscript_kind:
+        if (should_apply_two_element_slice_optimization(e->v.Subscript.slice)) {
+            ADDOP(c, loc, POP_TOP);
+            ADDOP(c, loc, POP_TOP);
+            ADDOP(c, loc, POP_TOP);
+        }
+        else {
+            ADDOP(c, loc, POP_TOP);
+            ADDOP(c, loc, POP_TOP);
+        }
+        break;
+    case Name_kind:
+        break;
+    default:
+        Py_UNREACHABLE();
+    }
+
+    USE_LABEL(c, end);
     return SUCCESS;
 }
 

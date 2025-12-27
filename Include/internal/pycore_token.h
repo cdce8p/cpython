@@ -70,20 +70,22 @@ extern "C" {
 #define EXCLAMATION     54
 #define QUESTION        55
 #define QUESTIONDOT     56
-#define OP              57
-#define TYPE_IGNORE     58
-#define TYPE_COMMENT    59
-#define SOFT_KEYWORD    60
-#define FSTRING_START   61
-#define FSTRING_MIDDLE  62
-#define FSTRING_END     63
-#define TSTRING_START   64
-#define TSTRING_MIDDLE  65
-#define TSTRING_END     66
-#define COMMENT         67
-#define NL              68
-#define ERRORTOKEN      69
-#define N_TOKENS        71
+#define COALESCE        57
+#define COALESCEEQUAL   58
+#define OP              59
+#define TYPE_IGNORE     60
+#define TYPE_COMMENT    61
+#define SOFT_KEYWORD    62
+#define FSTRING_START   63
+#define FSTRING_MIDDLE  64
+#define FSTRING_END     65
+#define TSTRING_START   66
+#define TSTRING_MIDDLE  67
+#define TSTRING_END     68
+#define COMMENT         69
+#define NL              70
+#define ERRORTOKEN      71
+#define N_TOKENS        73
 #define NT_OFFSET       256
 
 /* Special definitions for cooperation with parser */

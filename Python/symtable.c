@@ -2030,6 +2030,10 @@ symtable_visit_stmt(struct symtable *st, stmt_ty s)
         VISIT(st, expr, s->v.AugAssign.value);
         break;
     }
+    case CoalesceAssign_kind:
+        VISIT(st, expr, s->v.CoalesceAssign.target);
+        VISIT(st, expr, s->v.CoalesceAssign.fallback);
+        break;
     case For_kind: {
         VISIT(st, expr, s->v.For.target);
         VISIT(st, expr, s->v.For.iter);
@@ -2530,6 +2534,10 @@ symtable_visit_expr(struct symtable *st, expr_ty e)
     case NoneAwareSubscript_kind:
         VISIT(st, expr, e->v.NoneAwareSubscript.value);
         VISIT(st, expr, e->v.NoneAwareSubscript.slice);
+        break;
+    case CoalesceOp_kind:
+        VISIT(st, expr, e->v.CoalesceOp.value);
+        VISIT(st, expr, e->v.CoalesceOp.fallback);
         break;
     /* The following exprs can be assignment targets. */
     case Attribute_kind:

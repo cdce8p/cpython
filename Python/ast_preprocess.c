@@ -637,6 +637,10 @@ astfold_expr(expr_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
         CALL(astfold_expr, expr_ty, node_->v.NoneAwareSubscript.value);
         CALL(astfold_expr, expr_ty, node_->v.NoneAwareSubscript.slice);
         break;
+    case CoalesceOp_kind:
+        CALL(astfold_expr, expr_ty, node_->v.CoalesceOp.value);
+        CALL(astfold_expr, expr_ty, node_->v.CoalesceOp.fallback);
+        break;
     case Constant_kind:
         // Already a constant, nothing further to do
         break;
@@ -735,6 +739,10 @@ astfold_stmt(stmt_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
     case AugAssign_kind:
         CALL(astfold_expr, expr_ty, node_->v.AugAssign.target);
         CALL(astfold_expr, expr_ty, node_->v.AugAssign.value);
+        break;
+    case CoalesceAssign_kind:
+        CALL(astfold_expr, expr_ty, node_->v.CoalesceAssign.target);
+        CALL(astfold_expr, expr_ty, node_->v.CoalesceAssign.fallback);
         break;
     case AnnAssign_kind:
         CALL(astfold_expr, expr_ty, node_->v.AnnAssign.target);

@@ -61,6 +61,8 @@ COLONEQUAL              ':='
 EXCLAMATION             '!'
 QUESTION                '?'
 QUESTIONDOT             '?.'
+COALESCE                '??'
+COALESCEEQUAL           '??='
 
 OP
 TYPE_IGNORE
