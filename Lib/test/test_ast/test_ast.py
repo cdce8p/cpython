@@ -952,6 +952,13 @@ class AST_Tests(unittest.TestCase):
         with self.assertRaises(SyntaxError):
             ast.parse("a?[b]", feature_version=(3, 15))
 
+    def test_none_coalescing_operators_feature_version(self):
+        ast.parse("a ?? b", feature_version=(3, 16))
+        ast.parse("a ??= b", feature_version=(3, 16))
+        with self.assertRaises(SyntaxError):
+            ast.parse("a ?? b", feature_version=(3, 15))
+            ast.parse("a ??= b", feature_version=(3, 15))
+
     def test_conditional_context_managers_parse_with_low_feature_version(self):
         # regression test for gh-115881
         ast.parse('with (x() if y else z()): ...', feature_version=(3, 8))
@@ -1048,6 +1055,7 @@ class AST_Tests(unittest.TestCase):
             TUPLE = enum.auto()           # <expr1>, <expr2>
             YIELD = enum.auto()           # 'yield', 'yield from'
             TEST = enum.auto()            # 'if'-'else', 'lambda'
+            COALESCE = enum.auto()        # '??'
             OR = enum.auto()              # 'or'
             AND = enum.auto()             # 'and'
             NOT = enum.auto()             # 'not'

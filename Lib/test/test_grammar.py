@@ -2314,6 +2314,58 @@ class GrammarTests(unittest.TestCase):
         except AttributeError:
             pass
 
+    def test_coalesce(self):
+        class A:
+            v1 = "Hello"
+            v2 = None
+
+        a = A()
+        b = "World"
+        c = None
+
+        self.assertEqual(b ?? 2, "World")
+        self.assertEqual(c ?? 2, 2)
+        self.assertEqual(a.v1 ?? 2, "Hello")
+        self.assertEqual(c ?? 0 or None ?? 2 ?? 3, 2)
+        try:
+            self.assertEqual(c ?? 2 ** c ?? 3, 8)
+            self.fail("should produce TypeError")
+        except TypeError:
+            pass
+
+        if (a.v1 ?? 2) == None:
+            self.fail("test should be false")
+        else:
+            self.assertTrue(True)
+
+    def test_coalesce_assign(self):
+        class A:
+            v1 = "Hello"
+            v2 = [None]
+            v3 = None
+
+        a = A()
+        b = "World"
+        c = None
+
+        self.assertEqual(a.v1, "Hello")
+        self.assertEqual(a.v2, [None])
+        self.assertIsNone(a.v3, None)
+        self.assertEqual(b, "World")
+        self.assertIsNone(c, None)
+
+        a.v1 ??= 1
+        a.v2[0] ??= 2
+        a.v3 ??= 3
+        b ??= 4
+        c ??= 5
+
+        self.assertEqual(a.v1, "Hello")
+        self.assertEqual(a.v2, [2])
+        self.assertEqual(a.v3, 3)
+        self.assertEqual(b, "World")
+        self.assertEqual(c, 5)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -29,6 +29,7 @@ module Python
           | AugAssign(expr target, operator op, expr value)
           -- 'simple' indicates that we annotate simple name without parens
           | AnnAssign(expr target, expr annotation, expr? value, int simple)
+          | CoalesceAssign(expr target, expr value)
 
           -- use 'orelse' because else is a keyword in target languages
           | For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)
@@ -58,6 +59,7 @@ module Python
 
           -- BoolOp() can use left & right?
     expr = BoolOp(boolop op, expr* values)
+         | CoalesceOp(expr* values)
          | NamedExpr(expr target, expr value)
          | BinOp(expr left, operator op, expr right)
          | UnaryOp(unaryop op, expr operand)

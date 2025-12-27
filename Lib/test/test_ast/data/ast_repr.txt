@@ -134,6 +134,7 @@ Module(body=[FunctionDef(name='f', args=arguments(posonlyargs=[], args=[], varar
 Module(body=[FunctionDef(name='f', args=arguments(posonlyargs=[], args=[], vararg=None, kwonlyargs=[], kw_defaults=[], kwarg=None, defaults=[]), body=[Pass()], decorator_list=[], returns=None, type_comment=None, type_params=[TypeVar(name='T', bound=Name(...), default_value=Constant(...)), ..., ParamSpec(name='P', default_value=Constant(...))])], type_ignores=[])
 Module(body=[Match(subject=Name(id='x', ctx=Load(...)), cases=[match_case(pattern=MatchValue(...), guard=None, body=[Pass(...)])])], type_ignores=[])
 Module(body=[Match(subject=Name(id='x', ctx=Load(...)), cases=[match_case(pattern=MatchValue(...), guard=None, body=[Pass(...)]), match_case(pattern=MatchAs(...), guard=None, body=[Pass(...)])])], type_ignores=[])
+Module(body=[CoalesceAssign(target=Name(id='a', ctx=Store(...)), value=Name(id='b', ctx=Load(...)))], type_ignores=[])
 Module(body=[Expr(value=Constant(value=None, kind=None))], type_ignores=[])
 Module(body=[Expr(value=Constant(value=True, kind=None))], type_ignores=[])
 Module(body=[Expr(value=Constant(value=False, kind=None))], type_ignores=[])
@@ -218,3 +219,4 @@ Module(body=[Expr(value=TemplateStr(values=[Interpolation(...)]))], type_ignores
 Module(body=[Expr(value=TemplateStr(values=[Constant(...), ..., Constant(...)]))], type_ignores=[])
 Module(body=[Expr(value=NoneAwareAttribute(value=Name(...), attr='b'))], type_ignores=[])
 Module(body=[Expr(value=NoneAwareSubscript(value=Name(...), slice=Name(...)))], type_ignores=[])
+Module(body=[Expr(value=BoolOp(op=Coalesce(...), values=[Name(...), Name(...)]))], type_ignores=[])
