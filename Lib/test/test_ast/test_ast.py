@@ -965,6 +965,7 @@ class AST_Tests(unittest.TestCase):
             TUPLE = enum.auto()           # <expr1>, <expr2>
             YIELD = enum.auto()           # 'yield', 'yield from'
             TEST = enum.auto()            # 'if'-'else', 'lambda'
+            COALESCE = enum.auto()        # '??'
             OR = enum.auto()              # 'or'
             AND = enum.auto()             # 'and'
             NOT = enum.auto()             # 'not'

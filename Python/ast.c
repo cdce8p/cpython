@@ -264,6 +264,13 @@ validate_expr(expr_ty exp, expr_context_ty ctx)
         }
         ret = validate_exprs(exp->v.BoolOp.values, Load, 0);
         break;
+    case CoalesceOp_kind:
+        if (asdl_seq_LEN(exp->v.CoalesceOp.values) < 2) {
+            PyErr_SetString(PyExc_ValueError, "CoalesceOp with less than 2 values");
+            return 0;
+        }
+        ret = validate_exprs(exp->v.CoalesceOp.values, Load, 0);
+        break;
     case BinOp_kind:
         ret = validate_expr(exp->v.BinOp.left, Load) &&
             validate_expr(exp->v.BinOp.right, Load);
@@ -761,6 +768,10 @@ validate_stmt(stmt_ty stmt)
     case AugAssign_kind:
         ret = validate_expr(stmt->v.AugAssign.target, Store) &&
             validate_expr(stmt->v.AugAssign.value, Load);
+        break;
+    case CoalesceAssign_kind:
+        ret = validate_expr(stmt->v.CoalesceAssign.target, Store) &&
+            validate_expr(stmt->v.CoalesceAssign.value, Load);
         break;
     case AnnAssign_kind:
         if (stmt->v.AnnAssign.target->kind != Name_kind &&

@@ -163,6 +163,9 @@ assignment[stmt_ty]:
          _PyAST_Assign(a, b, NEW_TYPE_COMMENT(p, tc), EXTRA) }
     | a=single_target b=augassign ~ c=annotated_rhs {
          _PyAST_AugAssign(a, b->kind, c, EXTRA) }
+    | a=single_target '??=' ~ b=annotated_rhs {
+        CHECK_VERSION(stmt_ty, 15, "Coalesce assign statements are",
+        _PyAST_CoalesceAssign(a, b, EXTRA)) }
     | invalid_assignment
 
 annotated_rhs[expr_ty]: yield_expr | star_expressions
@@ -715,11 +718,11 @@ expression[expr_ty] (memo):
     | invalid_expression
     | invalid_legacy_expression
     | if_expression
-    | disjunction
+    | coalesce
     | lambdef
 
 if_expression[expr_ty]:
-    | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
+    | a=coalesce 'if' b=coalesce 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
 
 yield_expr[expr_ty]:
     | 'yield' 'from' a=expression { _PyAST_YieldFrom(a, EXTRA) }
@@ -756,6 +759,14 @@ named_expression[expr_ty]:
     | assignment_expression
     | invalid_named_expression
     | expression !':='
+
+coalesce[expr_ty] (memo):
+    | a=disjunction b=('??' c=disjunction { c })+ { CHECK_VERSION(
+        expr_ty, 15, "Coalesce expressions are",
+        _PyAST_CoalesceOp(
+            CHECK(asdl_expr_seq*, _PyPegen_seq_insert_in_front(p, a, b)),
+            EXTRA)) }
+    | disjunction
 
 disjunction[expr_ty] (memo):
     | a=conjunction b=('or' c=conjunction { c })+ { _PyAST_BoolOp(
@@ -1044,9 +1055,9 @@ for_if_clauses[asdl_comprehension_seq*]:
     | a[asdl_comprehension_seq*]=for_if_clause+ { a }
 
 for_if_clause[comprehension_ty]:
-    | 'async' 'for' a=star_targets 'in' ~ b=disjunction c[asdl_expr_seq*]=('if' z=disjunction { z })* {
+    | 'async' 'for' a=star_targets 'in' ~ b=coalesce c[asdl_expr_seq*]=('if' z=coalesce { z })* {
         CHECK_VERSION(comprehension_ty, 6, "Async comprehensions are", _PyAST_comprehension(a, b, c, 1, p->arena)) }
-    | 'for' a=star_targets 'in' ~ b=disjunction c[asdl_expr_seq*]=('if' z=disjunction { z })* {
+    | 'for' a=star_targets 'in' ~ b=coalesce c[asdl_expr_seq*]=('if' z=coalesce { z })* {
         _PyAST_comprehension(a, b, c, 0, p->arena) }
     | invalid_for_if_clause
     | invalid_for_target
@@ -1236,8 +1247,8 @@ invalid_kwarg:
 
 # IMPORTANT: Note that the "_without_invalid" suffix causes the rule to not call invalid rules under it
 expression_without_invalid[expr_ty]:
-    | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
-    | disjunction
+    | a=coalesce 'if' b=coalesce 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
+    | coalesce
     | lambdef
 invalid_legacy_expression:
     | a=NAME !'(' b=star_expressions {
@@ -1262,12 +1273,12 @@ invalid_expression:
         "invalid syntax. Is this intended to be part of the string?") }
     # !(NAME STRING) is not matched so we don't show this error with some invalid string prefixes like: kf"dsfsdf"
     # Soft keywords need to also be ignored because they can be parsed as NAME NAME
-   | !(NAME STRING | SOFT_KEYWORD) a=disjunction b=expression_without_invalid {
+   | !(NAME STRING | SOFT_KEYWORD) a=coalesce b=expression_without_invalid {
         _PyPegen_raise_error_for_missing_comma(p, a, b) }
-   | a=disjunction 'if' b=disjunction !('else'|':') { RAISE_SYNTAX_ERROR_KNOWN_RANGE(a, b, "expected 'else' after 'if' expression") }
-   | a=disjunction 'if' b=disjunction 'else' !expression {
+   | a=coalesce 'if' b=coalesce !('else'|':') { RAISE_SYNTAX_ERROR_KNOWN_RANGE(a, b, "expected 'else' after 'if' expression") }
+   | a=coalesce 'if' b=coalesce 'else' !expression {
         RAISE_SYNTAX_ERROR_ON_NEXT_TOKEN("expected expression after 'else', but statement is given") }
-   | a[stmt_ty]=(pass_stmt|break_stmt|continue_stmt) 'if' b=disjunction 'else' c=simple_stmt {
+   | a[stmt_ty]=(pass_stmt|break_stmt|continue_stmt) 'if' b=coalesce 'else' c=simple_stmt {
         RAISE_SYNTAX_ERROR_KNOWN_LOCATION (a, "expected expression before 'if', but statement is given") }
    | a='lambda' [lambda_params] b=':' &FSTRING_MIDDLE  {
         RAISE_SYNTAX_ERROR_KNOWN_RANGE(a, b, "f-string: lambda expressions are not allowed without parentheses") }
