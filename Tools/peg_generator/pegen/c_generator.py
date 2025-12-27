@@ -46,7 +46,7 @@ EXTENSION_PREFIX = """\
 #    define MAXSTACK 4000
 #  endif
 #else
-#  define MAXSTACK 6000
+#  define MAXSTACK 6200
 #endif
 
 """
@@ -783,7 +783,7 @@ class CParserGenerator(ParserGenerator, GrammarVisitor):
         self.print("{")
         # We have parsed successfully all the conditions for the option.
         with self.indent():
-            node_str = str(node).replace('"', '\\"')
+            node_str = str(node).replace('"', '\\"').replace('??', '?\\?')
             self.print(
                 f'D(fprintf(stderr, "%*c+ {rulename}[%d-%d]: %s succeeded!\\n", p->level, \' \', _mark, p->mark, "{node_str}"));'
             )
@@ -841,7 +841,7 @@ class CParserGenerator(ParserGenerator, GrammarVisitor):
             self.print(f"{{ // {node}")
         with self.indent():
             self._check_for_errors()
-            node_str = str(node).replace('"', '\\"')
+            node_str = str(node).replace('"', '\\"').replace('??', '?\\?')
             self.print(
                 f'D(fprintf(stderr, "%*c> {rulename}[%d-%d]: %s\\n", p->level, \' \', _mark, p->mark, "{node_str}"));'
             )
@@ -865,7 +865,7 @@ class CParserGenerator(ParserGenerator, GrammarVisitor):
                     self.handle_alt_normal(node, is_gather, rulename)
 
             self.print("p->mark = _mark;")
-            node_str = str(node).replace('"', '\\"')
+            node_str = str(node).replace('"', '\\"').replace('??', '?\\?')
             self.print(
                 f"D(fprintf(stderr, \"%*c%s {rulename}[%d-%d]: %s failed!\\n\", p->level, ' ',\n"
                 f'                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "{node_str}"));'
