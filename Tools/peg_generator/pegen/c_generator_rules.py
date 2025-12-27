@@ -247,7 +247,7 @@ class CRuleEmitter:
             self._print(f"{{ // {alt.text}")
         with self._indent():
             self._emit_error_check()
-            node_str = alt.text.replace('"', '\\"')
+            node_str = alt.text.replace('"', '\\"').replace('??', '?\\?')
             self._print(
                 f'D(fprintf(stderr, "%*c> {rulename}[%d-%d]: %s\\n", p->level, \' \', _mark, p->mark, "{node_str}"));'
             )
@@ -288,7 +288,7 @@ class CRuleEmitter:
         self._emit_conditions(keyword="if", alt=alt)
         self._print("{")
         with self._indent():
-            node_str = alt.text.replace('"', '\\"')
+            node_str = alt.text.replace('"', '\\"').replace('??', '?\\?')
             self._print(
                 f'D(fprintf(stderr, "%*c+ {rulename}[%d-%d]: %s succeeded!\\n", p->level, \' \', _mark, p->mark, "{node_str}"));'
             )
