@@ -2070,6 +2070,10 @@ symtable_visit_stmt(struct symtable *st, stmt_ty s)
         VISIT(st, expr, s->v.AugAssign.value);
         break;
     }
+    case CoalesceAssign_kind:
+        VISIT(st, expr, s->v.CoalesceAssign.target);
+        VISIT(st, expr, s->v.CoalesceAssign.value);
+        break;
     case For_kind: {
         VISIT(st, expr, s->v.For.target);
         VISIT(st, expr, s->v.For.iter);
@@ -2468,6 +2472,9 @@ symtable_visit_expr(struct symtable *st, expr_ty e)
         break;
     case BoolOp_kind:
         VISIT_SEQ(st, expr, e->v.BoolOp.values);
+        break;
+    case CoalesceOp_kind:
+        VISIT_SEQ(st, expr, e->v.CoalesceOp.values);
         break;
     case BinOp_kind:
         VISIT(st, expr, e->v.BinOp.left);
