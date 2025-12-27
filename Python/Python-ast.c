@@ -58,6 +58,8 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->Break_type);
     Py_CLEAR(state->Call_type);
     Py_CLEAR(state->ClassDef_type);
+    Py_CLEAR(state->CoalesceAssign_type);
+    Py_CLEAR(state->CoalesceOp_type);
     Py_CLEAR(state->Compare_type);
     Py_CLEAR(state->Constant_type);
     Py_CLEAR(state->Continue_type);
@@ -473,6 +475,10 @@ static const char * const AnnAssign_fields[]={
     "value",
     "simple",
 };
+static const char * const CoalesceAssign_fields[]={
+    "target",
+    "value",
+};
 static const char * const For_fields[]={
     "target",
     "iter",
@@ -560,6 +566,9 @@ static const char * const expr_attributes[] = {
 static PyObject* ast2obj_expr(struct ast_state *state, void*);
 static const char * const BoolOp_fields[]={
     "op",
+    "values",
+};
+static const char * const CoalesceOp_fields[]={
     "values",
 };
 static const char * const NamedExpr_fields[]={
@@ -1585,6 +1594,44 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(AnnAssign_annotations);
+    PyObject *CoalesceAssign_annotations = PyDict_New();
+    if (!CoalesceAssign_annotations) return 0;
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(CoalesceAssign_annotations, "target", type)
+                                    == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(CoalesceAssign_annotations);
+            return 0;
+        }
+    }
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(CoalesceAssign_annotations, "value", type)
+                                    == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(CoalesceAssign_annotations);
+            return 0;
+        }
+    }
+    cond = PyObject_SetAttrString(state->CoalesceAssign_type, "_field_types",
+                                  CoalesceAssign_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(CoalesceAssign_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->CoalesceAssign_type,
+                                  "__annotations__",
+                                  CoalesceAssign_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(CoalesceAssign_annotations);
+        return 0;
+    }
+    Py_DECREF(CoalesceAssign_annotations);
     PyObject *For_annotations = PyDict_New();
     if (!For_annotations) return 0;
     {
@@ -2546,6 +2593,37 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(BoolOp_annotations);
+    PyObject *CoalesceOp_annotations = PyDict_New();
+    if (!CoalesceOp_annotations) return 0;
+    {
+        PyObject *type = state->expr_type;
+        type = Py_GenericAlias((PyObject *)&PyList_Type, type);
+        cond = type != NULL;
+        if (!cond) {
+            Py_DECREF(CoalesceOp_annotations);
+            return 0;
+        }
+        cond = PyDict_SetItemString(CoalesceOp_annotations, "values", type) ==
+                                    0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(CoalesceOp_annotations);
+            return 0;
+        }
+    }
+    cond = PyObject_SetAttrString(state->CoalesceOp_type, "_field_types",
+                                  CoalesceOp_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(CoalesceOp_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->CoalesceOp_type, "__annotations__",
+                                  CoalesceOp_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(CoalesceOp_annotations);
+        return 0;
+    }
+    Py_DECREF(CoalesceOp_annotations);
     PyObject *NamedExpr_annotations = PyDict_New();
     if (!NamedExpr_annotations) return 0;
     {
@@ -6338,6 +6416,7 @@ init_types(void *arg)
         "     | TypeAlias(expr name, type_param* type_params, expr value)\n"
         "     | AugAssign(expr target, operator op, expr value)\n"
         "     | AnnAssign(expr target, expr annotation, expr? value, int simple)\n"
+        "     | CoalesceAssign(expr target, expr value)\n"
         "     | For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)\n"
         "     | AsyncFor(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)\n"
         "     | While(expr test, stmt* body, stmt* orelse)\n"
@@ -6421,6 +6500,11 @@ init_types(void *arg)
     if (!state->AnnAssign_type) return -1;
     if (PyObject_SetAttr(state->AnnAssign_type, state->value, Py_None) == -1)
         return -1;
+    state->CoalesceAssign_type = make_type(state, "CoalesceAssign",
+                                           state->stmt_type,
+                                           CoalesceAssign_fields, 2,
+        "CoalesceAssign(expr target, expr value)");
+    if (!state->CoalesceAssign_type) return -1;
     state->For_type = make_type(state, "For", state->stmt_type, For_fields, 5,
         "For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)");
     if (!state->For_type) return -1;
@@ -6518,6 +6602,7 @@ init_types(void *arg)
     if (!state->Continue_type) return -1;
     state->expr_type = make_type(state, "expr", state->AST_type, NULL, 0,
         "expr = BoolOp(boolop op, expr* values)\n"
+        "     | CoalesceOp(expr* values)\n"
         "     | NamedExpr(expr target, expr value)\n"
         "     | BinOp(expr left, operator op, expr right)\n"
         "     | UnaryOp(unaryop op, expr operand)\n"
@@ -6562,6 +6647,10 @@ init_types(void *arg)
                                    BoolOp_fields, 2,
         "BoolOp(boolop op, expr* values)");
     if (!state->BoolOp_type) return -1;
+    state->CoalesceOp_type = make_type(state, "CoalesceOp", state->expr_type,
+                                       CoalesceOp_fields, 1,
+        "CoalesceOp(expr* values)");
+    if (!state->CoalesceOp_type) return -1;
     state->NamedExpr_type = make_type(state, "NamedExpr", state->expr_type,
                                       NamedExpr_fields, 2,
         "NamedExpr(expr target, expr value)");
@@ -7488,6 +7577,35 @@ _PyAST_AnnAssign(expr_ty target, expr_ty annotation, expr_ty value, int simple,
 }
 
 stmt_ty
+_PyAST_CoalesceAssign(expr_ty target, expr_ty value, int lineno, int
+                      col_offset, int end_lineno, int end_col_offset, PyArena
+                      *arena)
+{
+    stmt_ty p;
+    if (!target) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'target' is required for CoalesceAssign");
+        return NULL;
+    }
+    if (!value) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'value' is required for CoalesceAssign");
+        return NULL;
+    }
+    p = (stmt_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = CoalesceAssign_kind;
+    p->v.CoalesceAssign.target = target;
+    p->v.CoalesceAssign.value = value;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+stmt_ty
 _PyAST_For(expr_ty target, expr_ty iter, asdl_stmt_seq * body, asdl_stmt_seq *
            orelse, string type_comment, int lineno, int col_offset, int
            end_lineno, int end_col_offset, PyArena *arena)
@@ -7907,6 +8025,25 @@ _PyAST_BoolOp(boolop_ty op, asdl_expr_seq * values, int group, int lineno, int
     p->kind = BoolOp_kind;
     p->v.BoolOp.op = op;
     p->v.BoolOp.values = values;
+    p->group = group;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_CoalesceOp(asdl_expr_seq * values, int group, int lineno, int
+                  col_offset, int end_lineno, int end_col_offset, PyArena
+                  *arena)
+{
+    expr_ty p;
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = CoalesceOp_kind;
+    p->v.CoalesceOp.values = values;
     p->group = group;
     p->lineno = lineno;
     p->col_offset = col_offset;
@@ -9449,6 +9586,21 @@ ast2obj_stmt(struct ast_state *state, void* _o)
             goto failed;
         Py_DECREF(value);
         break;
+    case CoalesceAssign_kind:
+        tp = (PyTypeObject *)state->CoalesceAssign_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.CoalesceAssign.target);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->target, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_expr(state, o->v.CoalesceAssign.value);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->value, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
     case For_kind:
         tp = (PyTypeObject *)state->For_type;
         result = PyType_GenericNew(tp, NULL, NULL);
@@ -9837,6 +9989,17 @@ ast2obj_expr(struct ast_state *state, void* _o)
             goto failed;
         Py_DECREF(value);
         value = ast2obj_list(state, (asdl_seq*)o->v.BoolOp.values,
+                             ast2obj_expr);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->values, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case CoalesceOp_kind:
+        tp = (PyTypeObject *)state->CoalesceOp_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_list(state, (asdl_seq*)o->v.CoalesceOp.values,
                              ast2obj_expr);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->values, value) == -1)
@@ -12537,6 +12700,54 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, PyArena*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->CoalesceAssign_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty target;
+        expr_ty value;
+
+        if (PyObject_GetOptionalAttr(obj, state->target, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"target\" missing from CoalesceAssign");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'CoalesceAssign' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &target, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->value, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"value\" missing from CoalesceAssign");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'CoalesceAssign' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &value, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_CoalesceAssign(target, value, lineno, col_offset,
+                                     end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->For_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -14277,6 +14488,57 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, PyArena*
         }
         *out = _PyAST_BoolOp(op, values, group, lineno, col_offset, end_lineno,
                              end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
+    tp = state->CoalesceOp_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        asdl_expr_seq* values;
+
+        if (PyObject_GetOptionalAttr(obj, state->values, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            tmp = PyList_New(0);
+            if (tmp == NULL) {
+                return -1;
+            }
+        }
+        {
+            int res;
+            Py_ssize_t len;
+            Py_ssize_t i;
+            if (!PyList_Check(tmp)) {
+                PyErr_Format(PyExc_TypeError, "CoalesceOp field \"values\" must be a list, not a %.200s", _PyType_Name(Py_TYPE(tmp)));
+                goto failed;
+            }
+            len = PyList_GET_SIZE(tmp);
+            values = _Py_asdl_expr_seq_new(len, arena);
+            if (values == NULL) goto failed;
+            for (i = 0; i < len; i++) {
+                expr_ty val;
+                PyObject *tmp2 = Py_NewRef(PyList_GET_ITEM(tmp, i));
+                if (_Py_EnterRecursiveCall(" while traversing 'CoalesceOp' node")) {
+                    goto failed;
+                }
+                res = obj2ast_expr(state, tmp2, &val, arena);
+                _Py_LeaveRecursiveCall();
+                Py_DECREF(tmp2);
+                if (res != 0) goto failed;
+                if (len != PyList_GET_SIZE(tmp)) {
+                    PyErr_SetString(PyExc_RuntimeError, "CoalesceOp field \"values\" changed size during iteration");
+                    goto failed;
+                }
+                asdl_seq_SET(values, i, val);
+            }
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_CoalesceOp(values, group, lineno, col_offset, end_lineno,
+                                 end_col_offset, arena);
         if (*out == NULL) goto failed;
         return 0;
     }
@@ -18483,6 +18745,10 @@ astmodule_exec(PyObject *m)
     if (PyModule_AddObjectRef(m, "AnnAssign", state->AnnAssign_type) < 0) {
         return -1;
     }
+    if (PyModule_AddObjectRef(m, "CoalesceAssign", state->CoalesceAssign_type)
+        < 0) {
+        return -1;
+    }
     if (PyModule_AddObjectRef(m, "For", state->For_type) < 0) {
         return -1;
     }
@@ -18544,6 +18810,9 @@ astmodule_exec(PyObject *m)
         return -1;
     }
     if (PyModule_AddObjectRef(m, "BoolOp", state->BoolOp_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "CoalesceOp", state->CoalesceOp_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "NamedExpr", state->NamedExpr_type) < 0) {
