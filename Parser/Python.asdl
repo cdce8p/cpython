@@ -29,6 +29,7 @@ module Python
           | AugAssign(expr target, operator op, expr value)
           -- 'simple' indicates that we annotate simple name without parens
           | AnnAssign(expr target, expr annotation, expr? value, int simple)
+          | CoalesceAssign(expr target, expr value)
 
           -- use 'orelse' because else is a keyword in target languages
           | For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)
@@ -101,7 +102,7 @@ module Python
 
     expr_context = Load | Store | Del
 
-    boolop = And | Or
+    boolop = And | Or | Coalesce
 
     operator = Add | Sub | Mult | MatMult | Div | Mod | Pow | LShift
                  | RShift | BitOr | BitXor | BitAnd | FloorDiv
