@@ -402,6 +402,10 @@ validate_expr(expr_ty exp, expr_context_ty ctx)
         ret = validate_expr(exp->v.NoneAwareSubscript.slice, Load) &&
             validate_expr(exp->v.NoneAwareSubscript.value, Load);
         break;
+    case CoalesceOp_kind:
+        ret = validate_expr(exp->v.CoalesceOp.value, Load) &&
+            validate_expr(exp->v.CoalesceOp.fallback, Load);
+        break;
     /* This last case doesn't have any checking. */
     case Name_kind:
         ret = 1;
@@ -766,6 +770,10 @@ validate_stmt(stmt_ty stmt)
     case AugAssign_kind:
         ret = validate_expr(stmt->v.AugAssign.target, Store) &&
             validate_expr(stmt->v.AugAssign.value, Load);
+        break;
+    case CoalesceAssign_kind:
+        ret = validate_expr(stmt->v.CoalesceAssign.target, Store) &&
+            validate_expr(stmt->v.CoalesceAssign.fallback, Load);
         break;
     case AnnAssign_kind:
         if (stmt->v.AnnAssign.target->kind != Name_kind &&

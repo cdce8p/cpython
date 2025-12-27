@@ -163,6 +163,9 @@ assignment[stmt_ty]:
          _PyAST_Assign(a, b, NEW_TYPE_COMMENT(p, tc), EXTRA) }
     | a=single_target b=augassign ~ c=annotated_rhs {
          _PyAST_AugAssign(a, b->kind, c, EXTRA) }
+    | a=single_target '??=' ~ b=annotated_rhs {
+        CHECK_VERSION(stmt_ty, 15, "Coalesce assign statements are",
+        _PyAST_CoalesceAssign(a, b, EXTRA)) }
     | invalid_assignment
 
 annotated_rhs[expr_ty]: yield_expr | star_expressions
@@ -857,6 +860,9 @@ await_primary[expr_ty] (memo):
     | primary
 
 primary[expr_ty]:
+    | a=primary '??' b=primary {
+        CHECK_VERSION(expr_ty, 15, "Coalesce expressions are",
+        _PyAST_CoalesceOp(a, b, EXTRA_EXPR)) }
     | a=primary '.' b=NAME { _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA_EXPR) }
     | none_aware_attribute !'='
     | a=primary b=genexp { _PyAST_Call(a, CHECK(asdl_expr_seq*, (asdl_expr_seq*)_PyPegen_singleton_seq(p, b)), NULL, EXTRA_EXPR) }

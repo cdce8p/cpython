@@ -950,6 +950,15 @@ append_ast_none_aware_subscript(PyUnicodeWriter *writer, expr_ty e)
 }
 
 static int
+append_ast_coalesce_op(PyUnicodeWriter *writer, expr_ty e)
+{
+    APPEND_EXPR(e->v.CoalesceOp.value, PR_ATOM);
+    APPEND_STR(" ?\?");
+    APPEND_EXPR(e->v.CoalesceOp.fallback, PR_ATOM);
+    return 0;
+}
+
+static int
 append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
 {
     switch (e->kind) {
@@ -1023,6 +1032,8 @@ append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
         return append_ast_none_aware_attribute(writer, e);
     case NoneAwareSubscript_kind:
         return append_ast_none_aware_subscript(writer, e);
+    case CoalesceOp_kind:
+        return append_ast_coalesce_op(writer, e);
     // No default so compiler emits a warning for unhandled cases
     }
     PyErr_SetString(PyExc_SystemError,

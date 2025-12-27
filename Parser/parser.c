@@ -15,7 +15,7 @@
 #    define MAXSTACK 4000
 #  endif
 #else
-#  define MAXSTACK 6000
+#  define MAXSTACK 6200
 #endif
 static const int n_keyword_lists = 9;
 static KeywordToken *reserved_keywords[] = {
@@ -2101,6 +2101,7 @@ compound_stmt_rule(Parser *p)
 //     | ('(' single_target ')' | single_subscript_attribute_target) ':' expression ['=' annotated_rhs]
 //     | ((star_targets '='))+ annotated_rhs !'=' TYPE_COMMENT?
 //     | single_target augassign ~ annotated_rhs
+//     | single_target '??=' ~ annotated_rhs
 //     | invalid_assignment
 static stmt_ty
 assignment_rule(Parser *p)
@@ -2289,6 +2290,52 @@ assignment_rule(Parser *p)
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s assignment[%d-%d]: %s failed!\n", p->level, ' ',
                   p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "single_target augassign ~ annotated_rhs"));
+        if (_cut_var) {
+            p->level--;
+            return NULL;
+        }
+    }
+    { // single_target '??=' ~ annotated_rhs
+        if (p->error_indicator) {
+            p->level--;
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> assignment[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "single_target '?\?=' ~ annotated_rhs"));
+        int _cut_var = 0;
+        Token * _literal;
+        expr_ty a;
+        expr_ty b;
+        if (
+            (a = single_target_rule(p))  // single_target
+            &&
+            (_literal = _PyPegen_expect_token(p, 57))  // token='??='
+            &&
+            (_cut_var = 1)
+            &&
+            (b = annotated_rhs_rule(p))  // annotated_rhs
+        )
+        {
+            D(fprintf(stderr, "%*c+ assignment[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "single_target '?\?=' ~ annotated_rhs"));
+            Token *_token = _PyPegen_get_last_nonnwhitespace_token(p);
+            if (_token == NULL) {
+                p->level--;
+                return NULL;
+            }
+            int _end_lineno = _token->end_lineno;
+            UNUSED(_end_lineno); // Only used by EXTRA macro
+            int _end_col_offset = _token->end_col_offset;
+            UNUSED(_end_col_offset); // Only used by EXTRA macro
+            _res = CHECK_VERSION ( stmt_ty , 15 , "Coalesce assign statements are" , _PyAST_CoalesceAssign ( a , b , EXTRA ) );
+            if (_res == NULL && PyErr_Occurred()) {
+                p->error_indicator = 1;
+                p->level--;
+                return NULL;
+            }
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s assignment[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "single_target '?\?=' ~ annotated_rhs"));
         if (_cut_var) {
             p->level--;
             return NULL;
@@ -14579,6 +14626,7 @@ await_primary_rule(Parser *p)
 
 // Left-recursive
 // primary:
+//     | primary '??' primary
 //     | primary '.' NAME
 //     | none_aware_attribute !'='
 //     | primary genexp
@@ -14642,6 +14690,45 @@ primary_raw(Parser *p)
     UNUSED(_start_lineno); // Only used by EXTRA macro
     int _start_col_offset = p->tokens[_mark]->col_offset;
     UNUSED(_start_col_offset); // Only used by EXTRA macro
+    { // primary '??' primary
+        if (p->error_indicator) {
+            p->level--;
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> primary[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "primary '?\?' primary"));
+        Token * _literal;
+        expr_ty a;
+        expr_ty b;
+        if (
+            (a = primary_rule(p))  // primary
+            &&
+            (_literal = _PyPegen_expect_token(p, 56))  // token='??'
+            &&
+            (b = primary_rule(p))  // primary
+        )
+        {
+            D(fprintf(stderr, "%*c+ primary[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "primary '?\?' primary"));
+            Token *_token = _PyPegen_get_last_nonnwhitespace_token(p);
+            if (_token == NULL) {
+                p->level--;
+                return NULL;
+            }
+            int _end_lineno = _token->end_lineno;
+            UNUSED(_end_lineno); // Only used by EXTRA macro
+            int _end_col_offset = _token->end_col_offset;
+            UNUSED(_end_col_offset); // Only used by EXTRA macro
+            _res = CHECK_VERSION ( expr_ty , 15 , "Coalesce expressions are" , _PyAST_CoalesceOp ( a , b , EXTRA_EXPR ) );
+            if (_res == NULL && PyErr_Occurred()) {
+                p->error_indicator = 1;
+                p->level--;
+                return NULL;
+            }
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s primary[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "primary '?\?' primary"));
+    }
     { // primary '.' NAME
         if (p->error_indicator) {
             p->level--;
