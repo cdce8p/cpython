@@ -313,6 +313,13 @@ class UnparseTestCase(ASTTestCase):
             self.check_ast_roundtrip(c1)
             self.check_src_roundtrip(c1, expected)
 
+    def test_none_coalescing_operators(self):
+        self.check_ast_roundtrip("a ?? c")
+        self.check_ast_roundtrip("a or b.func() ?? c")
+        self.check_ast_roundtrip("(a if True else b.func()) ?? c ?? c")
+        self.check_ast_roundtrip("a ??= c")
+        self.check_ast_roundtrip("a[1] ??= c")
+
     def test_strings(self):
         self.check_ast_roundtrip("u'foo'")
         self.check_ast_roundtrip("r'foo'")
