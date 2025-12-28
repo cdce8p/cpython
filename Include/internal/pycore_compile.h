@@ -146,6 +146,10 @@ void _PyCompile_PopNATarget(struct _PyCompiler *c);
 _PyJumpTargetLabel _PyCompile_TopNATarget(struct _PyCompiler *c);
 int _PyCompile_PushNABlock(struct _PyCompiler *c, _Py_SourceLocation loc);
 void _PyCompile_PopNABlock(struct _PyCompiler *c);
+int _PyCompile_PushMaybeTarget(struct _PyCompiler *c, _Py_SourceLocation loc,
+                               _PyJumpTargetLabel end);
+void _PyCompile_PopMaybeTarget(struct _PyCompiler *c);
+_PyJumpTargetLabel *_PyCompile_TopMaybeTarget(struct _PyCompiler *c);
 
 int _PyCompile_EnterScope(struct _PyCompiler *c, identifier name, int scope_type,
                           void *key, int lineno, PyObject *private,
