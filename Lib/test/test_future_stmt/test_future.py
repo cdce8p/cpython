@@ -437,6 +437,7 @@ class AnnotationsFutureTestCase(unittest.TestCase):
         eq("a ?? c")
         eq("a or b.func() ?? c")
         eq("(a if True else b.func()) ?? c")
+        eq("maybe a.b.func()")
 
     def test_fstring_debug_annotations(self):
         # f-strings with '=' don't round trip very well, so set the expected
