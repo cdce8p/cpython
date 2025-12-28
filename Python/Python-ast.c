@@ -124,6 +124,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->MatchStar_type);
     Py_CLEAR(state->MatchValue_type);
     Py_CLEAR(state->Match_type);
+    Py_CLEAR(state->Maybe_type);
     Py_CLEAR(state->Mod_singleton);
     Py_CLEAR(state->Mod_type);
     Py_CLEAR(state->Module_type);
@@ -624,6 +625,9 @@ static const char * const NoneAwareAttribute_fields[]={
 static const char * const NoneAwareSubscript_fields[]={
     "value",
     "slice",
+};
+static const char * const Maybe_fields[]={
+    "value",
 };
 static const char * const Await_fields[]={
     "value",
@@ -3151,6 +3155,31 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(NoneAwareSubscript_annotations);
+    PyObject *Maybe_annotations = PyDict_New();
+    if (!Maybe_annotations) return 0;
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(Maybe_annotations, "value", type) == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(Maybe_annotations);
+            return 0;
+        }
+    }
+    cond = PyObject_SetAttrString(state->Maybe_type, "_field_types",
+                                  Maybe_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(Maybe_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->Maybe_type, "__annotations__",
+                                  Maybe_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(Maybe_annotations);
+        return 0;
+    }
+    Py_DECREF(Maybe_annotations);
     PyObject *Await_annotations = PyDict_New();
     if (!Await_annotations) return 0;
     {
@@ -6616,6 +6645,7 @@ init_types(void *arg)
         "     | GeneratorExp(expr elt, comprehension* generators)\n"
         "     | NoneAwareAttribute(expr value, identifier attr)\n"
         "     | NoneAwareSubscript(expr value, expr slice)\n"
+        "     | Maybe(expr value)\n"
         "     | Await(expr value)\n"
         "     | Yield(expr? value)\n"
         "     | YieldFrom(expr value)\n"
@@ -6707,6 +6737,10 @@ init_types(void *arg)
                                                NoneAwareSubscript_fields, 2,
         "NoneAwareSubscript(expr value, expr slice)");
     if (!state->NoneAwareSubscript_type) return -1;
+    state->Maybe_type = make_type(state, "Maybe", state->expr_type,
+                                  Maybe_fields, 1,
+        "Maybe(expr value)");
+    if (!state->Maybe_type) return -1;
     state->Await_type = make_type(state, "Await", state->expr_type,
                                   Await_fields, 1,
         "Await(expr value)");
@@ -8401,6 +8435,29 @@ _PyAST_NoneAwareSubscript(expr_ty value, expr_ty slice, int group, int lineno,
     p->kind = NoneAwareSubscript_kind;
     p->v.NoneAwareSubscript.value = value;
     p->v.NoneAwareSubscript.slice = slice;
+    p->group = group;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_Maybe(expr_ty value, int group, int lineno, int col_offset, int
+             end_lineno, int end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!value) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'value' is required for Maybe");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = Maybe_kind;
+    p->v.Maybe.value = value;
     p->group = group;
     p->lineno = lineno;
     p->col_offset = col_offset;
@@ -10212,6 +10269,16 @@ ast2obj_expr(struct ast_state *state, void* _o)
         value = ast2obj_expr(state, o->v.NoneAwareSubscript.slice);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->slice, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case Maybe_kind:
+        tp = (PyTypeObject *)state->Maybe_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.Maybe.value);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->value, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -15351,6 +15418,36 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, PyArena*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->Maybe_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty value;
+
+        if (PyObject_GetOptionalAttr(obj, state->value, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"value\" missing from Maybe");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'Maybe' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &value, arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_Maybe(value, group, lineno, col_offset, end_lineno,
+                            end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Await_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -18855,6 +18952,9 @@ astmodule_exec(PyObject *m)
     }
     if (PyModule_AddObjectRef(m, "NoneAwareSubscript",
         state->NoneAwareSubscript_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "Maybe", state->Maybe_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Await", state->Await_type) < 0) {

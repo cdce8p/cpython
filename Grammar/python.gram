@@ -876,7 +876,13 @@ power[expr_ty]:
 # Primary elements are things like "obj.something.something", "obj[something]", "obj(something)", "obj" ...
 
 await_primary[expr_ty] (memo):
-    | 'await' a=primary { CHECK_VERSION(expr_ty, 5, "Await expressions are", _PyAST_Await(a, EXTRA_EXPR)) }
+    | 'await' a=maybe_primary { CHECK_VERSION(expr_ty, 5, "Await expressions are", _PyAST_Await(a, EXTRA_EXPR)) }
+    | maybe_primary
+
+maybe_primary[expr_ty] (memo):
+    | "maybe" a=primary {
+        CHECK_VERSION(expr_ty, 15, "Maybe expressions are",
+        _PyAST_Maybe(a, EXTRA_EXPR)) }
     | primary
 
 primary[expr_ty]:
