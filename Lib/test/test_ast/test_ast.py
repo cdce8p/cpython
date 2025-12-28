@@ -1343,6 +1343,7 @@ class AST_Tests(unittest.TestCase):
             "(a for a in (1, 2) if True)",  # GeneratorExpr
             "a?.b",  # NoneAwareAttribute
             "a?[b]",  # NoneAwareSubscript
+            "maybe a.b", # Maybe
             "await a",  # Await
             "yield a", # Yield
             "yield from a", # YieldFrom
