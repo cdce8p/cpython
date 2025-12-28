@@ -159,6 +159,7 @@ struct PyCodeObject _PyCode_DEF(1);
 
 #define CO_MAXBLOCKS 21 /* Max static block nesting within a function */
 #define CO_MAXNONEAWAREBLOCKS 15 /* Max nested none-aware blocks within one expression */
+#define CO_MAXMAYBETARGET 5 /* Max nested maybe blocks */
 
 PyAPI_DATA(PyTypeObject) PyCode_Type;
 
