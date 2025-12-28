@@ -58,6 +58,7 @@ softkwlist = [
     'case',
     'lazy',
     'match',
+    'maybe',
     'type'
 ]
 

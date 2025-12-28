@@ -320,6 +320,9 @@ class UnparseTestCase(ASTTestCase):
         self.check_ast_roundtrip("a ??= c")
         self.check_ast_roundtrip("a[1] ??= c")
 
+    def test_maybe(self):
+        self.check_ast_roundtrip("maybe a.b.func()")
+
     def test_strings(self):
         self.check_ast_roundtrip("u'foo'")
         self.check_ast_roundtrip("r'foo'")

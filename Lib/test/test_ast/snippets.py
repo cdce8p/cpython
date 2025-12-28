@@ -383,6 +383,8 @@ eval_tests = [
   "a?[b]",
   # None-coalescing operator
   "a ?? b",
+  # Maybe
+  "maybe a.b.func()",
 ]
 
 
@@ -629,5 +631,6 @@ eval_results = [
 ('Expression', ('NoneAwareAttribute', (1, 0, 1, 4), ('Name', (1, 0, 1, 1), 'a', ('Load',)), 'b')),
 ('Expression', ('NoneAwareSubscript', (1, 0, 1, 5), ('Name', (1, 0, 1, 1), 'a', ('Load',)), ('Name', (1, 3, 1, 4), 'b', ('Load',)))),
 ('Expression', ('BoolOp', (1, 0, 1, 6), ('Coalesce',), [('Name', (1, 0, 1, 1), 'a', ('Load',)), ('Name', (1, 5, 1, 6), 'b', ('Load',))])),
+('Expression', ('Maybe', (1, 0, 1, 16), ('Call', (1, 6, 1, 16), ('Attribute', (1, 6, 1, 14), ('Attribute', (1, 6, 1, 9), ('Name', (1, 6, 1, 7), 'a', ('Load',)), 'b', ('Load',)), 'func', ('Load',)), [], []))),
 ]
 main()

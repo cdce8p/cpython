@@ -1008,6 +1008,10 @@ class Unparser(NodeVisitor):
             else:
                 self.traverse(node.slice)
 
+    def visit_Maybe(self, node):
+        self.write("maybe ")
+        self.traverse(node.value)
+
     def visit_Starred(self, node):
         self.write("*")
         self.set_precedence(_Precedence.EXPR, node.value)
