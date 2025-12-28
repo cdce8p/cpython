@@ -2366,6 +2366,141 @@ class GrammarTests(unittest.TestCase):
         self.assertEqual(b, "World")
         self.assertEqual(c, 5)
 
+    def test_maybe(self):
+        class A:
+            b = None
+            c = 1
+            d = [3, 4]
+            def func_a(self): return "Hello"
+
+        class B:
+            a = A()
+            b = None
+            c = 2
+            d = [1, 2]
+            def func_b(self): return "World"
+
+        k = None
+        l = B()
+        m = [B()]
+
+        # Attribute
+        self.assertEqual(maybe k.a, None)
+        self.assertEqual(maybe k.a.c, None)
+        self.assertEqual(maybe l.c, 2)
+        self.assertEqual(maybe l.a.c, 1)
+        self.assertEqual(maybe l.a.c, 1)
+        self.assertEqual(maybe l.b.c, None)
+
+        # try:
+        #     self.assertEqual(maybe k.a.c, None)
+        #     self.fail("should produce Attribute error on a")
+        # except AttributeError:
+        #     pass
+        try:
+            self.assertEqual(maybe l.x, None)
+            self.fail("should produce AttributeError on x")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual(maybe l.a.x, None)
+            self.fail("should produce AttributeError on x")
+        except AttributeError:
+            pass
+        # try:
+        #     self.assertEqual(maybe l.b.c, None)
+        #     self.fail("should produce AttributeError on c")
+        # except AttributeError:
+        #     pass
+
+        # Subscript
+        self.assertEqual(maybe k.d[0], None)
+        self.assertEqual(maybe k.a.d[0], None)
+        self.assertEqual(maybe l.d[0], 1)
+        self.assertEqual(maybe l.a.d[0], 3)
+        self.assertEqual(maybe l.b.b[0], None)
+
+        # try:
+        #     self.assertEqual(maybe l.b[0], None)
+        #     self.fail("should produce TypeError, not subscriptable")
+        # except TypeError:
+        #     pass
+        try:
+            self.assertEqual(maybe l.c[0], None)
+            self.fail("should produce TypeError, not subscriptable")
+        except TypeError:
+            pass
+        # try:
+        #     self.assertEqual(maybe l.a.b[0], None)
+        #     self.fail("should produce TypeError, not subscriptable")
+        # except TypeError:
+        #     pass
+        try:
+            self.assertEqual(maybe l.a.c[0], None)
+            self.fail("should produce TypeError, not subscriptable")
+        except TypeError:
+            pass
+        # try:
+        #     self.assertEqual(maybe l.b.c[0], None)
+        #     self.fail("should produce Attribute error on c")
+        # except AttributeError:
+        #     pass
+
+        # Call
+        self.assertEqual(maybe k.func_b(), None)
+        self.assertEqual(maybe k.a.func_a(), None)
+        self.assertEqual(maybe l.func_b(), "World")
+        self.assertEqual(maybe l.a.func_a(), "Hello")
+        self.assertEqual(maybe l.b.func_a(), None)
+        try:
+            self.assertEqual(maybe l.func_x(), None)
+            self.fail("should produce Attribute Error on func_x")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual(maybe l.a.func_x(), None)
+            self.fail("should produce Attribute Error on func_x")
+        except AttributeError:
+            pass
+        # try:
+        #     self.assertEqual(maybe l.b.func_x(), None)
+        #     self.fail("should produce Attribute Error on func_x")
+        # except AttributeError:
+        #     pass
+        try:
+            self.assertEqual(maybe l.b(), None)
+            self.fail("should produce a TypeError, NoneType not callable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual(maybe l.a.b(), None)
+            self.fail("should produce a TypeError, NoneType not callable")
+        except TypeError:
+            pass
+
+        # Chain
+        self.assertEqual(maybe k.a.b[0].func().a.c, None)
+        self.assertEqual(maybe l.a.b.func().a.b[0].c.func_x(), None)
+
+        # ---
+        self.assertEqual(maybe k[0], None)
+        self.assertEqual(maybe k[0].c, None)
+        self.assertEqual(maybe m[0].c, 2)
+        self.assertEqual(maybe m[0].a.c, 1)
+        self.assertEqual(maybe m[0].d[0], 1)
+        self.assertEqual(maybe m[0].b[0], None)
+        self.assertEqual(maybe m[0].b[0].c, None)
+        try:
+            self.assertEqual(maybe m[1], None)
+            self.fail("should produce IndexError on l")
+        except IndexError:
+            pass
+        try:
+            self.assertEqual(maybe m[0].d[2], None)
+            self.fail("should produce IndexError on d")
+        except IndexError:
+            pass
+
 
 if __name__ == '__main__':
     unittest.main()

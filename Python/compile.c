@@ -72,12 +72,14 @@ struct compiler_unit {
     int u_in_conditional_block;
     int u_nnablocks;
     int u_same_none_aware_block;
+    int u_nmaybetarget;
 
     _PyCompile_FBlockInfo u_fblock[CO_MAXBLOCKS];
 
     _PyCompile_CodeUnitMetadata u_metadata;
 
     _PyCompile_NoneAwareBlockInfo u_none_aware_block[CO_MAXNONEAWAREBLOCKS];
+    _PyJumpTargetLabel u_maybe_target[CO_MAXMAYBETARGET];
 };
 
 /* This struct captures the global state of a compilation.
@@ -843,6 +845,35 @@ _PyCompile_TopNATarget(compiler *c) {
     na = &c->u->u_none_aware_block[c->u->u_nnablocks - 1];
     assert(na->na_count > 0);
     return na->na_target;
+}
+
+int
+_PyCompile_PushMaybeTarget(compiler *c, location loc, jump_target_label end)
+{
+    struct compiler_unit *u = c->u;
+    if (u->u_nmaybetarget >= CO_MAXMAYBETARGET) {
+        return _PyCompile_Error(c, loc, "too many nested maybe targets");
+    }
+    u->u_maybe_target[u->u_nmaybetarget++] = end;
+    return SUCCESS;
+}
+
+void
+_PyCompile_PopMaybeTarget(compiler *c)
+{
+    struct compiler_unit *u = c->u;
+    assert(u->u_nmaybetarget > 0);
+    u->u_nmaybetarget--;
+}
+
+jump_target_label *
+_PyCompile_TopMaybeTarget(compiler *c)
+{
+    struct compiler_unit *u = c->u;
+    if (u->u_nmaybetarget == 0) {
+        return NULL;
+    }
+    return &u->u_maybe_target[u->u_nmaybetarget - 1];
 }
 
 bool

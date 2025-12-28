@@ -966,6 +966,14 @@ append_ast_none_aware_subscript(PyUnicodeWriter *writer, expr_ty e)
 }
 
 static int
+append_ast_maybe(PyUnicodeWriter *writer, expr_ty e)
+{
+    APPEND_STR("maybe ");
+    APPEND_EXPR(e->v.Maybe.value, PR_ATOM);
+    return 0;
+}
+
+static int
 append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
 {
     switch (e->kind) {
@@ -1040,6 +1048,8 @@ append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
         return append_ast_none_aware_attribute(writer, e);
     case NoneAwareSubscript_kind:
         return append_ast_none_aware_subscript(writer, e);
+    case Maybe_kind:
+        return append_ast_maybe(writer, e);
     // No default so compiler emits a warning for unhandled cases
     }
     PyErr_SetString(PyExc_SystemError,

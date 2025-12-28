@@ -411,6 +411,9 @@ validate_expr(expr_ty exp, expr_context_ty ctx)
         ret = validate_expr(exp->v.NoneAwareSubscript.slice, Load) &&
             validate_expr(exp->v.NoneAwareSubscript.value, Load);
         break;
+    case Maybe_kind:
+        ret = validate_expr(exp->v.Maybe.value, Load);
+        break;
     /* This last case doesn't have any checking. */
     case Name_kind:
         ret = 1;
