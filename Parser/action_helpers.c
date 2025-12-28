@@ -1227,6 +1227,8 @@ _PyPegen_get_expr_name(expr_ty e)
             return "none-aware expression";
         case NoneAwareSubscript_kind:
             return "none-aware subscript expression";
+        case Maybe_kind:
+            return "maybe expression";
         default:
             PyErr_Format(PyExc_SystemError,
                          "unexpected expression in assignment %d (line %d)",
@@ -2311,6 +2313,12 @@ _copy_noneawaresubscript(Parser *p, expr_ty e) {
 }
 
 static expr_ty
+_copy_maybe(Parser *p, expr_ty e) {
+    assert(e->kind == Maybe_kind);
+    return _PyAST_Maybe(e->v.Maybe.value, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
 _copy_await(Parser *p, expr_ty e) {
     assert(e->kind == Await_kind);
     return _PyAST_Await(e->v.Await.value, EXTRA_EXPRESSION(e, e));
@@ -2473,6 +2481,9 @@ _PyPegen_set_group(Parser *p, expr_ty exp) {
             break;
         case NoneAwareSubscript_kind:
             new = _copy_noneawaresubscript(p, exp);
+            break;
+        case Maybe_kind:
+            new = _copy_maybe(p, exp);
             break;
         case Await_kind:
             new = _copy_await(p, exp);
