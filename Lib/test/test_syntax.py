@@ -417,7 +417,7 @@ SyntaxError: case statement must be inside match statement
 
 >>> (mat x)
 Traceback (most recent call last):
-SyntaxError: invalid syntax. Perhaps you forgot a comma?
+SyntaxError: invalid syntax. Did you mean 'maybe'?
 
 From compiler_complex_args():
 
