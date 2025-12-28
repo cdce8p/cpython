@@ -368,12 +368,12 @@ enum _expr_kind {BoolOp_kind=1, CoalesceOp_kind=2, NamedExpr_kind=3,
                   Dict_kind=8, Set_kind=9, ListComp_kind=10, SetComp_kind=11,
                   DictComp_kind=12, GeneratorExp_kind=13,
                   NoneAwareAttribute_kind=14, NoneAwareSubscript_kind=15,
-                  Await_kind=16, Yield_kind=17, YieldFrom_kind=18,
-                  Compare_kind=19, Call_kind=20, FormattedValue_kind=21,
-                  Interpolation_kind=22, JoinedStr_kind=23,
-                  TemplateStr_kind=24, Constant_kind=25, Attribute_kind=26,
-                  Subscript_kind=27, Starred_kind=28, Name_kind=29,
-                  List_kind=30, Tuple_kind=31, Slice_kind=32};
+                  Maybe_kind=16, Await_kind=17, Yield_kind=18,
+                  YieldFrom_kind=19, Compare_kind=20, Call_kind=21,
+                  FormattedValue_kind=22, Interpolation_kind=23,
+                  JoinedStr_kind=24, TemplateStr_kind=25, Constant_kind=26,
+                  Attribute_kind=27, Subscript_kind=28, Starred_kind=29,
+                  Name_kind=30, List_kind=31, Tuple_kind=32, Slice_kind=33};
 struct _expr {
     enum _expr_kind kind;
     union {
@@ -452,6 +452,10 @@ struct _expr {
             expr_ty value;
             expr_ty slice;
         } NoneAwareSubscript;
+
+        struct {
+            expr_ty value;
+        } Maybe;
 
         struct {
             expr_ty value;
@@ -854,6 +858,8 @@ expr_ty _PyAST_NoneAwareAttribute(expr_ty value, identifier attr, int group,
 expr_ty _PyAST_NoneAwareSubscript(expr_ty value, expr_ty slice, int group, int
                                   lineno, int col_offset, int end_lineno, int
                                   end_col_offset, PyArena *arena);
+expr_ty _PyAST_Maybe(expr_ty value, int group, int lineno, int col_offset, int
+                     end_lineno, int end_col_offset, PyArena *arena);
 expr_ty _PyAST_Await(expr_ty value, int group, int lineno, int col_offset, int
                      end_lineno, int end_col_offset, PyArena *arena);
 expr_ty _PyAST_Yield(expr_ty value, int group, int lineno, int col_offset, int

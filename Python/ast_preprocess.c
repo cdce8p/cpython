@@ -642,6 +642,9 @@ astfold_expr(expr_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
         CALL(astfold_expr, expr_ty, node_->v.NoneAwareSubscript.value);
         CALL(astfold_expr, expr_ty, node_->v.NoneAwareSubscript.slice);
         break;
+    case Maybe_kind:
+        CALL(astfold_expr, expr_ty, node_->v.Maybe.value);
+        break;
     case Constant_kind:
         // Already a constant, nothing further to do
         break;
