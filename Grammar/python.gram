@@ -490,7 +490,7 @@ match_stmt[stmt_ty]:
 
 subject_expr[expr_ty]:
     | value=star_named_expression ',' values=star_named_expressions? {
-        _PyAST_Tuple(CHECK(asdl_expr_seq*, _PyPegen_seq_insert_in_front(p, value, values)), Load, EXTRA) }
+        _PyAST_Tuple(CHECK(asdl_expr_seq*, _PyPegen_seq_insert_in_front(p, value, values)), Load, EXTRA_EXPR) }
     | named_expression
 
 case_block[match_case_ty]:
@@ -542,23 +542,23 @@ literal_expr[expr_ty]:
     | signed_number !('+' | '-')
     | complex_number
     | &(STRING|FSTRING_START|TSTRING_START) strings
-    | 'None' { _PyAST_Constant(Py_None, NULL, EXTRA) }
-    | 'True' { _PyAST_Constant(Py_True, NULL, EXTRA) }
-    | 'False' { _PyAST_Constant(Py_False, NULL, EXTRA) }
+    | 'None' { _PyAST_Constant(Py_None, NULL, EXTRA_EXPR) }
+    | 'True' { _PyAST_Constant(Py_True, NULL, EXTRA_EXPR) }
+    | 'False' { _PyAST_Constant(Py_False, NULL, EXTRA_EXPR) }
 
 complex_number[expr_ty]:
     | real=signed_real_number '+' imag=imaginary_number {
-        _PyAST_BinOp(real, Add, imag, EXTRA) }
+        _PyAST_BinOp(real, Add, imag, EXTRA_EXPR) }
     | real=signed_real_number '-' imag=imaginary_number  {
-        _PyAST_BinOp(real, Sub, imag, EXTRA) }
+        _PyAST_BinOp(real, Sub, imag, EXTRA_EXPR) }
 
 signed_number[expr_ty]:
     | NUMBER
-    | '-' number=NUMBER { _PyAST_UnaryOp(USub, number, EXTRA) }
+    | '-' number=NUMBER { _PyAST_UnaryOp(USub, number, EXTRA_EXPR) }
 
 signed_real_number[expr_ty]:
     | real_number
-    | '-' real=real_number { _PyAST_UnaryOp(USub, real, EXTRA) }
+    | '-' real=real_number { _PyAST_UnaryOp(USub, real, EXTRA_EXPR) }
 
 real_number[expr_ty]:
     | real=NUMBER { _PyPegen_ensure_real(p, real) }
@@ -581,7 +581,7 @@ value_pattern[pattern_ty]:
 
 attr[expr_ty]:
     | value=name_or_attr '.' attr=NAME {
-        _PyAST_Attribute(value, attr->v.Name.id, Load, EXTRA) }
+        _PyAST_Attribute(value, attr->v.Name.id, Load, EXTRA_EXPR) }
 
 name_or_attr[expr_ty]:
     | attr
@@ -706,8 +706,8 @@ type_param_starred_default[expr_ty]: '=' e=star_expression {
 
 expressions[expr_ty]:
     | a=expression b=(',' c=expression { c })+ [','] {
-        _PyAST_Tuple(CHECK(asdl_expr_seq*, _PyPegen_seq_insert_in_front(p, a, b)), Load, EXTRA) }
-    | a=expression ',' { _PyAST_Tuple(CHECK(asdl_expr_seq*, _PyPegen_singleton_seq(p, a)), Load, EXTRA) }
+        _PyAST_Tuple(CHECK(asdl_expr_seq*, _PyPegen_seq_insert_in_front(p, a, b)), Load, EXTRA_EXPR) }
+    | a=expression ',' { _PyAST_Tuple(CHECK(asdl_expr_seq*, _PyPegen_singleton_seq(p, a)), Load, EXTRA_EXPR) }
     | expression
 
 expression[expr_ty] (memo):
@@ -719,20 +719,20 @@ expression[expr_ty] (memo):
     | lambdef
 
 if_expression[expr_ty]:
-    | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
+    | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA_EXPR) }
 
 yield_expr[expr_ty]:
-    | 'yield' 'from' a=expression { _PyAST_YieldFrom(a, EXTRA) }
-    | 'yield' a=[star_expressions] { _PyAST_Yield(a, EXTRA) }
+    | 'yield' 'from' a=expression { _PyAST_YieldFrom(a, EXTRA_EXPR) }
+    | 'yield' a=[star_expressions] { _PyAST_Yield(a, EXTRA_EXPR) }
 
 star_expressions[expr_ty]:
     | a=star_expression b=(',' c=star_expression { c })+ [','] {
-        _PyAST_Tuple(CHECK(asdl_expr_seq*, _PyPegen_seq_insert_in_front(p, a, b)), Load, EXTRA) }
-    | a=star_expression ',' { _PyAST_Tuple(CHECK(asdl_expr_seq*, _PyPegen_singleton_seq(p, a)), Load, EXTRA) }
+        _PyAST_Tuple(CHECK(asdl_expr_seq*, _PyPegen_seq_insert_in_front(p, a, b)), Load, EXTRA_EXPR) }
+    | a=star_expression ',' { _PyAST_Tuple(CHECK(asdl_expr_seq*, _PyPegen_singleton_seq(p, a)), Load, EXTRA_EXPR) }
     | star_expression
 
 star_expression[expr_ty] (memo):
-    | '*' a=bitwise_or { _PyAST_Starred(a, Load, EXTRA) }
+    | '*' a=bitwise_or { _PyAST_Starred(a, Load, EXTRA_EXPR) }
     | expression
 
 star_named_expressions[asdl_expr_seq*]: a[asdl_expr_seq*]=','.star_named_expression+ [','] { a }
@@ -740,7 +740,7 @@ star_named_expressions[asdl_expr_seq*]: a[asdl_expr_seq*]=','.star_named_express
 star_named_expressions_sequence[asdl_expr_seq*]: a[asdl_expr_seq*]=','.star_named_expression_sequence+ [','] { a }
 
 star_named_expression[expr_ty]:
-    | '*' a=bitwise_or { _PyAST_Starred(a, Load, EXTRA) }
+    | '*' a=bitwise_or { _PyAST_Starred(a, Load, EXTRA_EXPR) }
     | named_expression
 
 star_named_expression_sequence[expr_ty]:
@@ -750,7 +750,7 @@ star_named_expression_sequence[expr_ty]:
 assignment_expression[expr_ty]:
     | a=NAME ':=' ~ b=expression {
         CHECK_VERSION(expr_ty, 8, "Assignment expressions are",
-        _PyAST_NamedExpr(CHECK(expr_ty, _PyPegen_set_expr_context(p, a, Store)), b, EXTRA)) }
+        _PyAST_NamedExpr(CHECK(expr_ty, _PyPegen_set_expr_context(p, a, Store)), b, EXTRA_EXPR)) }
 
 named_expression[expr_ty]:
     | assignment_expression
@@ -761,18 +761,18 @@ disjunction[expr_ty] (memo):
     | a=conjunction b=('or' c=conjunction { c })+ { _PyAST_BoolOp(
         Or,
         CHECK(asdl_expr_seq*, _PyPegen_seq_insert_in_front(p, a, b)),
-        EXTRA) }
+        EXTRA_EXPR) }
     | conjunction
 
 conjunction[expr_ty] (memo):
     | a=inversion b=('and' c=inversion { c })+ { _PyAST_BoolOp(
         And,
         CHECK(asdl_expr_seq*, _PyPegen_seq_insert_in_front(p, a, b)),
-        EXTRA) }
+        EXTRA_EXPR) }
     | inversion
 
 inversion[expr_ty] (memo):
-    | 'not' a=inversion { _PyAST_UnaryOp(Not, a, EXTRA) }
+    | 'not' a=inversion { _PyAST_UnaryOp(Not, a, EXTRA_EXPR) }
     | comparison
 
 # Comparison operators
@@ -784,7 +784,7 @@ comparison[expr_ty]:
             a,
             CHECK(asdl_int_seq*, _PyPegen_get_cmpops(p, b)),
             CHECK(asdl_expr_seq*, _PyPegen_get_exprs(p, b)),
-            EXTRA) }
+            EXTRA_EXPR) }
     | bitwise_or
 
 compare_op_bitwise_or_pair[CmpopExprPair*]:
@@ -815,20 +815,20 @@ is_bitwise_or[CmpopExprPair*]: 'is' a=bitwise_or { _PyPegen_cmpop_expr_pair(p, I
 # -----------------
 
 bitwise_or[expr_ty]:
-    | a=bitwise_or '|' b=bitwise_xor { _PyAST_BinOp(a, BitOr, b, EXTRA) }
+    | a=bitwise_or '|' b=bitwise_xor { _PyAST_BinOp(a, BitOr, b, EXTRA_EXPR) }
     | bitwise_xor
 
 bitwise_xor[expr_ty]:
-    | a=bitwise_xor '^' b=bitwise_and { _PyAST_BinOp(a, BitXor, b, EXTRA) }
+    | a=bitwise_xor '^' b=bitwise_and { _PyAST_BinOp(a, BitXor, b, EXTRA_EXPR) }
     | bitwise_and
 
 bitwise_and[expr_ty]:
-    | a=bitwise_and '&' b=shift_expr { _PyAST_BinOp(a, BitAnd, b, EXTRA) }
+    | a=bitwise_and '&' b=shift_expr { _PyAST_BinOp(a, BitAnd, b, EXTRA_EXPR) }
     | shift_expr
 
 shift_expr[expr_ty]:
-    | a=shift_expr '<<' b=sum { _PyAST_BinOp(a, LShift, b, EXTRA) }
-    | a=shift_expr '>>' b=sum { _PyAST_BinOp(a, RShift, b, EXTRA) }
+    | a=shift_expr '<<' b=sum { _PyAST_BinOp(a, LShift, b, EXTRA_EXPR) }
+    | a=shift_expr '>>' b=sum { _PyAST_BinOp(a, RShift, b, EXTRA_EXPR) }
     | invalid_arithmetic
     | sum
 
@@ -836,27 +836,27 @@ shift_expr[expr_ty]:
 # --------------------
 
 sum[expr_ty]:
-    | a=sum '+' b=term { _PyAST_BinOp(a, Add, b, EXTRA) }
-    | a=sum '-' b=term { _PyAST_BinOp(a, Sub, b, EXTRA) }
+    | a=sum '+' b=term { _PyAST_BinOp(a, Add, b, EXTRA_EXPR) }
+    | a=sum '-' b=term { _PyAST_BinOp(a, Sub, b, EXTRA_EXPR) }
     | term
 
 term[expr_ty]:
-    | a=term '*' b=factor { _PyAST_BinOp(a, Mult, b, EXTRA) }
-    | a=term '/' b=factor { _PyAST_BinOp(a, Div, b, EXTRA) }
-    | a=term '//' b=factor { _PyAST_BinOp(a, FloorDiv, b, EXTRA) }
-    | a=term '%' b=factor { _PyAST_BinOp(a, Mod, b, EXTRA) }
-    | a=term '@' b=factor { CHECK_VERSION(expr_ty, 5, "The '@' operator is", _PyAST_BinOp(a, MatMult, b, EXTRA)) }
+    | a=term '*' b=factor { _PyAST_BinOp(a, Mult, b, EXTRA_EXPR) }
+    | a=term '/' b=factor { _PyAST_BinOp(a, Div, b, EXTRA_EXPR) }
+    | a=term '//' b=factor { _PyAST_BinOp(a, FloorDiv, b, EXTRA_EXPR) }
+    | a=term '%' b=factor { _PyAST_BinOp(a, Mod, b, EXTRA_EXPR) }
+    | a=term '@' b=factor { CHECK_VERSION(expr_ty, 5, "The '@' operator is", _PyAST_BinOp(a, MatMult, b, EXTRA_EXPR)) }
     | invalid_factor
     | factor
 
 factor[expr_ty] (memo):
-    | '+' a=factor { _PyAST_UnaryOp(UAdd, a, EXTRA) }
-    | '-' a=factor { _PyAST_UnaryOp(USub, a, EXTRA) }
-    | '~' a=factor { _PyAST_UnaryOp(Invert, a, EXTRA) }
+    | '+' a=factor { _PyAST_UnaryOp(UAdd, a, EXTRA_EXPR) }
+    | '-' a=factor { _PyAST_UnaryOp(USub, a, EXTRA_EXPR) }
+    | '~' a=factor { _PyAST_UnaryOp(Invert, a, EXTRA_EXPR) }
     | power
 
 power[expr_ty]:
-    | a=await_primary '**' b=factor { _PyAST_BinOp(a, Pow, b, EXTRA) }
+    | a=await_primary '**' b=factor { _PyAST_BinOp(a, Pow, b, EXTRA_EXPR) }
     | await_primary
 
 # Primary elements
@@ -865,54 +865,54 @@ power[expr_ty]:
 # Primary elements are things like "obj.something.something", "obj[something]", "obj(something)", "obj" ...
 
 await_primary[expr_ty] (memo):
-    | 'await' a=primary { CHECK_VERSION(expr_ty, 5, "Await expressions are", _PyAST_Await(a, EXTRA)) }
+    | 'await' a=primary { CHECK_VERSION(expr_ty, 5, "Await expressions are", _PyAST_Await(a, EXTRA_EXPR)) }
     | primary
 
 primary[expr_ty]:
-    | a=primary '.' b=NAME { _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA) }
+    | a=primary '.' b=NAME { _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA_EXPR) }
     | none_aware_attribute !'='
-    | a=primary b=genexp { _PyAST_Call(a, CHECK(asdl_expr_seq*, (asdl_expr_seq*)_PyPegen_singleton_seq(p, b)), NULL, EXTRA) }
+    | a=primary b=genexp { _PyAST_Call(a, CHECK(asdl_expr_seq*, (asdl_expr_seq*)_PyPegen_singleton_seq(p, b)), NULL, EXTRA_EXPR) }
     | a=primary '(' b=[arguments] ')' {
         _PyAST_Call(a,
                  (b) ? ((expr_ty) b)->v.Call.args : NULL,
                  (b) ? ((expr_ty) b)->v.Call.keywords : NULL,
-                 EXTRA) }
-    | a=primary '[' b=slices ']' { _PyAST_Subscript(a, b, Load, EXTRA) }
+                 EXTRA_EXPR) }
+    | a=primary '[' b=slices ']' { _PyAST_Subscript(a, b, Load, EXTRA_EXPR) }
     | none_aware_subscript !'='
     | atom
 
 none_aware_attribute[expr_ty]:
     | a=primary '?' '.' b=NAME {
         CHECK_VERSION(expr_ty, 15, "None aware attribute access operator is",
-        _PyAST_NoneAwareAttribute(a, b->v.Name.id, EXTRA)) }
+        _PyAST_NoneAwareAttribute(a, b->v.Name.id, EXTRA_EXPR)) }
 
 none_aware_subscript[expr_ty]:
     | a=primary '?' '[' b=slices ']' {
         CHECK_VERSION(expr_ty, 15, "None aware subscript operator is",
-        _PyAST_NoneAwareSubscript(a, b, EXTRA)) }
+        _PyAST_NoneAwareSubscript(a, b, EXTRA_EXPR)) }
 
 slices[expr_ty]:
     | a=slice !',' { a }
-    | a[asdl_expr_seq*]=','.(slice | starred_expression)+ [','] { _PyAST_Tuple(a, Load, EXTRA) }
+    | a[asdl_expr_seq*]=','.(slice | starred_expression)+ [','] { _PyAST_Tuple(a, Load, EXTRA_EXPR) }
 
 slice[expr_ty]:
-    | a=[expression] ':' b=[expression] c=[':' d=[expression] { d }] { _PyAST_Slice(a, b, c, EXTRA) }
+    | a=[expression] ':' b=[expression] c=[':' d=[expression] { d }] { _PyAST_Slice(a, b, c, EXTRA_EXPR) }
     | a=named_expression { a }
 
 atom[expr_ty]:
     | NAME
-    | 'True' { _PyAST_Constant(Py_True, NULL, EXTRA) }
-    | 'False' { _PyAST_Constant(Py_False, NULL, EXTRA) }
-    | 'None' { _PyAST_Constant(Py_None, NULL, EXTRA) }
+    | 'True' { _PyAST_Constant(Py_True, NULL, EXTRA_EXPR) }
+    | 'False' { _PyAST_Constant(Py_False, NULL, EXTRA_EXPR) }
+    | 'None' { _PyAST_Constant(Py_None, NULL, EXTRA_EXPR) }
     | &(STRING|FSTRING_START|TSTRING_START) strings
     | NUMBER
     | &'(' (genexp | tuple | group)
     | &'[' (listcomp | list)
     | &'{' (dictcomp | setcomp | dict | set)
-    | '...' { _PyAST_Constant(Py_Ellipsis, NULL, EXTRA) }
+    | '...' { _PyAST_Constant(Py_Ellipsis, NULL, EXTRA_EXPR) }
 
 group[expr_ty]:
-    | '(' a=(yield_expr | named_expression) ')' { a }
+    | '(' a=(yield_expr | named_expression) ')' { _PyPegen_set_group(p, a) }
     | invalid_group
 
 # Lambda functions
@@ -920,7 +920,7 @@ group[expr_ty]:
 
 lambdef[expr_ty]:
     | 'lambda' a=[lambda_params] ':' b=expression {
-        _PyAST_Lambda((a) ? a : CHECK(arguments_ty, _PyPegen_empty_arguments(p)), b, EXTRA) }
+        _PyAST_Lambda((a) ? a : CHECK(arguments_ty, _PyPegen_empty_arguments(p)), b, EXTRA_EXPR) }
 
 lambda_params[arguments_ty]:
     | invalid_lambda_parameters
@@ -1022,13 +1022,13 @@ strings[expr_ty] (memo):
     | a[asdl_expr_seq*]=tstring+ { _PyPegen_concatenate_tstrings(p, a, EXTRA) }
 
 list[expr_ty]:
-    | '[' a=[star_named_expressions_sequence] ']' { _PyAST_List(a, Load, EXTRA) }
+    | '[' a=[star_named_expressions_sequence] ']' { _PyAST_List(a, Load, EXTRA_EXPR) }
 
 tuple[expr_ty]:
     | '(' a=[y=star_named_expression_sequence ',' z=[star_named_expressions_sequence] { _PyPegen_seq_insert_in_front(p, y, z) } ] ')' {
-        _PyAST_Tuple(a, Load, EXTRA) }
+        _PyAST_Tuple(a, Load, EXTRA_EXPR) }
 
-set[expr_ty]: '{' a=star_named_expressions_sequence '}' { _PyAST_Set(a, EXTRA) }
+set[expr_ty]: '{' a=star_named_expressions_sequence '}' { _PyAST_Set(a, EXTRA_EXPR) }
 
 # Dicts
 # -----
@@ -1038,7 +1038,7 @@ dict[expr_ty]:
         _PyAST_Dict(
             CHECK(asdl_expr_seq*, _PyPegen_get_keys(p, a)),
             CHECK(asdl_expr_seq*, _PyPegen_get_values(p, a)),
-            EXTRA) }
+            EXTRA_EXPR) }
     | '{' invalid_double_starred_kvpairs '}'
 
 double_starred_kvpairs[asdl_seq*]: a=','.double_starred_kvpair+ [','] { a }
@@ -1064,20 +1064,20 @@ for_if_clause[comprehension_ty]:
     | invalid_for_target
 
 listcomp[expr_ty]:
-    | '[' a=star_named_expression b=for_if_clauses ']' { _PyAST_ListComp(a, b, EXTRA) }
+    | '[' a=star_named_expression b=for_if_clauses ']' { _PyAST_ListComp(a, b, EXTRA_EXPR) }
     | invalid_comprehension
 
 setcomp[expr_ty]:
-    | '{' a=star_named_expression b=for_if_clauses '}' { _PyAST_SetComp(a, b, EXTRA) }
+    | '{' a=star_named_expression b=for_if_clauses '}' { _PyAST_SetComp(a, b, EXTRA_EXPR) }
     | invalid_comprehension
 
 genexp[expr_ty]:
-    | '(' a=( assignment_expression | expression !':=' | starred_expression ) b=for_if_clauses ')' { _PyAST_GeneratorExp(a, b, EXTRA) }
+    | '(' a=( assignment_expression | expression !':=' | starred_expression ) b=for_if_clauses ')' { _PyAST_GeneratorExp(a, b, EXTRA_EXPR) }
     | invalid_comprehension
 
 dictcomp[expr_ty]:
-    | '{' a=kvpair b=for_if_clauses '}' { _PyAST_DictComp(a->key, a->value, b, EXTRA) }
-    | '{' '**' a=expression b=for_if_clauses '}' { _PyAST_DictComp(a, NULL, b, EXTRA) }
+    | '{' a=kvpair b=for_if_clauses '}' { _PyAST_DictComp(a->key, a->value, b, EXTRA_EXPR) }
+    | '{' '**' a=expression b=for_if_clauses '}' { _PyAST_DictComp(a, NULL, b, EXTRA_EXPR) }
 
 # FUNCTION CALL ARGUMENTS
 # =======================
@@ -1092,7 +1092,7 @@ args[expr_ty]:
     | a=kwargs { _PyAST_Call(_PyPegen_dummy_name(p),
                           CHECK_NULL_ALLOWED(asdl_expr_seq*, _PyPegen_seq_extract_starred_exprs(p, a)),
                           CHECK_NULL_ALLOWED(asdl_keyword_seq*, _PyPegen_seq_delete_starred_exprs(p, a)),
-                          EXTRA) }
+                          EXTRA_EXPR) }
 
 kwargs[asdl_seq*]:
     | a=','.kwarg_or_starred+ ',' b=','.kwarg_or_double_starred+ { _PyPegen_join_sequences(p, a, b) }
@@ -1101,7 +1101,7 @@ kwargs[asdl_seq*]:
 
 starred_expression[expr_ty]:
     | invalid_starred_expression_unpacking
-    | '*' a=expression { _PyAST_Starred(a, Load, EXTRA) }
+    | '*' a=expression { _PyAST_Starred(a, Load, EXTRA_EXPR) }
     | invalid_starred_expression
 
 kwarg_or_starred[KeywordOrStarred*]:
@@ -1126,7 +1126,7 @@ kwarg_or_double_starred[KeywordOrStarred*]:
 star_targets[expr_ty]:
     | a=star_target !',' { a }
     | a=star_target b=(',' c=star_target { c })* [','] {
-        _PyAST_Tuple(CHECK(asdl_expr_seq*, _PyPegen_seq_insert_in_front(p, a, b)), Store, EXTRA) }
+        _PyAST_Tuple(CHECK(asdl_expr_seq*, _PyPegen_seq_insert_in_front(p, a, b)), Store, EXTRA_EXPR) }
 
 star_targets_list_seq[asdl_expr_seq*]: a[asdl_expr_seq*]=','.star_target+ [','] { a }
 
@@ -1136,19 +1136,19 @@ star_targets_tuple_seq[asdl_expr_seq*]:
 
 star_target[expr_ty] (memo):
     | '*' a=(!'*' star_target) {
-        _PyAST_Starred(CHECK(expr_ty, _PyPegen_set_expr_context(p, a, Store)), Store, EXTRA) }
+        _PyAST_Starred(CHECK(expr_ty, _PyPegen_set_expr_context(p, a, Store)), Store, EXTRA_EXPR) }
     | target_with_star_atom
 
 target_with_star_atom[expr_ty] (memo):
-    | a=t_primary '.' b=NAME !t_lookahead { _PyAST_Attribute(a, b->v.Name.id, Store, EXTRA) }
-    | a=t_primary '[' b=slices ']' !t_lookahead { _PyAST_Subscript(a, b, Store, EXTRA) }
+    | a=t_primary '.' b=NAME !t_lookahead { _PyAST_Attribute(a, b->v.Name.id, Store, EXTRA_EXPR) }
+    | a=t_primary '[' b=slices ']' !t_lookahead { _PyAST_Subscript(a, b, Store, EXTRA_EXPR) }
     | star_atom
 
 star_atom[expr_ty]:
     | a=NAME { _PyPegen_set_expr_context(p, a, Store) }
     | '(' a=target_with_star_atom ')' { _PyPegen_set_expr_context(p, a, Store) }
-    | '(' a=[star_targets_tuple_seq] ')' { _PyAST_Tuple(a, Store, EXTRA) }
-    | '[' a=[star_targets_list_seq] ']' { _PyAST_List(a, Store, EXTRA) }
+    | '(' a=[star_targets_tuple_seq] ')' { _PyAST_Tuple(a, Store, EXTRA_EXPR) }
+    | '[' a=[star_targets_list_seq] ']' { _PyAST_List(a, Store, EXTRA_EXPR) }
 
 single_target[expr_ty]:
     | single_subscript_attribute_target
@@ -1156,19 +1156,19 @@ single_target[expr_ty]:
     | '(' a=single_target ')' { a }
 
 single_subscript_attribute_target[expr_ty]:
-    | a=t_primary '.' b=NAME !t_lookahead { _PyAST_Attribute(a, b->v.Name.id, Store, EXTRA) }
-    | a=t_primary '[' b=slices ']' !t_lookahead { _PyAST_Subscript(a, b, Store, EXTRA) }
+    | a=t_primary '.' b=NAME !t_lookahead { _PyAST_Attribute(a, b->v.Name.id, Store, EXTRA_EXPR) }
+    | a=t_primary '[' b=slices ']' !t_lookahead { _PyAST_Subscript(a, b, Store, EXTRA_EXPR) }
 
 t_primary[expr_ty]:
-    | a=t_primary '.' b=NAME &t_lookahead { _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA) }
-    | a=t_primary '[' b=slices ']' &t_lookahead { _PyAST_Subscript(a, b, Load, EXTRA) }
+    | a=t_primary '.' b=NAME &t_lookahead { _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA_EXPR) }
+    | a=t_primary '[' b=slices ']' &t_lookahead { _PyAST_Subscript(a, b, Load, EXTRA_EXPR) }
     | a=t_primary b=genexp &t_lookahead {
-        _PyAST_Call(a, CHECK(asdl_expr_seq*, (asdl_expr_seq*)_PyPegen_singleton_seq(p, b)), NULL, EXTRA) }
+        _PyAST_Call(a, CHECK(asdl_expr_seq*, (asdl_expr_seq*)_PyPegen_singleton_seq(p, b)), NULL, EXTRA_EXPR) }
     | a=t_primary '(' b=[arguments] ')' &t_lookahead {
         _PyAST_Call(a,
                  (b) ? ((expr_ty) b)->v.Call.args : NULL,
                  (b) ? ((expr_ty) b)->v.Call.keywords : NULL,
-                 EXTRA) }
+                 EXTRA_EXPR) }
     | a=atom &t_lookahead { a }
 
 t_lookahead: '(' | '[' | '.'
@@ -1179,15 +1179,15 @@ t_lookahead: '(' | '[' | '.'
 del_targets[asdl_expr_seq*]: a[asdl_expr_seq*]=','.del_target+ [','] { a }
 
 del_target[expr_ty] (memo):
-    | a=t_primary '.' b=NAME !t_lookahead { _PyAST_Attribute(a, b->v.Name.id, Del, EXTRA) }
-    | a=t_primary '[' b=slices ']' !t_lookahead { _PyAST_Subscript(a, b, Del, EXTRA) }
+    | a=t_primary '.' b=NAME !t_lookahead { _PyAST_Attribute(a, b->v.Name.id, Del, EXTRA_EXPR) }
+    | a=t_primary '[' b=slices ']' !t_lookahead { _PyAST_Subscript(a, b, Del, EXTRA_EXPR) }
     | del_t_atom
 
 del_t_atom[expr_ty]:
     | a=NAME { _PyPegen_set_expr_context(p, a, Del) }
     | '(' a=del_target ')' { _PyPegen_set_expr_context(p, a, Del) }
-    | '(' a=[del_targets] ')' { _PyAST_Tuple(a, Del, EXTRA) }
-    | '[' a=[del_targets] ']' { _PyAST_List(a, Del, EXTRA) }
+    | '(' a=[del_targets] ')' { _PyAST_Tuple(a, Del, EXTRA_EXPR) }
+    | '[' a=[del_targets] ']' { _PyAST_List(a, Del, EXTRA_EXPR) }
 
 # TYPING ELEMENTS
 # ---------------
@@ -1248,7 +1248,7 @@ invalid_kwarg:
 
 # IMPORTANT: Note that the "_without_invalid" suffix causes the rule to not call invalid rules under it
 expression_without_invalid[expr_ty]:
-    | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
+    | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA_EXPR) }
     | disjunction
     | lambdef
 invalid_legacy_expression:
