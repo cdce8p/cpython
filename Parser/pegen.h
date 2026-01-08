@@ -266,8 +266,9 @@ void * _PyPegen_seq_last_item(asdl_seq *seq);
 void * _PyPegen_seq_first_item(asdl_seq *seq);
 #define PyPegen_first_item(seq, type) ((type)_PyPegen_seq_first_item((asdl_seq*)seq))
 #define UNUSED(expr) do { (void)(expr); } while (0)
-#define EXTRA_EXPR(head, tail) head->lineno, (head)->col_offset, (tail)->end_lineno, (tail)->end_col_offset, p->arena
+#define EXTRA_EXPRESSION(head, tail) 0, head->lineno, (head)->col_offset, (tail)->end_lineno, (tail)->end_col_offset, p->arena
 #define EXTRA _start_lineno, _start_col_offset, _end_lineno, _end_col_offset, p->arena
+#define EXTRA_EXPR 0, EXTRA
 PyObject *_PyPegen_new_type_comment(Parser *, const char *);
 
 Py_LOCAL_INLINE(PyObject *)
@@ -356,6 +357,7 @@ expr_ty _PyPegen_concatenate_strings(Parser *p, asdl_expr_seq *, int, int, int, 
 expr_ty _PyPegen_FetchRawForm(Parser *p, int, int, int, int);
 expr_ty _PyPegen_ensure_imaginary(Parser *p, expr_ty);
 expr_ty _PyPegen_ensure_real(Parser *p, expr_ty);
+expr_ty _PyPegen_set_group(Parser *p, expr_ty);
 asdl_seq *_PyPegen_join_sequences(Parser *, asdl_seq *, asdl_seq *);
 int _PyPegen_check_barry_as_flufl(Parser *, Token *);
 int _PyPegen_check_legacy_stmt(Parser *p, expr_ty t);
