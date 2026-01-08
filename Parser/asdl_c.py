@@ -496,6 +496,7 @@ class Obj2ModPrototypeVisitor(PickleVisitor):
 class Obj2ModVisitor(PickleVisitor):
 
     attribute_special_defaults = {
+        "group": 0,
         "end_lineno": "lineno",
         "end_col_offset": "col_offset",
     }

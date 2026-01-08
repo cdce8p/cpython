@@ -206,10 +206,10 @@ def dump(
 
 def copy_location(new_node, old_node):
     """
-    Copy source location (`lineno`, `col_offset`, `end_lineno`, and `end_col_offset`
+    Copy source location (`group`, `lineno`, `col_offset`, `end_lineno`, and `end_col_offset`
     attributes) from *old_node* to *new_node* if possible, and return *new_node*.
     """
-    for attr in 'lineno', 'col_offset', 'end_lineno', 'end_col_offset':
+    for attr in 'group', 'lineno', 'col_offset', 'end_lineno', 'end_col_offset':
         if attr in old_node._attributes and attr in new_node._attributes:
             value = getattr(old_node, attr, None)
             # end_lineno and end_col_offset are optional attributes, and they
@@ -223,13 +223,16 @@ def copy_location(new_node, old_node):
 
 def fix_missing_locations(node):
     """
-    When you compile a node tree with compile(), the compiler expects lineno and
-    col_offset attributes for every node that supports them.  This is rather
+    When you compile a node tree with compile(), the compiler expects group, lineno
+    and col_offset attributes for every node that supports them.  This is rather
     tedious to fill in for generated nodes, so this helper adds these attributes
     recursively where not already set, by setting them to the values of the
     parent node.  It works recursively starting at *node*.
     """
     def _fix(node, lineno, col_offset, end_lineno, end_col_offset):
+        if 'group' in node._attributes:
+            if getattr(node, 'group', None) is None:
+                node.group = 0
         if 'lineno' in node._attributes:
             if not hasattr(node, 'lineno'):
                 node.lineno = lineno

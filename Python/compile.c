@@ -813,14 +813,7 @@ _PyCompile_PushNATarget(compiler *c, location loc, expr_ty e, _PyJumpTargetLabel
     }
     int same_none_aware_block = c->u->u_same_none_aware_block;
     // Check next expression
-    c->u->u_same_none_aware_block = (
-        e->kind == Name_kind
-        || e->kind == Attribute_kind
-        || e->kind == Subscript_kind
-        || e->kind == Call_kind
-        || e->kind == NoneAwareAttribute_kind
-        || e->kind == NoneAwareSubscript_kind
-    );
+    c->u->u_same_none_aware_block = e->group != 1;
     if (c->u->u_nnablocks > 0 && same_none_aware_block == 1) {
         na = &c->u->u_none_aware_block[c->u->u_nnablocks - 1];
         na->na_count++;
