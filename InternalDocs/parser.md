@@ -368,13 +368,13 @@ returns a valid C-based Python AST:
     expr_stmt[stmt_ty]: a=expr NEWLINE { _PyAST_Expr(a, EXTRA) }
 
     expr[expr_ty]:
-        | l=expr '+' r=term { _PyAST_BinOp(l, Add, r, EXTRA) }
-        | l=expr '-' r=term { _PyAST_BinOp(l, Sub, r, EXTRA) }
+        | l=expr '+' r=term { _PyAST_BinOp(l, Add, r, EXTRA_EXPR) }
+        | l=expr '-' r=term { _PyAST_BinOp(l, Sub, r, EXTRA_EXPR) }
         | term
 
     term[expr_ty]:
-        | l=term '*' r=factor { _PyAST_BinOp(l, Mult, r, EXTRA) }
-        | l=term '/' r=factor { _PyAST_BinOp(l, Div, r, EXTRA) }
+        | l=term '*' r=factor { _PyAST_BinOp(l, Mult, r, EXTRA_EXPR) }
+        | l=term '/' r=factor { _PyAST_BinOp(l, Div, r, EXTRA_EXPR) }
         | factor
 
     factor[expr_ty]:
@@ -390,6 +390,9 @@ Here `EXTRA` is a macro that expands to `start_lineno, start_col_offset,
 end_lineno, end_col_offset, p->arena`, those being variables automatically
 injected by the parser; `p` points to an object that holds on to all state
 for the parser.
+`EXTRA_EXPR` expands to `0, start_lineno, start_col_offset,
+end_lineno, end_col_offset, p->arena`, specifically for expression nodes.
+The `0` represents the `group` indicated. It is set at a later point.
 
 A similar grammar written to target Python AST objects:
 
@@ -398,13 +401,13 @@ A similar grammar written to target Python AST objects:
     expr_stmt: a=expr NEWLINE { ast.Expr(value=a, EXTRA) }
 
     expr:
-        | l=expr '+' r=term { ast.BinOp(left=l, op=ast.Add(), right=r, EXTRA) }
-        | l=expr '-' r=term { ast.BinOp(left=l, op=ast.Sub(), right=r, EXTRA) }
+        | l=expr '+' r=term { ast.BinOp(left=l, op=ast.Add(), right=r, EXTRA_EXPR) }
+        | l=expr '-' r=term { ast.BinOp(left=l, op=ast.Sub(), right=r, EXTRA_EXPR) }
         | term
 
     term:
-        | l=term '*' r=factor { ast.BinOp(left=l, op=ast.Mult(), right=r, EXTRA) }
-        | l=term '/' r=factor { ast.BinOp(left=l, op=ast.Div(), right=r, EXTRA) }
+        | l=term '*' r=factor { ast.BinOp(left=l, op=ast.Mult(), right=r, EXTRA_EXPR) }
+        | l=term '/' r=factor { ast.BinOp(left=l, op=ast.Div(), right=r, EXTRA_EXPR) }
         | factor
 
     factor:
@@ -576,6 +579,8 @@ automatic variable names are:
   which is normally used to create AST nodes as almost all constructors need these
   attributes to be provided. All of the location variables are taken from the
   location information of the current token.
+- `EXTRA_EXPR`: This is a macro that expands to `(0, EXTRA)`, which is normally
+  used to create expression AST nodes.
 
 Hard and soft keywords
 ----------------------

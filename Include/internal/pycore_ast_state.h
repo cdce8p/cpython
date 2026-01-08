@@ -203,6 +203,7 @@ struct ast_state {
     PyObject *format_spec;
     PyObject *func;
     PyObject *generators;
+    PyObject *group;
     PyObject *guard;
     PyObject *handlers;
     PyObject *id;
