@@ -577,7 +577,7 @@ _PyPegen_name_from_token(Parser *p, Token* t)
         p->error_indicator = 1;
         return NULL;
     }
-    return _PyAST_Name(id, Load, t->lineno, t->col_offset, t->end_lineno,
+    return _PyAST_Name(id, Load, 0, t->lineno, t->col_offset, t->end_lineno,
                        t->end_col_offset, p->arena);
 }
 
@@ -736,7 +736,7 @@ _PyPegen_number_token(Parser *p)
         return NULL;
     }
 
-    return _PyAST_Constant(c, NULL, t->lineno, t->col_offset, t->end_lineno,
+    return _PyAST_Constant(c, NULL, 0, t->lineno, t->col_offset, t->end_lineno,
                            t->end_col_offset, p->arena);
 }
 

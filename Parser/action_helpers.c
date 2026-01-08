@@ -133,7 +133,7 @@ _PyPegen_join_names_with_dot(Parser *p, expr_ty first_name, expr_ty second_name)
         return NULL;
     }
 
-    return _PyAST_Name(uni, Load, EXTRA_EXPR(first_name, second_name));
+    return _PyAST_Name(uni, Load, EXTRA_EXPRESSION(first_name, second_name));
 }
 
 /* Counts the total number of dots in seq's tokens */
@@ -262,7 +262,7 @@ _set_seq_context(Parser *p, asdl_expr_seq *seq, expr_context_ty ctx)
 static expr_ty
 _set_name_context(Parser *p, expr_ty e, expr_context_ty ctx)
 {
-    return _PyAST_Name(e->v.Name.id, ctx, EXTRA_EXPR(e, e));
+    return _PyAST_Name(e->v.Name.id, ctx, EXTRA_EXPRESSION(e, e));
 }
 
 static expr_ty
@@ -271,7 +271,7 @@ _set_tuple_context(Parser *p, expr_ty e, expr_context_ty ctx)
     return _PyAST_Tuple(
             _set_seq_context(p, e->v.Tuple.elts, ctx),
             ctx,
-            EXTRA_EXPR(e, e));
+            EXTRA_EXPRESSION(e, e));
 }
 
 static expr_ty
@@ -280,28 +280,28 @@ _set_list_context(Parser *p, expr_ty e, expr_context_ty ctx)
     return _PyAST_List(
             _set_seq_context(p, e->v.List.elts, ctx),
             ctx,
-            EXTRA_EXPR(e, e));
+            EXTRA_EXPRESSION(e, e));
 }
 
 static expr_ty
 _set_subscript_context(Parser *p, expr_ty e, expr_context_ty ctx)
 {
     return _PyAST_Subscript(e->v.Subscript.value, e->v.Subscript.slice,
-                            ctx, EXTRA_EXPR(e, e));
+                            ctx, EXTRA_EXPRESSION(e, e));
 }
 
 static expr_ty
 _set_attribute_context(Parser *p, expr_ty e, expr_context_ty ctx)
 {
     return _PyAST_Attribute(e->v.Attribute.value, e->v.Attribute.attr,
-                            ctx, EXTRA_EXPR(e, e));
+                            ctx, EXTRA_EXPRESSION(e, e));
 }
 
 static expr_ty
 _set_starred_context(Parser *p, expr_ty e, expr_context_ty ctx)
 {
     return _PyAST_Starred(_PyPegen_set_expr_context(p, e->v.Starred.value, ctx),
-                          ctx, EXTRA_EXPR(e, e));
+                          ctx, EXTRA_EXPRESSION(e, e));
 }
 
 /* Creates an `expr_ty` equivalent to `expr` but with `ctx` as context */
@@ -1056,7 +1056,7 @@ _PyPegen_setup_full_format_spec(Parser *p, Token *colon, asdl_expr_seq *spec, in
     expr_ty res;
     Py_ssize_t n = asdl_seq_LEN(spec);
     if (n == 0 || (n == 1 && asdl_seq_GET(spec, 0)->kind == Constant_kind)) {
-        res = _PyAST_JoinedStr(spec, lineno, col_offset, end_lineno,
+        res = _PyAST_JoinedStr(spec, 0, lineno, col_offset, end_lineno,
                                     end_col_offset, p->arena);
     } else {
         res = _PyPegen_concatenate_strings(p, spec,
@@ -1166,7 +1166,7 @@ expr_ty _PyPegen_collect_call_seqs(Parser *p, asdl_expr_seq *a, asdl_seq *b,
     Py_ssize_t total_len = args_len;
 
     if (b == NULL) {
-        return _PyAST_Call(_PyPegen_dummy_name(p), a, NULL, lineno, col_offset,
+        return _PyAST_Call(_PyPegen_dummy_name(p), a, NULL, 0, lineno, col_offset,
                         end_lineno, end_col_offset, arena);
 
     }
@@ -1191,7 +1191,7 @@ expr_ty _PyPegen_collect_call_seqs(Parser *p, asdl_expr_seq *a, asdl_seq *b,
         asdl_seq_SET(args, i, asdl_seq_GET(starreds, i - args_len));
     }
 
-    return _PyAST_Call(_PyPegen_dummy_name(p), args, keywords, lineno,
+    return _PyAST_Call(_PyPegen_dummy_name(p), args, keywords, 0, lineno,
                        col_offset, end_lineno, end_col_offset, arena);
 }
 
@@ -1325,7 +1325,7 @@ _PyPegen_decode_fstring_part(Parser* p, int is_raw, expr_ty constant, Token* tok
         Py_DECREF(str);
         return NULL;
     }
-    return _PyAST_Constant(str, NULL, constant->lineno, constant->col_offset,
+    return _PyAST_Constant(str, NULL, 0, constant->lineno, constant->col_offset,
                            constant->end_lineno, constant->end_col_offset,
                            p->arena);
 }
@@ -1423,7 +1423,7 @@ _PyPegen_template_str(Parser *p, Token *a, asdl_expr_seq *raw_expressions, Token
     if (resized_exprs == NULL) {
         return NULL;
     }
-    return _PyAST_TemplateStr(resized_exprs, a->lineno, a->col_offset,
+    return _PyAST_TemplateStr(resized_exprs, 0, a->lineno, a->col_offset,
                               b->end_lineno, b->end_col_offset,
                               p->arena);
 }
@@ -1435,7 +1435,7 @@ _PyPegen_joined_str(Parser *p, Token* a, asdl_expr_seq* raw_expressions, Token*b
     if (resized_exprs == NULL) {
         return NULL;
     }
-    return _PyAST_JoinedStr(resized_exprs, a->lineno, a->col_offset,
+    return _PyAST_JoinedStr(resized_exprs, 0, a->lineno, a->col_offset,
                             b->end_lineno, b->end_col_offset,
                             p->arena);
 }
@@ -1462,7 +1462,7 @@ expr_ty _PyPegen_decoded_constant_from_token(Parser* p, Token* tok) {
         Py_DECREF(str);
         return NULL;
     }
-    return _PyAST_Constant(str, NULL, tok->lineno, tok->col_offset,
+    return _PyAST_Constant(str, NULL, 0, tok->lineno, tok->col_offset,
                            tok->end_lineno, tok->end_col_offset,
                            p->arena);
 }
@@ -1480,7 +1480,7 @@ expr_ty _PyPegen_constant_from_token(Parser* p, Token* tok) {
         Py_DECREF(str);
         return NULL;
     }
-    return _PyAST_Constant(str, NULL, tok->lineno, tok->col_offset,
+    return _PyAST_Constant(str, NULL, 0, tok->lineno, tok->col_offset,
                            tok->end_lineno, tok->end_col_offset,
                            p->arena);
 }
@@ -1506,7 +1506,8 @@ expr_ty _PyPegen_constant_from_string(Parser* p, Token* tok) {
             return NULL;
         }
     }
-    return _PyAST_Constant(s, kind, tok->lineno, tok->col_offset, tok->end_lineno, tok->end_col_offset, p->arena);
+    return _PyAST_Constant(s, kind, 0, tok->lineno, tok->col_offset,
+                           tok->end_lineno, tok->end_col_offset, p->arena);
 }
 
 static int
@@ -1580,16 +1581,15 @@ expr_ty _PyPegen_interpolation(Parser *p, expr_ty expression, Token *debug, Resu
 
     expr_ty interpolation = _PyAST_Interpolation(
         expression, final_exprstr, conversion_val, format ? (expr_ty) format->result : NULL,
-        lineno, col_offset, end_lineno,
-        end_col_offset, arena
+        0, lineno, col_offset, end_lineno, end_col_offset, arena
     );
 
     if (!debug) {
         return interpolation;
     }
 
-    expr_ty debug_text = _PyAST_Constant(debug_metadata, NULL, lineno, col_offset + 1, debug_end_line,
-                                            debug_end_offset - 1, p->arena);
+    expr_ty debug_text = _PyAST_Constant(debug_metadata, NULL, 0, lineno, col_offset + 1,
+                                         debug_end_line, debug_end_offset - 1, p->arena);
     if (!debug_text) {
         return NULL;
     }
@@ -1597,7 +1597,7 @@ expr_ty _PyPegen_interpolation(Parser *p, expr_ty expression, Token *debug, Resu
     asdl_expr_seq *values = _Py_asdl_expr_seq_new(2, arena);
     asdl_seq_SET(values, 0, debug_text);
     asdl_seq_SET(values, 1, interpolation);
-    return _PyAST_JoinedStr(values, lineno, col_offset, debug_end_line, debug_end_offset, p->arena);
+    return _PyAST_JoinedStr(values, 0, lineno, col_offset, debug_end_line, debug_end_offset, p->arena);
 }
 
 expr_ty _PyPegen_formatted_value(Parser *p, expr_ty expression, Token *debug, ResultTokenWithMetadata *conversion,
@@ -1607,8 +1607,7 @@ expr_ty _PyPegen_formatted_value(Parser *p, expr_ty expression, Token *debug, Re
 
     expr_ty formatted_value = _PyAST_FormattedValue(
         expression, conversion_val, format ? (expr_ty) format->result : NULL,
-        lineno, col_offset, end_lineno,
-        end_col_offset, arena
+        0, lineno, col_offset, end_lineno, end_col_offset, arena
     );
 
     if (!debug) {
@@ -1634,8 +1633,8 @@ expr_ty _PyPegen_formatted_value(Parser *p, expr_ty expression, Token *debug, Re
         debug_end_offset = end_col_offset;
         debug_metadata = closing_brace->metadata;
     }
-    expr_ty debug_text = _PyAST_Constant(debug_metadata, NULL, lineno, col_offset + 1, debug_end_line,
-                                            debug_end_offset - 1, p->arena);
+    expr_ty debug_text = _PyAST_Constant(debug_metadata, NULL, 0, lineno, col_offset + 1,
+                                         debug_end_line, debug_end_offset - 1, p->arena);
     if (!debug_text) {
         return NULL;
     }
@@ -1643,7 +1642,7 @@ expr_ty _PyPegen_formatted_value(Parser *p, expr_ty expression, Token *debug, Re
     asdl_expr_seq *values = _Py_asdl_expr_seq_new(2, arena);
     asdl_seq_SET(values, 0, debug_text);
     asdl_seq_SET(values, 1, formatted_value);
-    return _PyAST_JoinedStr(values, lineno, col_offset, debug_end_line, debug_end_offset, p->arena);
+    return _PyAST_JoinedStr(values, 0, lineno, col_offset, debug_end_line, debug_end_offset, p->arena);
 }
 
 static expr_ty
@@ -1696,7 +1695,7 @@ _build_concatenated_bytes(Parser *p, asdl_expr_seq *strings, int lineno,
         Py_DECREF(res);
         return NULL;
     }
-    return _PyAST_Constant(res, kind, lineno, col_offset, end_lineno, end_col_offset, p->arena);
+    return _PyAST_Constant(res, kind, 0, lineno, col_offset, end_lineno, end_col_offset, p->arena);
 }
 
 static expr_ty
@@ -1741,7 +1740,7 @@ _build_concatenated_unicode(Parser *p, asdl_expr_seq *strings, int lineno,
         Py_DECREF(final);
         return NULL;
     }
-    return _PyAST_Constant(final, kind, lineno, col_offset,
+    return _PyAST_Constant(final, kind, 0, lineno, col_offset,
                            end_lineno, end_col_offset, arena);
 }
 
@@ -1878,7 +1877,8 @@ _build_concatenated_str(Parser *p, asdl_expr_seq *strings,
                     Py_DECREF(concat_str);
                     return NULL;
                 }
-                elem = _PyAST_Constant(concat_str, kind, first_elem->lineno,
+                elem = _PyAST_Constant(concat_str, kind,
+                                       0, first_elem->lineno,
                                        first_elem->col_offset,
                                        last_elem->end_lineno,
                                        last_elem->end_col_offset, p->arena);
@@ -1908,7 +1908,7 @@ _build_concatenated_joined_str(Parser *p, asdl_expr_seq *strings,
 {
     asdl_expr_seq *values = _build_concatenated_str(p, strings, lineno,
         col_offset, end_lineno, end_col_offset, arena);
-    return _PyAST_JoinedStr(values, lineno, col_offset, end_lineno, end_col_offset, p->arena);
+    return _PyAST_JoinedStr(values, 0, lineno, col_offset, end_lineno, end_col_offset, p->arena);
 }
 
 expr_ty
@@ -1918,8 +1918,8 @@ _PyPegen_concatenate_tstrings(Parser *p, asdl_expr_seq *strings,
 {
     asdl_expr_seq *values = _build_concatenated_str(p, strings, lineno,
         col_offset, end_lineno, end_col_offset, arena);
-    return _PyAST_TemplateStr(values, lineno, col_offset, end_lineno,
-        end_col_offset, arena);
+    return _PyAST_TemplateStr(values, 0, lineno, col_offset, end_lineno,
+                              end_col_offset, arena);
 }
 
 expr_ty
@@ -1981,6 +1981,12 @@ _PyPegen_concatenate_strings(Parser *p, asdl_expr_seq *strings,
 
     return _build_concatenated_joined_str(p, strings, lineno,
         col_offset, end_lineno, end_col_offset, arena);
+}
+
+expr_ty
+_PyPegen_set_group(Parser *p, expr_ty exp) {
+    exp->group = 1;
+    return exp;
 }
 
 stmt_ty
