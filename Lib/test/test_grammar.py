@@ -2236,6 +2236,21 @@ class GrammarTests(unittest.TestCase):
         self.assertEqual((k?.a or k)?.c.d(), None)
         self.assertEqual((k?.a or k)?.c.d[0], None)
         self.assertEqual((k?.a or k)?.c.func(), None)
+        try:
+            self.assertEqual((k?.a).c)
+            self.fail("should produce AttributeError on c")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual((k?.a)[0])
+            self.fail("should produce TypeError, NoneType not subscriptable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual((k?.a).func_a())
+            self.fail("should produce AttributError on func_a")
+        except AttributeError:
+            pass
 
     def test_none_aware_subscript(self):
         class A:
@@ -2278,6 +2293,21 @@ class GrammarTests(unittest.TestCase):
         self.assertEqual((k or l?[0]).c, 2)
         self.assertEqual((k?[0] or l?[0]).c, 2)
         self.assertEqual((k?[0].a.func() or l?[0]).c, 2)
+        try:
+            self.assertEqual((k?[0]).c)
+            self.fail("should produce AttributeError on c")
+        except AttributeError:
+            pass
+        try:
+            self.assertEqual((k?[0])[0])
+            self.fail("should produce TypeError, NoneType not subscriptable")
+        except TypeError:
+            pass
+        try:
+            self.assertEqual((k?[0]).func_a())
+            self.fail("should produce AttributError on func_a")
+        except AttributeError:
+            pass
 
 
 if __name__ == '__main__':
