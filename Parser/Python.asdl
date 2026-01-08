@@ -97,7 +97,7 @@ module Python
          | Slice(expr? lower, expr? upper, expr? step)
 
           -- col_offset is the byte offset in the utf8 string the parser uses
-          attributes (int lineno, int col_offset, int? end_lineno, int? end_col_offset)
+          attributes (int? group, int lineno, int col_offset, int? end_lineno, int? end_col_offset)
 
     expr_context = Load | Store | Del
 
