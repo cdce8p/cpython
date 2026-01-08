@@ -207,7 +207,7 @@ parse_literal(PyObject *fmt, Py_ssize_t *ppos, PyArena *arena)
         Py_DECREF(str);
         return NULL;
     }
-    return _PyAST_Constant(str, NULL, -1, -1, -1, -1, arena);
+    return _PyAST_Constant(str, NULL, -1, -1, -1, -1, -1, arena);
 }
 
 #define MAXDIGITS 3
@@ -301,13 +301,13 @@ parse_format(PyObject *fmt, Py_ssize_t *ppos, expr_ty arg, PyArena *arena)
                 Py_DECREF(str);
                 return NULL;
             }
-            format_spec = _PyAST_Constant(str, NULL, -1, -1, -1, -1, arena);
+            format_spec = _PyAST_Constant(str, NULL, -1, -1, -1, -1, -1, arena);
             if (format_spec == NULL) {
                 return NULL;
             }
         }
         return _PyAST_FormattedValue(arg, spec, format_spec,
-                                     arg->lineno, arg->col_offset,
+                                     arg->group, arg->lineno, arg->col_offset,
                                      arg->end_lineno, arg->end_col_offset,
                                      arena);
     }
@@ -355,7 +355,7 @@ optimize_format(expr_ty node, PyObject *fmt, asdl_expr_seq *elts, PyArena *arena
         // More items than format units.
         return 1;
     }
-    expr_ty res = _PyAST_JoinedStr(seq,
+    expr_ty res = _PyAST_JoinedStr(seq, node->group,
                                    node->lineno, node->col_offset,
                                    node->end_lineno, node->end_col_offset,
                                    arena);
@@ -482,7 +482,7 @@ astfold_body(asdl_stmt_seq *stmts, PyArena *ctx_, _PyASTPreprocessState *state)
             return 0;
         }
         asdl_seq_SET(values, 0, st->v.Expr.value);
-        expr_ty expr = _PyAST_JoinedStr(values, st->lineno, st->col_offset,
+        expr_ty expr = _PyAST_JoinedStr(values, 0, st->lineno, st->col_offset,
                                         st->end_lineno, st->end_col_offset,
                                         ctx_);
         if (!expr) {
