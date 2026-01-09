@@ -3113,6 +3113,14 @@ dummy_func(
             COPY, TO_BOOL, POP_JUMP_IF_TRUE,
         ];
 
+        pseudo(JUMP_IF_NONE, (cond -- cond)) = [
+            COPY, POP_JUMP_IF_NONE,
+        ];
+
+        pseudo(JUMP_IF_NOT_NONE, (cond -- cond)) = [
+            COPY, POP_JUMP_IF_NOT_NONE,
+        ];
+
         tier1 inst(ENTER_EXECUTOR, (--)) {
             #ifdef _Py_TIER2
             if (IS_JIT_TRACING()) {
