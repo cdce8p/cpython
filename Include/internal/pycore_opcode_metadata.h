@@ -25,6 +25,8 @@ extern "C" {
     ((OP) == JUMP_NO_INTERRUPT) || \
     ((OP) == JUMP_IF_FALSE) || \
     ((OP) == JUMP_IF_TRUE) || \
+    ((OP) == JUMP_IF_NONE) || \
+    ((OP) == JUMP_IF_NOT_NONE) || \
     ((OP) == SETUP_FINALLY) || \
     ((OP) == SETUP_CLEANUP) || \
     ((OP) == SETUP_WITH) || \
@@ -295,6 +297,10 @@ int _PyOpcode_num_popped(int opcode, int oparg)  {
         case JUMP_FORWARD:
             return 0;
         case JUMP_IF_FALSE:
+            return 1;
+        case JUMP_IF_NONE:
+            return 1;
+        case JUMP_IF_NOT_NONE:
             return 1;
         case JUMP_IF_TRUE:
             return 1;
@@ -787,6 +793,10 @@ int _PyOpcode_num_pushed(int opcode, int oparg)  {
             return 0;
         case JUMP_IF_FALSE:
             return 1;
+        case JUMP_IF_NONE:
+            return 1;
+        case JUMP_IF_NOT_NONE:
+            return 1;
         case JUMP_IF_TRUE:
             return 1;
         case JUMP_NO_INTERRUPT:
@@ -1029,7 +1039,7 @@ enum InstructionFormat {
 };
 
 #define IS_VALID_OPCODE(OP) \
-    (((OP) >= 0) && ((OP) < 267) && \
+    (((OP) >= 0) && ((OP) < 269) && \
      (_PyOpcode_opcode_metadata[(OP)].valid_entry))
 
 #define HAS_ARG_FLAG (1)
@@ -1089,9 +1099,9 @@ struct opcode_metadata {
     uint32_t flags;
 };
 
-PyAPI_DATA(const struct opcode_metadata) _PyOpcode_opcode_metadata[267];
+PyAPI_DATA(const struct opcode_metadata) _PyOpcode_opcode_metadata[269];
 #ifdef NEED_OPCODE_METADATA
-const struct opcode_metadata _PyOpcode_opcode_metadata[267] = {
+const struct opcode_metadata _PyOpcode_opcode_metadata[269] = {
     [BINARY_OP] = { true, INSTR_FMT_IBC0000, HAS_ARG_FLAG | HAS_ERROR_FLAG | HAS_ERROR_NO_POP_FLAG | HAS_ESCAPES_FLAG },
     [BINARY_OP_ADD_FLOAT] = { true, INSTR_FMT_IXC0000, HAS_EXIT_FLAG | HAS_ERROR_FLAG | HAS_ERROR_NO_POP_FLAG },
     [BINARY_OP_ADD_INT] = { true, INSTR_FMT_IXC0000, HAS_EXIT_FLAG },
@@ -1324,6 +1334,8 @@ const struct opcode_metadata _PyOpcode_opcode_metadata[267] = {
     [ANNOTATIONS_PLACEHOLDER] = { true, -1, HAS_PURE_FLAG },
     [JUMP] = { true, -1, HAS_ARG_FLAG | HAS_JUMP_FLAG | HAS_EVAL_BREAK_FLAG | HAS_ERROR_FLAG | HAS_ESCAPES_FLAG },
     [JUMP_IF_FALSE] = { true, -1, HAS_ARG_FLAG | HAS_JUMP_FLAG | HAS_ERROR_FLAG | HAS_ESCAPES_FLAG },
+    [JUMP_IF_NONE] = { true, -1, HAS_ARG_FLAG | HAS_JUMP_FLAG | HAS_ESCAPES_FLAG },
+    [JUMP_IF_NOT_NONE] = { true, -1, HAS_ARG_FLAG | HAS_JUMP_FLAG | HAS_ESCAPES_FLAG },
     [JUMP_IF_TRUE] = { true, -1, HAS_ARG_FLAG | HAS_JUMP_FLAG | HAS_ERROR_FLAG | HAS_ESCAPES_FLAG },
     [JUMP_NO_INTERRUPT] = { true, -1, HAS_ARG_FLAG | HAS_JUMP_FLAG },
     [LOAD_CLOSURE] = { true, -1, HAS_ARG_FLAG | HAS_LOCAL_FLAG | HAS_PURE_FLAG },
@@ -1536,9 +1548,9 @@ _PyOpcode_macro_expansion[256] = {
 };
 #endif // NEED_OPCODE_METADATA
 
-PyAPI_DATA(const char) *_PyOpcode_OpName[267];
+PyAPI_DATA(const char) *_PyOpcode_OpName[269];
 #ifdef NEED_OPCODE_METADATA
-const char *_PyOpcode_OpName[267] = {
+const char *_PyOpcode_OpName[269] = {
     [ANNOTATIONS_PLACEHOLDER] = "ANNOTATIONS_PLACEHOLDER",
     [BINARY_OP] = "BINARY_OP",
     [BINARY_OP_ADD_FLOAT] = "BINARY_OP_ADD_FLOAT",
@@ -1669,6 +1681,8 @@ const char *_PyOpcode_OpName[267] = {
     [JUMP_BACKWARD_NO_JIT] = "JUMP_BACKWARD_NO_JIT",
     [JUMP_FORWARD] = "JUMP_FORWARD",
     [JUMP_IF_FALSE] = "JUMP_IF_FALSE",
+    [JUMP_IF_NONE] = "JUMP_IF_NONE",
+    [JUMP_IF_NOT_NONE] = "JUMP_IF_NOT_NONE",
     [JUMP_IF_TRUE] = "JUMP_IF_TRUE",
     [JUMP_NO_INTERRUPT] = "JUMP_NO_INTERRUPT",
     [LIST_APPEND] = "LIST_APPEND",
@@ -2104,9 +2118,9 @@ struct pseudo_targets {
     uint8_t as_sequence;
     uint8_t targets[4];
 };
-extern const struct pseudo_targets _PyOpcode_PseudoTargets[11];
+extern const struct pseudo_targets _PyOpcode_PseudoTargets[13];
 #ifdef NEED_OPCODE_METADATA
-const struct pseudo_targets _PyOpcode_PseudoTargets[11] = {
+const struct pseudo_targets _PyOpcode_PseudoTargets[13] = {
     [LOAD_CLOSURE-256] = { 0, { LOAD_FAST, 0, 0, 0 } },
     [STORE_FAST_MAYBE_NULL-256] = { 0, { STORE_FAST, 0, 0, 0 } },
     [ANNOTATIONS_PLACEHOLDER-256] = { 0, { NOP, 0, 0, 0 } },
@@ -2114,6 +2128,8 @@ const struct pseudo_targets _PyOpcode_PseudoTargets[11] = {
     [JUMP_NO_INTERRUPT-256] = { 0, { JUMP_FORWARD, JUMP_BACKWARD_NO_INTERRUPT, 0, 0 } },
     [JUMP_IF_FALSE-256] = { 1, { COPY, TO_BOOL, POP_JUMP_IF_FALSE, 0 } },
     [JUMP_IF_TRUE-256] = { 1, { COPY, TO_BOOL, POP_JUMP_IF_TRUE, 0 } },
+    [JUMP_IF_NONE-256] = { 1, { COPY, POP_JUMP_IF_NONE, 0, 0 } },
+    [JUMP_IF_NOT_NONE-256] = { 1, { COPY, POP_JUMP_IF_NOT_NONE, 0, 0 } },
     [SETUP_FINALLY-256] = { 0, { NOP, 0, 0, 0 } },
     [SETUP_CLEANUP-256] = { 0, { NOP, 0, 0, 0 } },
     [SETUP_WITH-256] = { 0, { NOP, 0, 0, 0 } },
@@ -2123,7 +2139,7 @@ const struct pseudo_targets _PyOpcode_PseudoTargets[11] = {
 #endif // NEED_OPCODE_METADATA
 static inline bool
 is_pseudo_target(int pseudo, int target) {
-    if (pseudo < 256 || pseudo >= 267) {
+    if (pseudo < 256 || pseudo >= 269) {
         return false;
     }
     for (int i = 0; _PyOpcode_PseudoTargets[pseudo-256].targets[i]; i++) {
