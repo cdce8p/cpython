@@ -59,7 +59,8 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->Call_type);
     Py_CLEAR(state->ClassDef_type);
     Py_CLEAR(state->CoalesceAssign_type);
-    Py_CLEAR(state->CoalesceOp_type);
+    Py_CLEAR(state->Coalesce_singleton);
+    Py_CLEAR(state->Coalesce_type);
     Py_CLEAR(state->Compare_type);
     Py_CLEAR(state->Constant_type);
     Py_CLEAR(state->Continue_type);
@@ -619,10 +620,6 @@ static const char * const NoneAwareAttribute_fields[]={
 static const char * const NoneAwareSubscript_fields[]={
     "value",
     "slice",
-};
-static const char * const CoalesceOp_fields[]={
-    "value",
-    "fallback",
 };
 static const char * const Await_fields[]={
     "value",
@@ -3083,42 +3080,6 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(NoneAwareSubscript_annotations);
-    PyObject *CoalesceOp_annotations = PyDict_New();
-    if (!CoalesceOp_annotations) return 0;
-    {
-        PyObject *type = state->expr_type;
-        Py_INCREF(type);
-        cond = PyDict_SetItemString(CoalesceOp_annotations, "value", type) == 0;
-        Py_DECREF(type);
-        if (!cond) {
-            Py_DECREF(CoalesceOp_annotations);
-            return 0;
-        }
-    }
-    {
-        PyObject *type = state->expr_type;
-        Py_INCREF(type);
-        cond = PyDict_SetItemString(CoalesceOp_annotations, "fallback", type)
-                                    == 0;
-        Py_DECREF(type);
-        if (!cond) {
-            Py_DECREF(CoalesceOp_annotations);
-            return 0;
-        }
-    }
-    cond = PyObject_SetAttrString(state->CoalesceOp_type, "_field_types",
-                                  CoalesceOp_annotations) == 0;
-    if (!cond) {
-        Py_DECREF(CoalesceOp_annotations);
-        return 0;
-    }
-    cond = PyObject_SetAttrString(state->CoalesceOp_type, "__annotations__",
-                                  CoalesceOp_annotations) == 0;
-    if (!cond) {
-        Py_DECREF(CoalesceOp_annotations);
-        return 0;
-    }
-    Py_DECREF(CoalesceOp_annotations);
     PyObject *Await_annotations = PyDict_New();
     if (!Await_annotations) return 0;
     {
@@ -3904,6 +3865,21 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(Or_annotations);
+    PyObject *Coalesce_annotations = PyDict_New();
+    if (!Coalesce_annotations) return 0;
+    cond = PyObject_SetAttrString(state->Coalesce_type, "_field_types",
+                                  Coalesce_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(Coalesce_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->Coalesce_type, "__annotations__",
+                                  Coalesce_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(Coalesce_annotations);
+        return 0;
+    }
+    Py_DECREF(Coalesce_annotations);
     PyObject *Add_annotations = PyDict_New();
     if (!Add_annotations) return 0;
     cond = PyObject_SetAttrString(state->Add_type, "_field_types",
@@ -6579,7 +6555,6 @@ init_types(void *arg)
         "     | GeneratorExp(expr elt, comprehension* generators)\n"
         "     | NoneAwareAttribute(expr value, identifier attr)\n"
         "     | NoneAwareSubscript(expr value, expr slice)\n"
-        "     | CoalesceOp(expr value, expr fallback)\n"
         "     | Await(expr value)\n"
         "     | Yield(expr? value)\n"
         "     | YieldFrom(expr value)\n"
@@ -6665,10 +6640,6 @@ init_types(void *arg)
                                                NoneAwareSubscript_fields, 2,
         "NoneAwareSubscript(expr value, expr slice)");
     if (!state->NoneAwareSubscript_type) return -1;
-    state->CoalesceOp_type = make_type(state, "CoalesceOp", state->expr_type,
-                                       CoalesceOp_fields, 2,
-        "CoalesceOp(expr value, expr fallback)");
-    if (!state->CoalesceOp_type) return -1;
     state->Await_type = make_type(state, "Await", state->expr_type,
                                   Await_fields, 1,
         "Await(expr value)");
@@ -6781,7 +6752,7 @@ init_types(void *arg)
                                              NULL, NULL);
     if (!state->Del_singleton) return -1;
     state->boolop_type = make_type(state, "boolop", state->AST_type, NULL, 0,
-        "boolop = And | Or");
+        "boolop = And | Or | Coalesce");
     if (!state->boolop_type) return -1;
     if (add_attributes(state, state->boolop_type, NULL, 0) < 0) return -1;
     state->And_type = make_type(state, "And", state->boolop_type, NULL, 0,
@@ -6796,6 +6767,14 @@ init_types(void *arg)
     state->Or_singleton = PyType_GenericNew((PyTypeObject *)state->Or_type,
                                             NULL, NULL);
     if (!state->Or_singleton) return -1;
+    state->Coalesce_type = make_type(state, "Coalesce", state->boolop_type,
+                                     NULL, 0,
+        "Coalesce");
+    if (!state->Coalesce_type) return -1;
+    state->Coalesce_singleton = PyType_GenericNew((PyTypeObject
+                                                  *)state->Coalesce_type, NULL,
+                                                  NULL);
+    if (!state->Coalesce_singleton) return -1;
     state->operator_type = make_type(state, "operator", state->AST_type, NULL,
                                      0,
         "operator = Add | Sub | Mult | MatMult | Div | Mod | Pow | LShift | RShift | BitOr | BitXor | BitAnd | FloorDiv");
@@ -8347,36 +8326,6 @@ _PyAST_NoneAwareSubscript(expr_ty value, expr_ty slice, int group, int lineno,
     p->kind = NoneAwareSubscript_kind;
     p->v.NoneAwareSubscript.value = value;
     p->v.NoneAwareSubscript.slice = slice;
-    p->group = group;
-    p->lineno = lineno;
-    p->col_offset = col_offset;
-    p->end_lineno = end_lineno;
-    p->end_col_offset = end_col_offset;
-    return p;
-}
-
-expr_ty
-_PyAST_CoalesceOp(expr_ty value, expr_ty fallback, int group, int lineno, int
-                  col_offset, int end_lineno, int end_col_offset, PyArena
-                  *arena)
-{
-    expr_ty p;
-    if (!value) {
-        PyErr_SetString(PyExc_ValueError,
-                        "field 'value' is required for CoalesceOp");
-        return NULL;
-    }
-    if (!fallback) {
-        PyErr_SetString(PyExc_ValueError,
-                        "field 'fallback' is required for CoalesceOp");
-        return NULL;
-    }
-    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
-    if (!p)
-        return NULL;
-    p->kind = CoalesceOp_kind;
-    p->v.CoalesceOp.value = value;
-    p->v.CoalesceOp.fallback = fallback;
     p->group = group;
     p->lineno = lineno;
     p->col_offset = col_offset;
@@ -10170,21 +10119,6 @@ ast2obj_expr(struct ast_state *state, void* _o)
             goto failed;
         Py_DECREF(value);
         break;
-    case CoalesceOp_kind:
-        tp = (PyTypeObject *)state->CoalesceOp_type;
-        result = PyType_GenericNew(tp, NULL, NULL);
-        if (!result) goto failed;
-        value = ast2obj_expr(state, o->v.CoalesceOp.value);
-        if (!value) goto failed;
-        if (PyObject_SetAttr(result, state->value, value) == -1)
-            goto failed;
-        Py_DECREF(value);
-        value = ast2obj_expr(state, o->v.CoalesceOp.fallback);
-        if (!value) goto failed;
-        if (PyObject_SetAttr(result, state->fallback, value) == -1)
-            goto failed;
-        Py_DECREF(value);
-        break;
     case Await_kind:
         tp = (PyTypeObject *)state->Await_type;
         result = PyType_GenericNew(tp, NULL, NULL);
@@ -10519,6 +10453,8 @@ PyObject* ast2obj_boolop(struct ast_state *state, boolop_ty o)
             return Py_NewRef(state->And_singleton);
         case Or:
             return Py_NewRef(state->Or_singleton);
+        case Coalesce:
+            return Py_NewRef(state->Coalesce_singleton);
     }
     Py_UNREACHABLE();
 }
@@ -15234,54 +15170,6 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, PyArena*
         if (*out == NULL) goto failed;
         return 0;
     }
-    tp = state->CoalesceOp_type;
-    isinstance = PyObject_IsInstance(obj, tp);
-    if (isinstance == -1) {
-        return -1;
-    }
-    if (isinstance) {
-        expr_ty value;
-        expr_ty fallback;
-
-        if (PyObject_GetOptionalAttr(obj, state->value, &tmp) < 0) {
-            return -1;
-        }
-        if (tmp == NULL) {
-            PyErr_SetString(PyExc_TypeError, "required field \"value\" missing from CoalesceOp");
-            return -1;
-        }
-        else {
-            int res;
-            if (_Py_EnterRecursiveCall(" while traversing 'CoalesceOp' node")) {
-                goto failed;
-            }
-            res = obj2ast_expr(state, tmp, &value, arena);
-            _Py_LeaveRecursiveCall();
-            if (res != 0) goto failed;
-            Py_CLEAR(tmp);
-        }
-        if (PyObject_GetOptionalAttr(obj, state->fallback, &tmp) < 0) {
-            return -1;
-        }
-        if (tmp == NULL) {
-            PyErr_SetString(PyExc_TypeError, "required field \"fallback\" missing from CoalesceOp");
-            return -1;
-        }
-        else {
-            int res;
-            if (_Py_EnterRecursiveCall(" while traversing 'CoalesceOp' node")) {
-                goto failed;
-            }
-            res = obj2ast_expr(state, tmp, &fallback, arena);
-            _Py_LeaveRecursiveCall();
-            if (res != 0) goto failed;
-            Py_CLEAR(tmp);
-        }
-        *out = _PyAST_CoalesceOp(value, fallback, group, lineno, col_offset,
-                                 end_lineno, end_col_offset, arena);
-        if (*out == NULL) goto failed;
-        return 0;
-    }
     tp = state->Await_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -16384,6 +16272,14 @@ obj2ast_boolop(struct ast_state *state, PyObject* obj, boolop_ty* out, PyArena*
     }
     if (isinstance) {
         *out = Or;
+        return 0;
+    }
+    isinstance = PyObject_IsInstance(obj, state->Coalesce_type);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        *out = Coalesce;
         return 0;
     }
 
@@ -18785,9 +18681,6 @@ astmodule_exec(PyObject *m)
         state->NoneAwareSubscript_type) < 0) {
         return -1;
     }
-    if (PyModule_AddObjectRef(m, "CoalesceOp", state->CoalesceOp_type) < 0) {
-        return -1;
-    }
     if (PyModule_AddObjectRef(m, "Await", state->Await_type) < 0) {
         return -1;
     }
@@ -18861,6 +18754,9 @@ astmodule_exec(PyObject *m)
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Or", state->Or_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "Coalesce", state->Coalesce_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "operator", state->operator_type) < 0) {

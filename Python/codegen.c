@@ -208,7 +208,6 @@ static int codegen_slice_two_parts(compiler *, expr_ty);
 static int codegen_slice(compiler *, expr_ty);
 static int codegen_none_aware_attribute(compiler *, expr_ty);
 static int codegen_none_aware_subscript(compiler *, expr_ty);
-static int codegen_coalesce_op(compiler *, expr_ty);
 
 static int codegen_body(compiler *, location, asdl_stmt_seq *, bool);
 static int codegen_with(compiler *, stmt_ty);
@@ -3311,10 +3310,17 @@ codegen_boolop(compiler *c, expr_ty e)
 
     location loc = LOC(e);
     assert(e->kind == BoolOp_kind);
-    if (e->v.BoolOp.op == And)
-        jumpi = JUMP_IF_FALSE;
-    else
-        jumpi = JUMP_IF_TRUE;
+    switch (e->v.BoolOp.op) {
+        case And:
+            jumpi = JUMP_IF_FALSE;
+            break;
+        case Or:
+            jumpi = JUMP_IF_TRUE;
+            break;
+        case Coalesce:
+            jumpi = JUMP_IF_NOT_NONE;
+            break;
+    }
     NEW_JUMP_TARGET_LABEL(c, end);
     s = e->v.BoolOp.values;
     n = asdl_seq_LEN(s) - 1;
@@ -5331,8 +5337,6 @@ codegen_visit_expr(compiler *c, expr_ty e)
         return codegen_none_aware_attribute(c, e);
     case NoneAwareSubscript_kind:
         return codegen_none_aware_subscript(c, e);
-    case CoalesceOp_kind:
-        return codegen_coalesce_op(c, e);
     case Subscript_kind:
         return codegen_subscript(c, e);
     case Starred_kind:
@@ -5659,24 +5663,6 @@ codegen_none_aware_subscript(compiler *c, expr_ty e)
     if (use_jump_target == 1) {
         USE_LABEL(c, end);
     }
-    return SUCCESS;
-}
-
-static int
-codegen_coalesce_op(compiler *c, expr_ty e)
-{
-    assert(e->kind == CoalesceOp_kind);
-    location loc = LOC(e);
-    NEW_JUMP_TARGET_LABEL(c, end);
-
-    VISIT(c, expr, e->v.CoalesceOp.value);
-    ADDOP_I(c, loc, COPY, 1);
-    ADDOP_JUMP(c, loc, POP_JUMP_IF_NOT_NONE, end);
-
-    ADDOP(c, loc, POP_TOP);
-    VISIT(c, expr, e->v.CoalesceOp.fallback);
-
-    USE_LABEL(c, end);
     return SUCCESS;
 }
 

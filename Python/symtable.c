@@ -2535,10 +2535,6 @@ symtable_visit_expr(struct symtable *st, expr_ty e)
         VISIT(st, expr, e->v.NoneAwareSubscript.value);
         VISIT(st, expr, e->v.NoneAwareSubscript.slice);
         break;
-    case CoalesceOp_kind:
-        VISIT(st, expr, e->v.CoalesceOp.value);
-        VISIT(st, expr, e->v.CoalesceOp.fallback);
-        break;
     /* The following exprs can be assignment targets. */
     case Attribute_kind:
         if (!check_name(st, e->v.Attribute.attr, LOCATION(e), e->v.Attribute.ctx)) {
