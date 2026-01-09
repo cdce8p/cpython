@@ -5942,8 +5942,7 @@ codegen_none_aware_attribute(compiler *c, expr_ty e)
 
     VISIT(c, expr, e->v.NoneAwareAttribute.value);
     _PyCompile_PopNATarget(c);
-    ADDOP_I(c, loc, COPY, 1);
-    ADDOP_JUMP(c, loc, POP_JUMP_IF_NONE, next);
+    ADDOP_JUMP(c, loc, JUMP_IF_NONE, next);
     ADDOP_NAME(c, loc, LOAD_ATTR, e->v.NoneAwareAttribute.attr, names);
 
     if (use_jump_target == 1) {
@@ -5966,8 +5965,7 @@ codegen_none_aware_subscript(compiler *c, expr_ty e)
 
     VISIT(c, expr, e->v.NoneAwareSubscript.value);
     _PyCompile_PopNATarget(c);
-    ADDOP_I(c, loc, COPY, 1);
-    ADDOP_JUMP(c, loc, POP_JUMP_IF_NONE, next);
+    ADDOP_JUMP(c, loc, JUMP_IF_NONE, next);
 
     _PyCompile_PushNABlock(c, loc);
     if (should_apply_two_element_slice_optimization(e->v.NoneAwareSubscript.slice)) {
