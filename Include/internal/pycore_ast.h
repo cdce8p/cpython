@@ -20,7 +20,7 @@ typedef struct _expr *expr_ty;
 
 typedef enum _expr_context { Load=1, Store=2, Del=3 } expr_context_ty;
 
-typedef enum _boolop { And=1, Or=2, Coalesce=3 } boolop_ty;
+typedef enum _boolop { And=1, Or=2 } boolop_ty;
 
 typedef enum _operator { Add=1, Sub=2, Mult=3, MatMult=4, Div=5, Mod=6, Pow=7,
                          LShift=8, RShift=9, BitOr=10, BitXor=11, BitAnd=12,
@@ -361,16 +361,17 @@ struct _stmt {
     int end_col_offset;
 };
 
-enum _expr_kind {BoolOp_kind=1, NamedExpr_kind=2, BinOp_kind=3, UnaryOp_kind=4,
-                  Lambda_kind=5, IfExp_kind=6, Dict_kind=7, Set_kind=8,
-                  ListComp_kind=9, SetComp_kind=10, DictComp_kind=11,
-                  GeneratorExp_kind=12, NoneAwareAttribute_kind=13,
-                  NoneAwareSubscript_kind=14, Await_kind=15, Yield_kind=16,
-                  YieldFrom_kind=17, Compare_kind=18, Call_kind=19,
-                  FormattedValue_kind=20, Interpolation_kind=21,
-                  JoinedStr_kind=22, TemplateStr_kind=23, Constant_kind=24,
-                  Attribute_kind=25, Subscript_kind=26, Starred_kind=27,
-                  Name_kind=28, List_kind=29, Tuple_kind=30, Slice_kind=31};
+enum _expr_kind {BoolOp_kind=1, CoalesceOp_kind=2, NamedExpr_kind=3,
+                  BinOp_kind=4, UnaryOp_kind=5, Lambda_kind=6, IfExp_kind=7,
+                  Dict_kind=8, Set_kind=9, ListComp_kind=10, SetComp_kind=11,
+                  DictComp_kind=12, GeneratorExp_kind=13,
+                  NoneAwareAttribute_kind=14, NoneAwareSubscript_kind=15,
+                  Await_kind=16, Yield_kind=17, YieldFrom_kind=18,
+                  Compare_kind=19, Call_kind=20, FormattedValue_kind=21,
+                  Interpolation_kind=22, JoinedStr_kind=23,
+                  TemplateStr_kind=24, Constant_kind=25, Attribute_kind=26,
+                  Subscript_kind=27, Starred_kind=28, Name_kind=29,
+                  List_kind=30, Tuple_kind=31, Slice_kind=32};
 struct _expr {
     enum _expr_kind kind;
     union {
@@ -378,6 +379,10 @@ struct _expr {
             boolop_ty op;
             asdl_expr_seq *values;
         } BoolOp;
+
+        struct {
+            asdl_expr_seq *values;
+        } CoalesceOp;
 
         struct {
             expr_ty target;
@@ -805,6 +810,9 @@ stmt_ty _PyAST_Continue(int lineno, int col_offset, int end_lineno, int
 expr_ty _PyAST_BoolOp(boolop_ty op, asdl_expr_seq * values, int group, int
                       lineno, int col_offset, int end_lineno, int
                       end_col_offset, PyArena *arena);
+expr_ty _PyAST_CoalesceOp(asdl_expr_seq * values, int group, int lineno, int
+                          col_offset, int end_lineno, int end_col_offset,
+                          PyArena *arena);
 expr_ty _PyAST_NamedExpr(expr_ty target, expr_ty value, int group, int lineno,
                          int col_offset, int end_lineno, int end_col_offset,
                          PyArena *arena);

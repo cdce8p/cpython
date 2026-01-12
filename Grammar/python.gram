@@ -751,8 +751,7 @@ named_expression[expr_ty]:
 coalesce[expr_ty] (memo):
     | a=disjunction b=('??' c=disjunction { c })+ { CHECK_VERSION(
         expr_ty, 15, "Coalesce expressions are",
-        _PyAST_BoolOp(
-            Coalesce,
+        _PyAST_CoalesceOp(
             CHECK(asdl_expr_seq*, _PyPegen_seq_insert_in_front(p, a, b)),
             EXTRA_EXPR)) }
     | disjunction
