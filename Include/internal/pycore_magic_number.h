@@ -293,6 +293,7 @@ Known values:
     Python 3.15a4 3660 (Change generator preamble code)
     Python 3.15a4 3661 (Lazy imports IMPORT_NAME opcode changes)
     Python 3.15a7 3662 (Add MATCH_CLASS_ISINSTANCE opcode)
+    Python 3.15a7 3663 (Add MATCH_CLASS_GET_OPT_ATTR opcode)
 
 
     Python 3.16 will start with 3700
@@ -306,7 +307,7 @@ PC/launcher.c must also be updated.
 
 */
 
-#define PYC_MAGIC_NUMBER 3662
+#define PYC_MAGIC_NUMBER 3663
 /* This is equivalent to converting PYC_MAGIC_NUMBER to 2 bytes
    (little-endian) and then appending b'\r\n'. */
 #define PYC_MAGIC_NUMBER_TOKEN \
