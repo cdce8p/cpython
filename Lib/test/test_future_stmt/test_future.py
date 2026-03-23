@@ -436,6 +436,8 @@ class AnnotationsFutureTestCase(unittest.TestCase):
         eq("[1, ?i]")
         eq("[1, *?i]")
         eq("{1: 1, **?k}")
+        eq("f\"Hello{(' World' if i is not None)}\"")
+        eq("f'Hello{?i}'")
 
     def test_fstring_debug_annotations(self):
         # f-strings with '=' don't round trip very well, so set the expected

@@ -2093,6 +2093,8 @@ class GrammarTests(unittest.TestCase):
         )
 
         self.assertEqual(test1(*[1, 2 if y is not None]), 1)
+        self.assertEqual(f"Hello{" World" if i is not None}", "Hello World")
+        self.assertEqual(f"Hello{" World" if y is not None}", "Hello")
 
     def test_none_aware_element(self):
         def test1(foo):
@@ -2114,6 +2116,9 @@ class GrammarTests(unittest.TestCase):
         self.assertEqual({1: 1, **?y, **?m, 3: 3}, {1: 1, 2: 2, 3: 3})
 
         self.assertEqual(test1(*[1, ?y]), 1)
+
+        self.assertEqual(f"Hello{?i}", "Hello2")
+        self.assertEqual(f"Hello{?y}", "Hello")
 
 
 if __name__ == '__main__':
