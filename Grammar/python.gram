@@ -782,6 +782,14 @@ element_named_expression[expr_ty]:
     | invalid_named_expression
     | element_expression !':='
 
+fstring_element_none_aware[expr_ty]:
+    | invalid_element_expression
+    | if_expression
+    | a=disjunction 'if' b=disjunction { CHECK_VERSION(
+        expr_ty, 16, "if element expressions are", _PyAST_IfElement(b, a, EXTRA)) }
+    | '?' a=bitwise_or { CHECK_VERSION(
+        expr_ty, 16, "none aware element expressions are", _PyAST_NoneAwareElement(a, EXTRA)) }
+
 disjunction[expr_ty] (memo):
     | a=conjunction b=('or' c=conjunction { c })+ { _PyAST_BoolOp(
         Or,
@@ -993,7 +1001,7 @@ fstring_middle[expr_ty]:
     | fstring_replacement_field
     | t=FSTRING_MIDDLE { _PyPegen_constant_from_token(p, t) }
 fstring_replacement_field[expr_ty]:
-    | '{' a=annotated_rhs debug_expr='='? conversion=[fstring_conversion] format=[fstring_full_format_spec] rbrace='}' {
+    | '{' a=(yield_expr | fstring_element_none_aware | star_expressions) debug_expr='='? conversion=[fstring_conversion] format=[fstring_full_format_spec] rbrace='}' {
         _PyPegen_formatted_value(p, a, debug_expr, conversion, format, rbrace, EXTRA) }
     | invalid_fstring_replacement_field
 fstring_conversion[ResultTokenWithMetadata*]:

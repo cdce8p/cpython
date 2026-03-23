@@ -4441,13 +4441,27 @@ codegen_interpolation(compiler *c, expr_ty e)
 static int
 codegen_formatted_value(compiler *c, expr_ty e)
 {
+    NEW_JUMP_TARGET_LABEL(c, cleanup);
+    NEW_JUMP_TARGET_LABEL(c, fallback);
+    NEW_JUMP_TARGET_LABEL(c, end);
     int conversion = e->v.FormattedValue.conversion;
     int oparg;
+    location loc = LOC(e);
 
     /* The expression to be formatted. */
-    VISIT(c, expr, e->v.FormattedValue.value);
+    expr_ty value = e->v.FormattedValue.value;
+    if (value->kind == NoneAwareElement_kind) {
+        VISIT(c, expr, value->v.NoneAwareElement.item);
+        ADDOP_I(c, loc, COPY, 1);
+        ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+    } else if (value->kind == IfElement_kind) {
+        RETURN_IF_ERROR(
+            codegen_jump_if(c, loc, value->v.IfElement.test, fallback, 0));
+        VISIT(c, expr, value->v.IfElement.item);
+    } else {
+        VISIT(c, expr, e->v.FormattedValue.value);
+    }
 
-    location loc = LOC(e);
     if (conversion != -1) {
         switch (conversion) {
         case 's': oparg = FVC_STR;   break;
@@ -4467,6 +4481,15 @@ codegen_formatted_value(compiler *c, expr_ty e)
     } else {
         ADDOP(c, loc, FORMAT_SIMPLE);
     }
+    ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+    USE_LABEL(c, cleanup);
+    ADDOP(c, loc, POP_TOP);
+
+    USE_LABEL(c, fallback);
+    ADDOP_LOAD_CONST(c, loc, Py_NewRef(&_Py_STR(empty)));
+
+    USE_LABEL(c, end);
     return SUCCESS;
 }
 
@@ -5570,10 +5593,10 @@ codegen_visit_expr(compiler *c, expr_ty e)
         return codegen_ifexp(c, e);
     case IfElement_kind:
         return _PyCompile_Error(c, loc,
-            "if element expression must be in a list, tuple, set or dict");
+            "if element expression must be in a list, tuple, set, dict or f-string");
     case NoneAwareElement_kind:
         return _PyCompile_Error(c, loc,
-            "none aware element expression must be in a list, tuple, set or dict");
+            "none aware element expression must be in a list, tuple, set, dict or f-string");
     case Dict_kind:
         return codegen_dict(c, e);
     case Set_kind:
