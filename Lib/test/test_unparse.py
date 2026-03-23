@@ -305,6 +305,8 @@ class UnparseTestCase(ASTTestCase):
         self.check_ast_roundtrip("[1, ?i]")
         self.check_ast_roundtrip("[1, *(?i)]")
         self.check_ast_roundtrip("{1: 1, **?k}")
+        self.check_ast_roundtrip("f\"Hello{\" World\" if i is not None}\"")
+        self.check_ast_roundtrip("f\"Hello{?i}\"")
 
     def test_strings(self):
         self.check_ast_roundtrip("u'foo'")
