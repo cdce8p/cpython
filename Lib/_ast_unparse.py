@@ -909,8 +909,8 @@ class Unparser(NodeVisitor):
                 self.write(" " + self.cmpops[o.__class__.__name__] + " ")
                 self.traverse(e)
 
-    boolops = {"And": "and", "Or": "or"}
-    boolop_precedence = {"and": _Precedence.AND, "or": _Precedence.OR}
+    boolops = {"And": "and", "Or": "or", "Coalesce": "??"}
+    boolop_precedence = {"and": _Precedence.AND, "or": _Precedence.OR, "??": _Precedence.COALESCE}
 
     def visit_BoolOp(self, node):
         operator = self.boolops[node.op.__class__.__name__]
@@ -925,18 +925,6 @@ class Unparser(NodeVisitor):
         with self.require_parens(operator_precedence, node):
             s = f" {operator} "
             self.interleave(lambda: self.write(s), increasing_level_traverse, node.values)
-
-    def visit_CoalesceOp(self, node):
-        operator_precedence = _Precedence.COALESCE
-
-        def increasing_level_traverse(node):
-            nonlocal operator_precedence
-            operator_precedence = operator_precedence.next()
-            self.set_precedence(operator_precedence, node)
-            self.traverse(node)
-
-        with self.require_parens(operator_precedence, node):
-            self.interleave(lambda: self.write(" ?? "), increasing_level_traverse, node.values)
 
     def visit_Attribute(self, node):
         self.set_precedence(_Precedence.ATOM, node.value)

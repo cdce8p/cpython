@@ -3413,29 +3413,27 @@ error:
 }
 
 static int
-codegen_boolop_coalesceop(compiler *c, expr_ty e)
+codegen_boolop(compiler *c, expr_ty e)
 {
     int jumpi;
     Py_ssize_t i, n;
     asdl_expr_seq *s;
 
     location loc = LOC(e);
-    assert(e->kind == BoolOp_kind || e->kind == CoalesceOp_kind);
-    if (e->kind == BoolOp_kind) {
-        s = e->v.BoolOp.values;
-        switch (e->v.BoolOp.op) {
-            case And:
-                jumpi = JUMP_IF_FALSE;
-                break;
-            case Or:
-                jumpi = JUMP_IF_TRUE;
-                break;
-        }
-    } else {
-        s = e->v.CoalesceOp.values;
-        jumpi = JUMP_IF_NOT_NONE;
+    assert(e->kind == BoolOp_kind);
+    switch (e->v.BoolOp.op) {
+        case And:
+            jumpi = JUMP_IF_FALSE;
+            break;
+        case Or:
+            jumpi = JUMP_IF_TRUE;
+            break;
+        case Coalesce:
+            jumpi = JUMP_IF_NOT_NONE;
+            break;
     }
     NEW_JUMP_TARGET_LABEL(c, end);
+    s = e->v.BoolOp.values;
     n = asdl_seq_LEN(s) - 1;
     assert(n >= 0);
     for (i = 0; i < n; ++i) {
@@ -5505,8 +5503,7 @@ codegen_visit_expr_impl(compiler *c, expr_ty e, bool result_is_unused)
         VISIT(c, expr, e->v.NamedExpr.target);
         break;
     case BoolOp_kind:
-    case CoalesceOp_kind:
-        return codegen_boolop_coalesceop(c, e);
+        return codegen_boolop(c, e);
     case BinOp_kind:
         VISIT(c, expr, e->v.BinOp.left);
         VISIT(c, expr, e->v.BinOp.right);
