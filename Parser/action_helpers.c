@@ -1101,7 +1101,6 @@ _PyPegen_get_expr_name(expr_ty e)
         case Call_kind:
             return "function call";
         case BoolOp_kind:
-        case CoalesceOp_kind:
         case BinOp_kind:
         case UnaryOp_kind:
             return "expression";
