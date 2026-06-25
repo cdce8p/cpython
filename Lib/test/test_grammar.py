@@ -2063,6 +2063,26 @@ class GrammarTests(unittest.TestCase):
 
         self.assertEqual(test2(), "")
 
+    def test_match_value_name(self):
+        var = 2
+        match 2:
+            case .var:
+                pass
+            case _:
+                self.fail("should have matched '.var'")
+
+        match {"a": 2}:
+            case {"a": .var}:
+                pass
+            case _:
+                self.fail("should have matched the first pattern")
+
+        match {2: 2}:
+            case {.var: 2}:
+                pass
+            case _:
+                self.fail("should have matched the first pattern")
+
 
 if __name__ == '__main__':
     unittest.main()
