@@ -787,12 +787,16 @@ validate_stmt(stmt_ty stmt)
     case For_kind:
         ret = validate_expr(stmt->v.For.target, Store) &&
             validate_expr(stmt->v.For.iter, Load) &&
+            (!stmt->v.For.guard ||
+             validate_expr(stmt->v.For.guard, Load)) &&
             validate_body(stmt->v.For.body, "For") &&
             validate_stmts(stmt->v.For.orelse);
         break;
     case AsyncFor_kind:
         ret = validate_expr(stmt->v.AsyncFor.target, Store) &&
             validate_expr(stmt->v.AsyncFor.iter, Load) &&
+            (!stmt->v.AsyncFor.guard ||
+             validate_expr(stmt->v.AsyncFor.guard, Load)) &&
             validate_body(stmt->v.AsyncFor.body, "AsyncFor") &&
             validate_stmts(stmt->v.AsyncFor.orelse);
         break;
