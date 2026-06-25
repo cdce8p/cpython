@@ -482,6 +482,9 @@ class Unparser(NodeVisitor):
         self.traverse(node.target)
         self.write(" in ")
         self.traverse(node.iter)
+        if node.guard:
+            self.write(" if ")
+            self.traverse(node.guard)
         with self.block(extra=self.get_type_comment(node)):
             self.traverse(node.body)
         if node.orelse:
