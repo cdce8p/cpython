@@ -2100,6 +2100,8 @@ symtable_visit_stmt(struct symtable *st, stmt_ty s)
     case For_kind: {
         VISIT(st, expr, s->v.For.target);
         VISIT(st, expr, s->v.For.iter);
+        if (s->v.For.guard)
+            VISIT(st, expr, s->v.For.guard);
         ENTER_CONDITIONAL_BLOCK(st);
         VISIT_SEQ(st, stmt, s->v.For.body);
         if (s->v.For.orelse)
@@ -2353,6 +2355,8 @@ symtable_visit_stmt(struct symtable *st, stmt_ty s)
         }
         VISIT(st, expr, s->v.AsyncFor.target);
         VISIT(st, expr, s->v.AsyncFor.iter);
+        if (s->v.AsyncFor.guard)
+            VISIT(st, expr, s->v.AsyncFor.guard);
         ENTER_CONDITIONAL_BLOCK(st);
         VISIT_SEQ(st, stmt, s->v.AsyncFor.body);
         if (s->v.AsyncFor.orelse)

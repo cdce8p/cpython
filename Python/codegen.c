@@ -2144,6 +2144,7 @@ codegen_for(compiler *c, stmt_ty s)
     location loc = LOC(s);
     NEW_JUMP_TARGET_LABEL(c, start);
     NEW_JUMP_TARGET_LABEL(c, body);
+    NEW_JUMP_TARGET_LABEL(c, if_cleanup);
     NEW_JUMP_TARGET_LABEL(c, cleanup);
     NEW_JUMP_TARGET_LABEL(c, end);
 
@@ -2164,8 +2165,11 @@ codegen_for(compiler *c, stmt_ty s)
 
     USE_LABEL(c, body);
     VISIT(c, expr, s->v.For.target);
+    if (s->v.For.guard)
+        RETURN_IF_ERROR(codegen_jump_if(c, loc, s->v.For.guard, if_cleanup, 0));
     VISIT_SEQ(c, stmt, s->v.For.body);
     /* Mark jump as artificial */
+    USE_LABEL(c, if_cleanup);
     ADDOP_JUMP(c, NO_LOCATION, JUMP, start);
 
     USE_LABEL(c, cleanup);
@@ -2192,6 +2196,7 @@ codegen_async_for(compiler *c, stmt_ty s)
     NEW_JUMP_TARGET_LABEL(c, start);
     NEW_JUMP_TARGET_LABEL(c, send);
     NEW_JUMP_TARGET_LABEL(c, except);
+    NEW_JUMP_TARGET_LABEL(c, if_cleanup);
     NEW_JUMP_TARGET_LABEL(c, end);
 
     VISIT(c, expr, s->v.AsyncFor.iter);
@@ -2212,8 +2217,11 @@ codegen_async_for(compiler *c, stmt_ty s)
 
     /* Success block for __anext__ */
     VISIT(c, expr, s->v.AsyncFor.target);
+    if (s->v.AsyncFor.guard)
+        RETURN_IF_ERROR(codegen_jump_if(c, loc, s->v.AsyncFor.guard, if_cleanup, 0));
     VISIT_SEQ(c, stmt, s->v.AsyncFor.body);
     /* Mark jump as artificial */
+    USE_LABEL(c, if_cleanup);
     ADDOP_JUMP(c, NO_LOCATION, JUMP, start);
 
     _PyCompile_PopFBlock(c, COMPILE_FBLOCK_ASYNC_FOR_LOOP, start);

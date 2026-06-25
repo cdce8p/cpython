@@ -1106,7 +1106,7 @@ class AST_Tests(unittest.TestCase):
             compile(constant, "<test>", "eval")
 
     def test_repr(self) -> None:
-        snapshots = AST_REPR_DATA_FILE.read_text().split("\n")
+        snapshots = AST_REPR_DATA_FILE.read_text().rstrip().split("\n")
         for test, snapshot in zip(ast_repr_get_test_cases(), snapshots, strict=True):
             with self.subTest(test_input=test):
                 self.assertEqual(repr(ast.parse(test, optimize=False)), snapshot)
@@ -2257,14 +2257,14 @@ class ASTValidatorTests(unittest.TestCase):
         x = ast.Name("x", ast.Store())
         y = ast.Name("y", ast.Load())
         p = ast.Pass()
-        self.stmt(ast.For(x, y, [], []), "empty body on For")
-        self.stmt(ast.For(ast.Name("x", ast.Load()), y, [p], []),
+        self.stmt(ast.For(x, y, None, [], []), "empty body on For")
+        self.stmt(ast.For(ast.Name("x", ast.Load()), y, None, [p], []),
                   "must have Store context")
-        self.stmt(ast.For(x, ast.Name("y", ast.Store()), [p], []),
+        self.stmt(ast.For(x, ast.Name("y", ast.Store()), None, [p], []),
                   "must have Load context")
         e = ast.Expr(ast.Name("x", ast.Store()))
-        self.stmt(ast.For(x, y, [e], []), "must have Load context")
-        self.stmt(ast.For(x, y, [p], [e]), "must have Load context")
+        self.stmt(ast.For(x, y, None, [e], []), "must have Load context")
+        self.stmt(ast.For(x, y, None, [p], [e]), "must have Load context")
 
     def test_while(self):
         self.stmt(ast.While(ast.Constant(3), [], []), "empty body on While")
