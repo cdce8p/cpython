@@ -5955,7 +5955,9 @@ codegen_slice(compiler *c, expr_ty s)
 
 // Limit permitted subexpressions, even if the parser & AST validator let them through
 #define MATCH_VALUE_EXPR(N) \
-    ((N)->kind == Constant_kind || (N)->kind == Attribute_kind)
+    ((N)->kind == Constant_kind \
+     || (N)->kind == Attribute_kind \
+     || (N)->kind == Name_kind)
 
 // Allocate or resize pc->fail_pop to allow for n items to be popped on failure.
 static int
@@ -6296,8 +6298,8 @@ codegen_pattern_mapping_key(compiler *c, PyObject *seen, pattern_ty p, Py_ssize_
         }
         RETURN_IF_ERROR(PySet_Add(seen, key->v.Constant.value));
     }
-    else if (key->kind != Attribute_kind) {
-        const char *e = "mapping pattern keys may only match literals and attribute lookups";
+    else if (!(key->kind == Attribute_kind || key->kind == Name_kind)) {
+        const char *e = "mapping pattern keys may only match literals, name and attribute lookups";
         return _PyCompile_Error(c, LOC(p), e);
     }
     VISIT(c, expr, key);
@@ -6621,7 +6623,7 @@ codegen_pattern_value(compiler *c, pattern_ty p, pattern_context *pc)
     assert(p->kind == MatchValue_kind);
     expr_ty value = p->v.MatchValue.value;
     if (!MATCH_VALUE_EXPR(value)) {
-        const char *e = "patterns may only match literals and attribute lookups";
+        const char *e = "patterns may only match literals, name and attribute lookups";
         return _PyCompile_Error(c, LOC(p), e);
     }
     VISIT(c, expr, value);

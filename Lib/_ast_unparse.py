@@ -1086,6 +1086,8 @@ class Unparser(NodeVisitor):
             self.traverse(node.body)
 
     def visit_MatchValue(self, node):
+        if isinstance(node.value, Name):
+            self.write(".")
         self.traverse(node.value)
 
     def visit_MatchSingleton(self, node):
@@ -1106,6 +1108,8 @@ class Unparser(NodeVisitor):
     def visit_MatchMapping(self, node):
         def write_key_pattern_pair(pair):
             k, p = pair
+            if isinstance(k, Name):
+                self.write(".")
             self.traverse(k)
             self.write(": ")
             self.traverse(p)

@@ -9594,7 +9594,7 @@ wildcard_pattern_rule(Parser *p)
     return _res;
 }
 
-// value_pattern: attr !('.' | '(' | '=')
+// value_pattern: attr !('.' | '(' | '=') | '.' NAME !('.' | '(' | '=')
 static pattern_ty
 value_pattern_rule(Parser *p)
 {
@@ -9650,6 +9650,44 @@ value_pattern_rule(Parser *p)
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s value_pattern[%d-%d]: %s failed!\n", p->level, ' ',
                   p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "attr !('.' | '(' | '=')"));
+    }
+    { // '.' NAME !('.' | '(' | '=')
+        if (p->error_indicator) {
+            p->level--;
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> value_pattern[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "'.' NAME !('.' | '(' | '=')"));
+        Token * _literal;
+        expr_ty name;
+        if (
+            (_literal = _PyPegen_expect_token(p, 23))  // token='.'
+            &&
+            (name = _PyPegen_name_token(p))  // NAME
+            &&
+            _PyPegen_lookahead(0, _tmp_43_rule, p)
+        )
+        {
+            D(fprintf(stderr, "%*c+ value_pattern[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "'.' NAME !('.' | '(' | '=')"));
+            Token *_token = _PyPegen_get_last_nonnwhitespace_token(p);
+            if (_token == NULL) {
+                p->level--;
+                return NULL;
+            }
+            int _end_lineno = _token->end_lineno;
+            UNUSED(_end_lineno); // Only used by EXTRA macro
+            int _end_col_offset = _token->end_col_offset;
+            UNUSED(_end_col_offset); // Only used by EXTRA macro
+            _res = _PyAST_MatchValue ( name , EXTRA );
+            if ((_res == NULL || p->error_indicator) && PyErr_Occurred()) {
+                p->error_indicator = 1;
+                p->level--;
+                return NULL;
+            }
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s value_pattern[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "'.' NAME !('.' | '(' | '=')"));
     }
     _res = NULL;
   done:
@@ -10492,7 +10530,7 @@ items_pattern_rule(Parser *p)
     return _res;
 }
 
-// key_value_pattern: (literal_expr | attr) ':' pattern
+// key_value_pattern: (literal_expr | attr | '.' NAME) ':' pattern
 static KeyPatternPair*
 key_value_pattern_rule(Parser *p)
 {
@@ -10505,24 +10543,24 @@ key_value_pattern_rule(Parser *p)
     }
     KeyPatternPair* _res = NULL;
     int _mark = p->mark;
-    { // (literal_expr | attr) ':' pattern
+    { // (literal_expr | attr | '.' NAME) ':' pattern
         if (p->error_indicator) {
             p->level--;
             return NULL;
         }
-        D(fprintf(stderr, "%*c> key_value_pattern[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "(literal_expr | attr) ':' pattern"));
+        D(fprintf(stderr, "%*c> key_value_pattern[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "(literal_expr | attr | '.' NAME) ':' pattern"));
         Token * _literal;
         void *key;
         pattern_ty pattern;
         if (
-            (key = _tmp_48_rule(p))  // literal_expr | attr
+            (key = _tmp_48_rule(p))  // literal_expr | attr | '.' NAME
             &&
             (_literal = _PyPegen_expect_token(p, 11))  // token=':'
             &&
             (pattern = pattern_rule(p))  // pattern
         )
         {
-            D(fprintf(stderr, "%*c+ key_value_pattern[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "(literal_expr | attr) ':' pattern"));
+            D(fprintf(stderr, "%*c+ key_value_pattern[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "(literal_expr | attr | '.' NAME) ':' pattern"));
             _res = _PyPegen_key_pattern_pair ( p , key , pattern );
             if ((_res == NULL || p->error_indicator) && PyErr_Occurred()) {
                 p->error_indicator = 1;
@@ -10533,7 +10571,7 @@ key_value_pattern_rule(Parser *p)
         }
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s key_value_pattern[%d-%d]: %s failed!\n", p->level, ' ',
-                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "(literal_expr | attr) ':' pattern"));
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "(literal_expr | attr | '.' NAME) ':' pattern"));
     }
     _res = NULL;
   done:
@@ -31614,7 +31652,7 @@ _gather_47_rule(Parser *p)
     return _res;
 }
 
-// _tmp_48: literal_expr | attr
+// _tmp_48: literal_expr | attr | '.' NAME
 static void *
 _tmp_48_rule(Parser *p)
 {
@@ -31664,6 +31702,33 @@ _tmp_48_rule(Parser *p)
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s _tmp_48[%d-%d]: %s failed!\n", p->level, ' ',
                   p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "attr"));
+    }
+    { // '.' NAME
+        if (p->error_indicator) {
+            p->level--;
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> _tmp_48[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "'.' NAME"));
+        Token * _literal;
+        expr_ty name;
+        if (
+            (_literal = _PyPegen_expect_token(p, 23))  // token='.'
+            &&
+            (name = _PyPegen_name_token(p))  // NAME
+        )
+        {
+            D(fprintf(stderr, "%*c+ _tmp_48[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "'.' NAME"));
+            _res = name;
+            if ((_res == NULL || p->error_indicator) && PyErr_Occurred()) {
+                p->error_indicator = 1;
+                p->level--;
+                return NULL;
+            }
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s _tmp_48[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "'.' NAME"));
     }
     _res = NULL;
   done:

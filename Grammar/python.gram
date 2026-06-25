@@ -582,6 +582,7 @@ wildcard_pattern[pattern_ty]:
 
 value_pattern[pattern_ty]:
     | attr=attr !('.' | '(' | '=') { _PyAST_MatchValue(attr, EXTRA) }
+    | '.' name=NAME !('.' | '(' | '=') {_PyAST_MatchValue(name, EXTRA) }
 
 attr[expr_ty]:
     | value=name_or_attr '.' attr=NAME {
@@ -638,7 +639,7 @@ items_pattern[asdl_seq*]:
     | ','.key_value_pattern+
 
 key_value_pattern[KeyPatternPair*]:
-    | key=(literal_expr | attr) ':' pattern=pattern {
+    | key=(literal_expr | attr | '.' name=NAME { name }) ':' pattern=pattern {
         _PyPegen_key_pattern_pair(p, key, pattern) }
 
 double_star_pattern[expr_ty]:
