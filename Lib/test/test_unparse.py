@@ -19,7 +19,7 @@ def read_pyfile(filename):
 
 for_else = """\
 def f():
-    for x in range(10):
+    for x in range(10) if x % 2 == 0:
         break
     else:
         y = 2
