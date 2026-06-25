@@ -581,6 +581,7 @@ wildcard_pattern[pattern_ty]:
 
 value_pattern[pattern_ty]:
     | attr=attr !('.' | '(' | '=') { _PyAST_MatchValue(attr, EXTRA) }
+    | '.' name=NAME {_PyAST_MatchValue(name, EXTRA) }
 
 attr[expr_ty]:
     | value=name_or_attr '.' attr=NAME {

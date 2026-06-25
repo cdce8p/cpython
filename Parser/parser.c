@@ -9572,7 +9572,7 @@ wildcard_pattern_rule(Parser *p)
     return _res;
 }
 
-// value_pattern: attr !('.' | '(' | '=')
+// value_pattern: attr !('.' | '(' | '=') | '.' NAME
 static pattern_ty
 value_pattern_rule(Parser *p)
 {
@@ -9628,6 +9628,42 @@ value_pattern_rule(Parser *p)
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s value_pattern[%d-%d]: %s failed!\n", p->level, ' ',
                   p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "attr !('.' | '(' | '=')"));
+    }
+    { // '.' NAME
+        if (p->error_indicator) {
+            p->level--;
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> value_pattern[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "'.' NAME"));
+        Token * _literal;
+        expr_ty name;
+        if (
+            (_literal = _PyPegen_expect_token(p, 23))  // token='.'
+            &&
+            (name = _PyPegen_name_token(p))  // NAME
+        )
+        {
+            D(fprintf(stderr, "%*c+ value_pattern[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "'.' NAME"));
+            Token *_token = _PyPegen_get_last_nonnwhitespace_token(p);
+            if (_token == NULL) {
+                p->level--;
+                return NULL;
+            }
+            int _end_lineno = _token->end_lineno;
+            UNUSED(_end_lineno); // Only used by EXTRA macro
+            int _end_col_offset = _token->end_col_offset;
+            UNUSED(_end_col_offset); // Only used by EXTRA macro
+            _res = _PyAST_MatchValue ( name , EXTRA );
+            if ((_res == NULL || p->error_indicator) && PyErr_Occurred()) {
+                p->error_indicator = 1;
+                p->level--;
+                return NULL;
+            }
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s value_pattern[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "'.' NAME"));
     }
     _res = NULL;
   done:

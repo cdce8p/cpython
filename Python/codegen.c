@@ -5892,7 +5892,7 @@ codegen_slice(compiler *c, expr_ty s)
 
 // Limit permitted subexpressions, even if the parser & AST validator let them through
 #define MATCH_VALUE_EXPR(N) \
-    ((N)->kind == Constant_kind || (N)->kind == Attribute_kind)
+    ((N)->kind == Constant_kind || (N)->kind == Attribute_kind || (N)->kind == Name_kind)
 
 // Allocate or resize pc->fail_pop to allow for n items to be popped on failure.
 static int

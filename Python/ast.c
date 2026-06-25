@@ -508,8 +508,9 @@ validate_pattern_match_value(expr_ty exp)
             PyErr_SetString(PyExc_ValueError,
                             "unexpected constant inside of a literal pattern");
             return 0;
+        case Name_kind:
         case Attribute_kind:
-            // Constants and attribute lookups are always permitted
+            // Constants, name and attribute lookups are always permitted
             return 1;
         case UnaryOp_kind:
             // Negated numbers are permitted (whether real or imaginary)
