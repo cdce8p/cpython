@@ -746,6 +746,7 @@ astfold_stmt(stmt_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
     case For_kind: {
         CALL(astfold_expr, expr_ty, node_->v.For.target);
         CALL(astfold_expr, expr_ty, node_->v.For.iter);
+        CALL_OPT(astfold_expr, expr_ty, node_->v.For.guard);
         BEFORE_LOOP_BODY(state, node_);
         CALL_SEQ(astfold_stmt, stmt, node_->v.For.body);
         AFTER_LOOP_BODY(state);
@@ -755,6 +756,7 @@ astfold_stmt(stmt_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
     case AsyncFor_kind: {
         CALL(astfold_expr, expr_ty, node_->v.AsyncFor.target);
         CALL(astfold_expr, expr_ty, node_->v.AsyncFor.iter);
+        CALL_OPT(astfold_expr, expr_ty, node_->v.AsyncFor.guard);
         BEFORE_LOOP_BODY(state, node_);
         CALL_SEQ(astfold_stmt, stmt, node_->v.AsyncFor.body);
         AFTER_LOOP_BODY(state);
