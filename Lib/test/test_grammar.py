@@ -2063,6 +2063,30 @@ class GrammarTests(unittest.TestCase):
 
         self.assertEqual(test2(), "")
 
+    def test_for_guard(self):
+        x = []
+        for i in range(10) if i % 2 == 0:
+            x.append(i)
+        self.assertEqual(x, [0, 2, 4, 6, 8])
+
+    def test_async_for_guard(self):
+        class Done(Exception): ...
+
+        async def async_from_iter(it):
+            for item in it:
+                yield item
+
+        x = []
+
+        async def foo():
+            async for i in async_from_iter(range(10)) if i % 2 == 0:
+                x.append(i)
+            raise Done
+
+        with self.assertRaises(Done):
+            foo().send(None)
+        self.assertEqual(x, [0, 2, 4, 6, 8])
+
 
 if __name__ == '__main__':
     unittest.main()
