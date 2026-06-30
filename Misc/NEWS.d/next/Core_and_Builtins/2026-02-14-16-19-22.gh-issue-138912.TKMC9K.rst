@@ -1,3 +1,2 @@
-Add :opcode:`MATCH_CLASS_ISINSTANCE` opcode to improve the performance of
-:keyword:`match` class patterns without any sub-patterns by ~24%.
-Patch by Marc Mueller.
+Add fast path for :keyword:`match` class patterns without any sub-patterns
+to improve performance by ~15%.
