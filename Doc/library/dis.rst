@@ -1755,14 +1755,6 @@ iterations of the loop.
    .. versionadded:: 3.13
 
 
-.. opcode:: MATCH_CLASS_ISINSTANCE
-
-   Read match subject ``Stack[-2]`` and the type object ``Stack[-1]`` from stack.
-   Pop ``Stack[-1]`` and push ``True`` or ``False`` for the result of :func:`isinstance`.
-
-   .. versionadded:: 3.15
-
-
 .. opcode:: MATCH_CLASS (count)
 
    ``STACK[-1]`` is a tuple of keyword attribute names, ``STACK[-2]`` is the class
@@ -1907,27 +1899,33 @@ iterations of the loop.
 
    The operand determines which intrinsic function is called:
 
-   +----------------------------------------+-----------------------------------+
-   | Operand                                | Description                       |
-   +========================================+===================================+
-   | ``INTRINSIC_2_INVALID``                | Not valid                         |
-   +----------------------------------------+-----------------------------------+
-   | ``INTRINSIC_PREP_RERAISE_STAR``        | Calculates the                    |
-   |                                        | :exc:`ExceptionGroup` to raise    |
-   |                                        | from a ``try-except*``.           |
-   +----------------------------------------+-----------------------------------+
-   | ``INTRINSIC_TYPEVAR_WITH_BOUND``       | Creates a :class:`typing.TypeVar` |
-   |                                        | with a bound.                     |
-   +----------------------------------------+-----------------------------------+
-   | ``INTRINSIC_TYPEVAR_WITH_CONSTRAINTS`` | Creates a                         |
-   |                                        | :class:`typing.TypeVar` with      |
-   |                                        | constraints.                      |
-   +----------------------------------------+-----------------------------------+
-   | ``INTRINSIC_SET_FUNCTION_TYPE_PARAMS`` | Sets the ``__type_params__``      |
-   |                                        | attribute of a function.          |
-   +----------------------------------------+-----------------------------------+
+   +----------------------------------------+-----------------------------------------+
+   | Operand                                | Description                             |
+   +========================================+=========================================+
+   | ``INTRINSIC_2_INVALID``                | Not valid                               |
+   +----------------------------------------+-----------------------------------------+
+   | ``INTRINSIC_PREP_RERAISE_STAR``        | Calculates the                          |
+   |                                        | :exc:`ExceptionGroup` to raise          |
+   |                                        | from a ``try-except*``.                 |
+   +----------------------------------------+-----------------------------------------+
+   | ``INTRINSIC_TYPEVAR_WITH_BOUND``       | Creates a :class:`typing.TypeVar`       |
+   |                                        | with a bound.                           |
+   +----------------------------------------+-----------------------------------------+
+   | ``INTRINSIC_TYPEVAR_WITH_CONSTRAINTS`` | Creates a                               |
+   |                                        | :class:`typing.TypeVar` with            |
+   |                                        | constraints.                            |
+   +----------------------------------------+-----------------------------------------+
+   | ``INTRINSIC_SET_FUNCTION_TYPE_PARAMS`` | Sets the ``__type_params__``            |
+   |                                        | attribute of a function.                |
+   +----------------------------------------+-----------------------------------------+
+   | ``INTRINSIC_MATCH_CLASS_ISINSTANCE``   | Do :func:`isinstance` checks for        |
+   |                                        | :ref:`Class patterns <class-patterns>`. |
+   +----------------------------------------+-----------------------------------------+
 
    .. versionadded:: 3.12
+
+   .. versionchanged:: 3.16
+      Added ``INTRINSIC_MATCH_CLASS_ISINSTANCE``.
 
 
 .. opcode:: LOAD_SPECIAL

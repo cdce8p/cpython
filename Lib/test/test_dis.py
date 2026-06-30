@@ -1041,8 +1041,7 @@ class DisTests(DisTestBase):
                             'LOAD_FAST_BORROW_LOAD_FAST_BORROW',
                             'INSTRUMENTED_CALL_FUNCTION_EX',
                             'YIELD_FROM_CORO_CHECK',
-                            'ANNOTATIONS_PLACEHOLDER',
-                            'MATCH_CLASS_ISINSTANCE'])
+                            'ANNOTATIONS_PLACEHOLDER'])
         for op, opname in enumerate(dis.opname):
             if opname in long_opcodes or opname.startswith("INSTRUMENTED"):
                 continue
