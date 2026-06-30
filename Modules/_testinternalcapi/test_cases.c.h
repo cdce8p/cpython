@@ -10850,23 +10850,44 @@
                 names = stack_pointer[-1];
                 type = stack_pointer[-2];
                 subject = stack_pointer[-3];
-                assert(PyTuple_CheckExact(PyStackRef_AsPyObjectBorrow(names)));
-                _PyFrame_SetStackPointer(frame, stack_pointer);
-                _PyFrame_StackPointerValidate(frame);
-                PyObject *attrs_o = _PyEval_MatchClass(tstate,
-                    PyStackRef_AsPyObjectBorrow(subject),
-                    PyStackRef_AsPyObjectBorrow(type), oparg,
-                    PyStackRef_AsPyObjectBorrow(names));
-                _PyFrame_StackPointerInvalidate(frame);
-                if (attrs_o) {
-                    assert(PyTuple_CheckExact(attrs_o));
-                    attrs = PyStackRef_FromPyObjectSteal(attrs_o);
-                }
-                else {
+                if (oparg == 0) {
+                    PyObject *subject_o = PyStackRef_AsPyObjectBorrow(subject);
+                    PyObject *type_o = PyStackRef_AsPyObjectBorrow(type);
+                    if (!PyType_Check(type_o)) {
+                        _PyFrame_SetStackPointer(frame, stack_pointer);
+                        _PyFrame_StackPointerValidate(frame);
+                        _PyErr_SetString(tstate, PyExc_TypeError,
+                                     "called match pattern must be a class");
+                        _PyFrame_StackPointerInvalidate(frame);
+                        JUMP_TO_LABEL(error);
+                    }
+                    _PyFrame_SetStackPointer(frame, stack_pointer);
+                    _PyFrame_StackPointerValidate(frame);
+                    int retval = PyObject_IsInstance(subject_o, type_o);
+                    _PyFrame_StackPointerInvalidate(frame);
                     if (_PyErr_Occurred(tstate)) {
                         JUMP_TO_LABEL(error);
                     }
-                    attrs = PyStackRef_None;
+                    attrs = retval ? PyStackRef_True : PyStackRef_False;
+                } else {
+                    assert(PyTuple_CheckExact(PyStackRef_AsPyObjectBorrow(names)));
+                    _PyFrame_SetStackPointer(frame, stack_pointer);
+                    _PyFrame_StackPointerValidate(frame);
+                    PyObject *attrs_o = _PyEval_MatchClass(tstate,
+                        PyStackRef_AsPyObjectBorrow(subject),
+                        PyStackRef_AsPyObjectBorrow(type), oparg,
+                        PyStackRef_AsPyObjectBorrow(names));
+                    _PyFrame_StackPointerInvalidate(frame);
+                    if (attrs_o) {
+                        assert(PyTuple_CheckExact(attrs_o));
+                        attrs = PyStackRef_FromPyObjectSteal(attrs_o);
+                    }
+                    else {
+                        if (_PyErr_Occurred(tstate)) {
+                            JUMP_TO_LABEL(error);
+                        }
+                        attrs = PyStackRef_None;
+                    }
                 }
                 s = subject;
                 tp = type;
@@ -10903,6 +10924,44 @@
                 PyStackRef_XCLOSE(value);
                 _PyFrame_StackPointerInvalidate(frame);
             }
+            DISPATCH();
+        }
+
+        TARGET(MATCH_CLASS_GET_OPT_ATTR) {
+            #if _Py_TAIL_CALL_INTERP
+            int opcode = MATCH_CLASS_GET_OPT_ATTR;
+            (void)(opcode);
+            #endif
+            frame->instr_ptr = next_instr;
+            next_instr += 1;
+            INSTRUCTION_STATS(MATCH_CLASS_GET_OPT_ATTR);
+            _PyStackRef subject;
+            _PyStackRef attr;
+            _PyStackRef res;
+            subject = stack_pointer[-1];
+            PyObject *name = GETITEM(FRAME_CO_NAMES, oparg);
+            assert(PyUnicode_CheckExact(name));
+            PyObject *subject_o = PyStackRef_AsPyObjectBorrow(subject);
+            PyObject *attr_o;
+            _PyFrame_SetStackPointer(frame, stack_pointer);
+            _PyFrame_StackPointerValidate(frame);
+            (void)PyObject_GetOptionalAttr(subject_o, name, &attr_o);
+            _PyFrame_StackPointerInvalidate(frame);
+            if (attr_o) {
+                assert(!_PyErr_Occurred(tstate));
+                attr = PyStackRef_FromPyObjectSteal(attr_o);
+                res = PyStackRef_True;
+            } else {
+                if (_PyErr_Occurred(tstate)) {
+                    JUMP_TO_LABEL(error);
+                }
+                attr = PyStackRef_FromPyObjectSteal(Py_None);
+                res = PyStackRef_False;
+            }
+            stack_pointer[0] = attr;
+            stack_pointer[1] = res;
+            stack_pointer += 2;
+            ASSERT_WITHIN_STACK_BOUNDS(__FILE__, __LINE__);
             DISPATCH();
         }
 
