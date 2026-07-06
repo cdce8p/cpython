@@ -2109,6 +2109,35 @@ class GrammarTests(unittest.TestCase):
             case _:
                 self.fail("should have matched")
 
+    def test_match_contains(self):
+        match 2:
+            case _ in (1, 2):
+                pass
+            case int():
+                self.fail("first case should have matched")
+            case _:
+                self.fail("should have matched")
+        match 2:
+            case int() in (1, 2):
+                pass
+            case int():
+                self.fail("first case should have matched")
+            case _:
+                self.fail("should have matched")
+        match 2:
+            case 1 | 2 | 3 in (1, 2):
+                pass
+            case int():
+                self.fail("first case should have matched")
+            case _:
+                self.fail("should have matched")
+        match 2:
+            case int(_ in (1, 2)):
+                pass
+            case int():
+                self.fail("first case should have matched")
+            case _:
+                self.fail("should have matched")
 
 if __name__ == '__main__':
     unittest.main()
