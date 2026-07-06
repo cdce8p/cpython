@@ -683,6 +683,10 @@ validate_pattern(pattern_ty p, int star_ok)
                 ret = validate_pattern(p->v.MatchAs.pattern, /*star_ok=*/0);
             }
             break;
+        case MatchContains_kind:
+            ret = validate_pattern(p->v.MatchContains.pattern, /*star_ok=*/0) &&
+                validate_expr(p->v.MatchContains.right, Load);
+            break;
         case MatchOr_kind:
             if (asdl_seq_LEN(p->v.MatchOr.patterns) < 2) {
                 PyErr_SetString(PyExc_ValueError,

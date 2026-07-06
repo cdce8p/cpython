@@ -90,6 +90,8 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, If_type),
         offsetof(struct ast_state, ImportFrom_type),
         offsetof(struct ast_state, Import_type),
+        offsetof(struct ast_state, InPat_singleton),
+        offsetof(struct ast_state, InPat_type),
         offsetof(struct ast_state, In_singleton),
         offsetof(struct ast_state, In_type),
         offsetof(struct ast_state, Interactive_type),
@@ -117,6 +119,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, MatchAnd_type),
         offsetof(struct ast_state, MatchAs_type),
         offsetof(struct ast_state, MatchClass_type),
+        offsetof(struct ast_state, MatchContains_type),
         offsetof(struct ast_state, MatchMapping_type),
         offsetof(struct ast_state, MatchNot_type),
         offsetof(struct ast_state, MatchOr_type),
@@ -135,6 +138,8 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, Nonlocal_type),
         offsetof(struct ast_state, NotEq_singleton),
         offsetof(struct ast_state, NotEq_type),
+        offsetof(struct ast_state, NotInPat_singleton),
+        offsetof(struct ast_state, NotInPat_type),
         offsetof(struct ast_state, NotIn_singleton),
         offsetof(struct ast_state, NotIn_type),
         offsetof(struct ast_state, Not_singleton),
@@ -203,6 +208,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, col_offset),
         offsetof(struct ast_state, comparators),
         offsetof(struct ast_state, comprehension_type),
+        offsetof(struct ast_state, containop_type),
         offsetof(struct ast_state, context_expr),
         offsetof(struct ast_state, conversion),
         offsetof(struct ast_state, ctx),
@@ -688,6 +694,7 @@ static PyObject* ast2obj_boolop(struct ast_state *state, boolop_ty);
 static PyObject* ast2obj_operator(struct ast_state *state, operator_ty);
 static PyObject* ast2obj_unaryop(struct ast_state *state, unaryop_ty);
 static PyObject* ast2obj_cmpop(struct ast_state *state, cmpop_ty);
+static PyObject* ast2obj_containop(struct ast_state *state, containop_ty);
 static PyObject* ast2obj_comprehension(struct ast_state *state, void*);
 static const char * const comprehension_fields[]={
     "target",
@@ -798,6 +805,11 @@ static const char * const MatchStar_fields[]={
 static const char * const MatchAs_fields[]={
     "pattern",
     "name",
+};
+static const char * const MatchContains_fields[]={
+    "pattern",
+    "op",
+    "right",
 };
 static const char * const MatchOr_fields[]={
     "patterns",
@@ -1231,6 +1243,12 @@ add_ast_annotations(struct ast_state *state)
          offsetof(struct ast_state, pattern_type), FIELD_OPTIONAL},
         {offsetof(struct ast_state, name),
          0, FIELD_OPTIONAL | FIELD_BUILTIN},
+        {offsetof(struct ast_state, pattern),
+         offsetof(struct ast_state, pattern_type), 0},
+        {offsetof(struct ast_state, op),
+         offsetof(struct ast_state, containop_type), 0},
+        {offsetof(struct ast_state, right),
+         offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, patterns),
          offsetof(struct ast_state, pattern_type), FIELD_SEQUENCE},
         {offsetof(struct ast_state, patterns),
@@ -1352,6 +1370,8 @@ add_ast_annotations(struct ast_state *state)
         {offsetof(struct ast_state, IsNot_type), 149, 0},
         {offsetof(struct ast_state, In_type), 149, 0},
         {offsetof(struct ast_state, NotIn_type), 149, 0},
+        {offsetof(struct ast_state, InPat_type), 149, 0},
+        {offsetof(struct ast_state, NotInPat_type), 149, 0},
         {offsetof(struct ast_state, comprehension_type), 149, 4},
         {offsetof(struct ast_state, ExceptHandler_type), 153, 3},
         {offsetof(struct ast_state, arguments_type), 156, 7},
@@ -1368,12 +1388,13 @@ add_ast_annotations(struct ast_state *state)
         {offsetof(struct ast_state, MatchNot_type), 185, 1},
         {offsetof(struct ast_state, MatchStar_type), 186, 1},
         {offsetof(struct ast_state, MatchAs_type), 187, 2},
-        {offsetof(struct ast_state, MatchOr_type), 189, 1},
-        {offsetof(struct ast_state, MatchAnd_type), 190, 1},
-        {offsetof(struct ast_state, TypeIgnore_type), 191, 2},
-        {offsetof(struct ast_state, TypeVar_type), 193, 3},
-        {offsetof(struct ast_state, ParamSpec_type), 196, 2},
-        {offsetof(struct ast_state, TypeVarTuple_type), 198, 2},
+        {offsetof(struct ast_state, MatchContains_type), 189, 3},
+        {offsetof(struct ast_state, MatchOr_type), 192, 1},
+        {offsetof(struct ast_state, MatchAnd_type), 193, 1},
+        {offsetof(struct ast_state, TypeIgnore_type), 194, 2},
+        {offsetof(struct ast_state, TypeVar_type), 196, 3},
+        {offsetof(struct ast_state, ParamSpec_type), 199, 2},
+        {offsetof(struct ast_state, TypeVarTuple_type), 201, 2},
     };
     char *base = (char *)state;
     PyObject *annotations = NULL;
@@ -3015,6 +3036,27 @@ init_types(void *arg)
     state->NotIn_singleton = PyType_GenericNew((PyTypeObject
                                                *)state->NotIn_type, NULL, NULL);
     if (!state->NotIn_singleton) return -1;
+    state->containop_type = make_type(state, "containop", state->AST_type,
+                                      NULL, 0,
+        "containop = InPat | NotInPat");
+    if (!state->containop_type) return -1;
+    if (add_attributes(state, state->containop_type, NULL, 0) < 0) return -1;
+    if (PySet_Add(state->abstract_types, state->containop_type) < 0) return -1;
+    state->InPat_type = make_type(state, "InPat", state->containop_type, NULL,
+                                  0,
+        "InPat");
+    if (!state->InPat_type) return -1;
+    state->InPat_singleton = PyType_GenericNew((PyTypeObject
+                                               *)state->InPat_type, NULL, NULL);
+    if (!state->InPat_singleton) return -1;
+    state->NotInPat_type = make_type(state, "NotInPat", state->containop_type,
+                                     NULL, 0,
+        "NotInPat");
+    if (!state->NotInPat_type) return -1;
+    state->NotInPat_singleton = PyType_GenericNew((PyTypeObject
+                                                  *)state->NotInPat_type, NULL,
+                                                  NULL);
+    if (!state->NotInPat_singleton) return -1;
     state->comprehension_type = make_type(state, "comprehension",
                                           state->AST_type,
                                           comprehension_fields, 4,
@@ -3117,6 +3159,7 @@ init_types(void *arg)
         "        | MatchNot(pattern pattern)\n"
         "        | MatchStar(identifier? name)\n"
         "        | MatchAs(pattern? pattern, identifier? name)\n"
+        "        | MatchContains(pattern pattern, containop op, expr right)\n"
         "        | MatchOr(pattern* patterns)\n"
         "        | MatchAnd(pattern* patterns)");
     if (!state->pattern_type) return -1;
@@ -3168,6 +3211,11 @@ init_types(void *arg)
         return -1;
     if (PyObject_SetAttr(state->MatchAs_type, state->name, Py_None) == -1)
         return -1;
+    state->MatchContains_type = make_type(state, "MatchContains",
+                                          state->pattern_type,
+                                          MatchContains_fields, 3,
+        "MatchContains(pattern pattern, containop op, expr right)");
+    if (!state->MatchContains_type) return -1;
     state->MatchOr_type = make_type(state, "MatchOr", state->pattern_type,
                                     MatchOr_fields, 1,
         "MatchOr(pattern* patterns)");
@@ -3247,6 +3295,9 @@ static int obj2ast_unaryop(struct ast_state *state, PyObject* obj, unaryop_ty*
                            out, const char* field, PyArena* arena);
 static int obj2ast_cmpop(struct ast_state *state, PyObject* obj, cmpop_ty* out,
                          const char* field, PyArena* arena);
+static int obj2ast_containop(struct ast_state *state, PyObject* obj,
+                             containop_ty* out, const char* field, PyArena*
+                             arena);
 static int obj2ast_comprehension(struct ast_state *state, PyObject* obj,
                                  comprehension_ty* out, const char* field,
                                  PyArena* arena);
@@ -5053,6 +5104,41 @@ _PyAST_MatchAs(pattern_ty pattern, identifier name, int lineno, int col_offset,
 }
 
 pattern_ty
+_PyAST_MatchContains(pattern_ty pattern, containop_ty op, expr_ty right, int
+                     lineno, int col_offset, int end_lineno, int
+                     end_col_offset, PyArena *arena)
+{
+    pattern_ty p;
+    if (!pattern) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'pattern' is required for MatchContains");
+        return NULL;
+    }
+    if (!op) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'op' is required for MatchContains");
+        return NULL;
+    }
+    if (!right) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'right' is required for MatchContains");
+        return NULL;
+    }
+    p = (pattern_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = MatchContains_kind;
+    p->v.MatchContains.pattern = pattern;
+    p->v.MatchContains.op = op;
+    p->v.MatchContains.right = right;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+pattern_ty
 _PyAST_MatchOr(asdl_pattern_seq * patterns, int lineno, int col_offset, int
                end_lineno, int end_col_offset, PyArena *arena)
 {
@@ -6479,6 +6565,16 @@ PyObject* ast2obj_cmpop(struct ast_state *state, cmpop_ty o)
     }
     Py_UNREACHABLE();
 }
+PyObject* ast2obj_containop(struct ast_state *state, containop_ty o)
+{
+    switch(o) {
+        case InPat:
+            return Py_NewRef(state->InPat_singleton);
+        case NotInPat:
+            return Py_NewRef(state->NotInPat_singleton);
+    }
+    Py_UNREACHABLE();
+}
 PyObject*
 ast2obj_comprehension(struct ast_state *state, void* _o)
 {
@@ -7012,6 +7108,26 @@ ast2obj_pattern(struct ast_state *state, void* _o)
         value = ast2obj_identifier(state, o->v.MatchAs.name);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->name, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case MatchContains_kind:
+        tp = (PyTypeObject *)state->MatchContains_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_pattern(state, o->v.MatchContains.pattern);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->pattern, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_containop(state, o->v.MatchContains.op);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->op, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_expr(state, o->v.MatchContains.right);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->right, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -12406,6 +12522,33 @@ obj2ast_cmpop(struct ast_state *state, PyObject* obj, cmpop_ty* out, const
 }
 
 int
+obj2ast_containop(struct ast_state *state, PyObject* obj, containop_ty* out,
+                  const char* field, PyArena* arena)
+{
+    int isinstance;
+
+    isinstance = PyObject_IsInstance(obj, state->InPat_type);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        *out = InPat;
+        return 0;
+    }
+    isinstance = PyObject_IsInstance(obj, state->NotInPat_type);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        *out = NotInPat;
+        return 0;
+    }
+
+    PyErr_Format(PyExc_TypeError, "expected some sort of containop, but got %R", obj);
+    return -1;
+}
+
+int
 obj2ast_comprehension(struct ast_state *state, PyObject* obj, comprehension_ty*
                       out, const char* field, PyArena* arena)
 {
@@ -14041,6 +14184,72 @@ obj2ast_pattern(struct ast_state *state, PyObject* obj, pattern_ty* out, const
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->MatchContains_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        pattern_ty pattern;
+        containop_ty op;
+        expr_ty right;
+
+        if (PyObject_GetOptionalAttr(obj, state->pattern, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"pattern\" missing from MatchContains");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'MatchContains' node")) {
+                goto failed;
+            }
+            res = obj2ast_pattern(state, tmp, &pattern, "pattern", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->op, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"op\" missing from MatchContains");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'MatchContains' node")) {
+                goto failed;
+            }
+            res = obj2ast_containop(state, tmp, &op, "op", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->right, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"right\" missing from MatchContains");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'MatchContains' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &right, "right", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_MatchContains(pattern, op, right, lineno, col_offset,
+                                    end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->MatchOr_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -14846,6 +15055,15 @@ astmodule_exec(PyObject *m)
     if (PyModule_AddObjectRef(m, "NotIn", state->NotIn_type) < 0) {
         return -1;
     }
+    if (PyModule_AddObjectRef(m, "containop", state->containop_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "InPat", state->InPat_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "NotInPat", state->NotInPat_type) < 0) {
+        return -1;
+    }
     if (PyModule_AddObjectRef(m, "comprehension", state->comprehension_type) <
         0) {
         return -1;
@@ -14904,6 +15122,10 @@ astmodule_exec(PyObject *m)
         return -1;
     }
     if (PyModule_AddObjectRef(m, "MatchAs", state->MatchAs_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "MatchContains", state->MatchContains_type) <
+        0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "MatchOr", state->MatchOr_type) < 0) {
