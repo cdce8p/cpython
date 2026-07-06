@@ -933,6 +933,10 @@ astfold_pattern(pattern_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
                 CALL(astfold_pattern, pattern_ty, node_->v.MatchAs.pattern);
             }
             break;
+        case MatchContains_kind:
+            CALL(astfold_pattern, pattern_ty, node_->v.MatchContains.pattern);
+            CALL(astfold_expr, expr_ty, node_->v.MatchContains.right);
+            break;
         case MatchOr_kind:
             CALL_SEQ(astfold_pattern, pattern, node_->v.MatchOr.patterns);
             break;
