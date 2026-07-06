@@ -31,6 +31,8 @@ typedef enum _unaryop { Invert=1, Not=2, UAdd=3, USub=4 } unaryop_ty;
 typedef enum _cmpop { Eq=1, NotEq=2, Lt=3, LtE=4, Gt=5, GtE=6, Is=7, IsNot=8,
                       In=9, NotIn=10 } cmpop_ty;
 
+typedef enum _containop { InPat=1, NotInPat=2 } containop_ty;
+
 typedef struct _comprehension *comprehension_ty;
 
 typedef struct _excepthandler *excepthandler_ty;
@@ -603,7 +605,8 @@ struct _match_case {
 enum _pattern_kind {MatchValue_kind=1, MatchSingleton_kind=2,
                      MatchSequence_kind=3, MatchMapping_kind=4,
                      MatchClass_kind=5, MatchNot_kind=6, MatchStar_kind=7,
-                     MatchAs_kind=8, MatchOr_kind=9, MatchAnd_kind=10};
+                     MatchAs_kind=8, MatchContains_kind=9, MatchOr_kind=10,
+                     MatchAnd_kind=11};
 struct _pattern {
     enum _pattern_kind kind;
     union {
@@ -644,6 +647,12 @@ struct _pattern {
             pattern_ty pattern;
             identifier name;
         } MatchAs;
+
+        struct {
+            pattern_ty pattern;
+            containop_ty op;
+            expr_ty right;
+        } MatchContains;
 
         struct {
             asdl_pattern_seq *patterns;
@@ -922,6 +931,9 @@ pattern_ty _PyAST_MatchStar(identifier name, int lineno, int col_offset, int
 pattern_ty _PyAST_MatchAs(pattern_ty pattern, identifier name, int lineno, int
                           col_offset, int end_lineno, int end_col_offset,
                           PyArena *arena);
+pattern_ty _PyAST_MatchContains(pattern_ty pattern, containop_ty op, expr_ty
+                                right, int lineno, int col_offset, int
+                                end_lineno, int end_col_offset, PyArena *arena);
 pattern_ty _PyAST_MatchOr(asdl_pattern_seq * patterns, int lineno, int
                           col_offset, int end_lineno, int end_col_offset,
                           PyArena *arena);

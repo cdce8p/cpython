@@ -508,12 +508,19 @@ patterns[pattern_ty]:
 
 pattern[pattern_ty]:
     | as_pattern
+    | contains_pattern
     | or_pattern
 
 as_pattern[pattern_ty]:
     | pattern=or_pattern 'as' target=pattern_capture_target {
         _PyAST_MatchAs(pattern, target->v.Name.id, EXTRA) }
     | invalid_as_pattern
+
+contains_pattern[pattern_ty]:
+    | pattern=pattern 'not' 'in' a=bitwise_or {
+        _PyAST_MatchContains(pattern, NotInPat, a, EXTRA) }
+    | pattern=pattern 'in' a=bitwise_or {
+        _PyAST_MatchContains(pattern, InPat, a, EXTRA) }
 
 or_pattern[pattern_ty]:
     | patterns[asdl_pattern_seq*]='|'.and_pattern+ {
