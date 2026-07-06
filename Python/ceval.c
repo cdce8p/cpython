@@ -532,7 +532,11 @@ PyObject*
 _PyEval_MatchClass(PyThreadState *tstate, PyObject *subject, PyObject *type,
                    Py_ssize_t nargs, PyObject *kwargs)
 {
-    if (!PyType_Check(type)) {
+    if (PyTuple_Check(type) && nargs > 0) {
+        const char *e = "tuple only allowed for class pattern with just keyword patterns";
+        _PyErr_Format(tstate, PyExc_TypeError, e);
+        return NULL;
+    } else if (!(PyType_Check(type) || PyTuple_Check(type))) {
         const char *e = "class pattern must refer to a class";
         _PyErr_Format(tstate, PyExc_TypeError, e);
         return NULL;
