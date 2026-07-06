@@ -96,9 +96,11 @@ struct ast_state {
     PyObject *Lt_type;
     PyObject *MatMult_singleton;
     PyObject *MatMult_type;
+    PyObject *MatchAnd_type;
     PyObject *MatchAs_type;
     PyObject *MatchClass_type;
     PyObject *MatchMapping_type;
+    PyObject *MatchNot_type;
     PyObject *MatchOr_type;
     PyObject *MatchSequence_type;
     PyObject *MatchSingleton_type;
