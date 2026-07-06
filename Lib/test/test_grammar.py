@@ -2063,6 +2063,15 @@ class GrammarTests(unittest.TestCase):
 
         self.assertEqual(test2(), "")
 
+    def test_match_class_tuple(self):
+        match 2:
+            case (str, int)() as x:
+                # Error: __match_args__ is lookuped on the type
+                # Could only work for keyword patterns -> likely not worth it
+                self.assertEqual(x, 2)
+            case _:
+                self.fail("should have matched")
+
     def test_match_and(self):
         match 2:
             case int() & 2:
