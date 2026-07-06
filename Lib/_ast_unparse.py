@@ -1163,6 +1163,18 @@ class Unparser(NodeVisitor):
                 self.traverse(node.pattern)
                 self.write(f" as {node.name}")
 
+    containops = {
+        "InPat": "in",
+        "NotInPat": "not in",
+    }
+
+    def visit_MatchContains(self, node):
+        with self.require_parens(_Precedence.TEST, node):
+            self.set_precedence(_Precedence.BOR.next(), node.pattern)
+            self.traverse(node.pattern)
+            self.write(f" {self.containops[node.op.__class__.__name__]} ")
+            self.traverse(node.right)
+
     def visit_MatchOr(self, node):
         with self.require_parens(_Precedence.BOR, node):
             self.set_precedence(_Precedence.BOR.next(), *node.patterns)
