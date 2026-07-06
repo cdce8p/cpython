@@ -294,7 +294,7 @@ match_class_isinstance(PyThreadState* tstate, PyObject *subject, PyObject *type)
        Equivalent to the isinstance check performed by _PyEval_MatchClass,
        including the same TypeError when the pattern does not refer to a
        class. */
-    if (!PyType_Check(type)) {
+    if (!(PyType_Check(type) || PyTuple_Check(type))) {
         _PyErr_SetString(tstate, PyExc_TypeError,
                          "class pattern must refer to a class");
         return NULL;
