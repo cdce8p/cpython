@@ -2063,6 +2063,52 @@ class GrammarTests(unittest.TestCase):
 
         self.assertEqual(test2(), "")
 
+    def test_match_and(self):
+        match 2:
+            case int() & 2:
+                pass
+            case int():
+                self.fail("first case should have matched")
+            case _:
+                self.fail("should have matched")
+        match 2:
+            case _ & 2:
+                pass
+            case int():
+                self.fail("first case should have matched")
+            case _:
+                self.fail("should have matched")
+        match 2:
+            case int(_ & 2):
+                pass
+            case int():
+                self.fail("first case should have matched")
+            case _:
+                self.fail("should have matched")
+
+    def test_match_not(self):
+        match 2:
+            case !3:
+                pass
+            case int():
+                self.fail("first case should have matched")
+            case _:
+                self.fail("should have matched")
+        match 2:
+            case int() & !3:
+                pass
+            case int():
+                self.fail("first case should have matched")
+            case _:
+                self.fail("should have matched")
+        match 2:
+            case int(2 & !str()):
+                pass
+            case int():
+                self.fail("first case should have matched")
+            case _:
+                self.fail("should have matched")
+
 
 if __name__ == '__main__':
     unittest.main()

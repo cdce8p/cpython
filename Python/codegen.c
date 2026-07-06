@@ -176,8 +176,10 @@ typedef struct {
     // - Different name assignments in alternatives.
     // - The order of name assignments in alternatives.
     PyObject *stores;
-    // If 0, any name captures against our subject will raise.
+    // If 0, any irrefutable captures against our subject will raise.
     int allow_irrefutable;
+    // If 0, any name capture against our subject will raise. Used for MatchNot.
+    int allow_name_capture;
     // An array of blocks to jump to on failure. Jumping to fail_pop[i] will pop
     // i items off of the stack. The end result looks like this (with each block
     // falling through to the next):
@@ -6159,6 +6161,10 @@ static int
 codegen_pattern_as(compiler *c, pattern_ty p, pattern_context *pc)
 {
     assert(p->kind == MatchAs_kind);
+    if (p->v.MatchAs.name != NULL && !pc->allow_name_capture) {
+        const char *e = "name capture %R not allowed in 'Not' pattern";
+        return _PyCompile_Error(c, LOC(p), e, p->v.MatchAs.name);
+    }
     if (p->v.MatchAs.pattern == NULL) {
         // An irrefutable match:
         if (!pc->allow_irrefutable) {
@@ -6556,6 +6562,78 @@ error:
     return ERROR;
 }
 
+static int
+codegen_pattern_and(compiler *c, pattern_ty p, pattern_context *pc)
+{
+    assert(p->kind == MatchAnd_kind);
+    Py_ssize_t size = asdl_seq_LEN(p->v.MatchAnd.patterns);
+    assert(size > 1);
+
+    pc->on_top++;
+    for (Py_ssize_t i = 0; i < size; i++) {
+        pattern_ty pattern = asdl_seq_GET(p->v.MatchAnd.patterns, i);
+        if (WILDCARD_CHECK(pattern)) {
+            continue;
+        }
+        ADDOP_I(c, LOC(p), COPY, 1);
+        RETURN_IF_ERROR(codegen_pattern_subpattern(c, pattern, pc));
+    }
+    ADDOP(c, LOC(p), POP_TOP);
+    pc->on_top--;
+    return SUCCESS;
+}
+
+static int
+codegen_pattern_not(compiler *c, pattern_ty p, pattern_context *pc)
+{
+    assert(p->kind == MatchNot_kind);
+    NEW_JUMP_TARGET_LABEL(c, fail);
+    NEW_JUMP_TARGET_LABEL(c, end);
+    pattern_context old_pc = *pc;
+    Py_INCREF(pc->stores);
+
+    PyObject *pc_stores = PyList_New(0);
+    if (pc_stores == NULL) {
+        goto error;
+    }
+    Py_SETREF(pc->stores, pc_stores);
+    pc->allow_irrefutable = 0;
+    pc->allow_name_capture = 0;
+    pc->fail_pop = NULL;
+    pc->fail_pop_size = 0;
+    pc->on_top = 0;
+    if (codegen_pattern(c, p->v.MatchNot.pattern, pc) < 0) {
+        goto error;
+    }
+
+    if (codegen_addop_j(INSTR_SEQUENCE(c), LOC(p), JUMP, fail) < 0 ||
+        emit_and_reset_fail_pop(c, LOC(p), pc) < 0)
+    {
+        goto error;
+    }
+
+    Py_DECREF(pc->stores);
+    *pc = old_pc;
+    Py_INCREF(pc->stores);
+    // Need to NULL this for the PyMem_Free call in the error block.
+    old_pc.fail_pop = NULL;
+
+    ADDOP_JUMP(c, LOC(p), JUMP, end);
+
+    // No match. Pop the remaining copy of the subject and fail:
+    USE_LABEL(c, fail);
+    if (jump_to_fail_pop(c, LOC(p), pc, JUMP) < 0) {
+        goto error;
+    }
+
+    USE_LABEL(c, end);
+    Py_DECREF(old_pc.stores);
+    return SUCCESS;
+error:
+    PyMem_FREE(old_pc.fail_pop);
+    Py_DECREF(old_pc.stores);
+    return ERROR;
+}
 
 static int
 codegen_pattern_sequence(compiler *c, pattern_ty p,
@@ -6661,6 +6739,10 @@ codegen_pattern(compiler *c, pattern_ty p, pattern_context *pc)
             return codegen_pattern_as(c, p, pc);
         case MatchOr_kind:
             return codegen_pattern_or(c, p, pc);
+        case MatchAnd_kind:
+            return codegen_pattern_and(c, p, pc);
+        case MatchNot_kind:
+            return codegen_pattern_not(c, p, pc);
     }
     // AST validator shouldn't let this happen, but if it does,
     // just fail, don't crash out of the interpreter
@@ -6750,6 +6832,7 @@ static int
 codegen_match(compiler *c, stmt_ty s)
 {
     pattern_context pc;
+    pc.allow_name_capture = 1;
     pc.fail_pop = NULL;
     int result = codegen_match_inner(c, s, &pc);
     PyMem_Free(pc.fail_pop);

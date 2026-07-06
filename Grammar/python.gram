@@ -516,8 +516,12 @@ as_pattern[pattern_ty]:
     | invalid_as_pattern
 
 or_pattern[pattern_ty]:
-    | patterns[asdl_pattern_seq*]='|'.closed_pattern+ {
+    | patterns[asdl_pattern_seq*]='|'.and_pattern+ {
         asdl_seq_LEN(patterns) == 1 ? asdl_seq_GET(patterns, 0) : _PyAST_MatchOr(patterns, EXTRA) }
+
+and_pattern[pattern_ty]:
+    | patterns[asdl_pattern_seq*]='&'.closed_pattern+ {
+        asdl_seq_LEN(patterns) == 1 ? asdl_seq_GET(patterns, 0) : _PyAST_MatchAnd(patterns, EXTRA) }
 
 closed_pattern[pattern_ty] (memo):
     | literal_pattern
@@ -528,6 +532,7 @@ closed_pattern[pattern_ty] (memo):
     | sequence_pattern
     | mapping_pattern
     | class_pattern
+    | not_pattern
 
 # Literal patterns are used for equality and identity constraints
 literal_pattern[pattern_ty]:
@@ -674,6 +679,9 @@ keyword_patterns[asdl_seq*]:
 
 keyword_pattern[KeyPatternPair*]:
     | arg=NAME '=' value=pattern { _PyPegen_key_pattern_pair(p, arg, value) }
+
+not_pattern[pattern_ty]:
+    | '!' pattern=pattern { _PyAST_MatchNot(pattern, EXTRA) }
 
 # Type statement
 # ---------------

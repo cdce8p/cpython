@@ -2803,6 +2803,9 @@ symtable_visit_pattern(struct symtable *st, pattern_ty p)
         }
         VISIT_SEQ(st, pattern, p->v.MatchClass.kwd_patterns);
         break;
+    case MatchNot_kind:
+        VISIT(st, pattern, p->v.MatchNot.pattern);
+        break;
     case MatchAs_kind:
         if (p->v.MatchAs.pattern) {
             VISIT(st, pattern, p->v.MatchAs.pattern);
@@ -2815,6 +2818,9 @@ symtable_visit_pattern(struct symtable *st, pattern_ty p)
         break;
     case MatchOr_kind:
         VISIT_SEQ(st, pattern, p->v.MatchOr.patterns);
+        break;
+    case MatchAnd_kind:
+        VISIT_SEQ(st, pattern, p->v.MatchAnd.patterns);
         break;
     }
     LEAVE_RECURSIVE();
