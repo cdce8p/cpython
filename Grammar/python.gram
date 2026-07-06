@@ -535,10 +535,10 @@ closed_pattern[pattern_ty] (memo):
     | capture_pattern
     | wildcard_pattern
     | value_pattern
+    | class_pattern
     | group_pattern
     | sequence_pattern
     | mapping_pattern
-    | class_pattern
     | not_pattern
 
 # Literal patterns are used for equality and identity constraints
@@ -603,6 +603,13 @@ name_or_attr[expr_ty]:
     | attr
     | NAME
 
+name_or_attr_sequence[asdl_expr_seq*]: a[asdl_expr_seq*]=','.name_or_attr+ [','] { a }
+
+name_or_attr_tuple[expr_ty]:
+    | attr
+    | NAME
+    | '(' a=[name_or_attr_sequence] ')' { _PyAST_Tuple(a, Load, EXTRA) }
+
 group_pattern[pattern_ty]:
     | '(' pattern=pattern ')' { pattern }
 
@@ -657,11 +664,11 @@ double_star_pattern[expr_ty]:
     | '**' target=pattern_capture_target { target }
 
 class_pattern[pattern_ty]:
-    | cls=name_or_attr '(' ')' {
+    | cls=name_or_attr_tuple '(' ')' {
         _PyAST_MatchClass(cls, NULL, NULL, NULL, EXTRA) }
     | cls=name_or_attr '(' patterns=positional_patterns ','? ')' {
         _PyAST_MatchClass(cls, patterns, NULL, NULL, EXTRA) }
-    | cls=name_or_attr '(' keywords=keyword_patterns ','? ')' {
+    | cls=name_or_attr_tuple '(' keywords=keyword_patterns ','? ')' {
         _PyAST_MatchClass(
             cls, NULL,
             CHECK(asdl_identifier_seq*, _PyPegen_map_names_to_ids(p,
