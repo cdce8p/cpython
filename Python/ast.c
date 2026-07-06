@@ -626,9 +626,12 @@ validate_pattern(pattern_ty p, int star_ok)
                     cls = cls->v.Attribute.value;
                     continue;
                 }
+                else if (cls->kind == Tuple_kind) {
+                    continue;
+                }
                 else {
                     PyErr_SetString(PyExc_ValueError,
-                                    "MatchClass cls field can only contain Name or Attribute nodes.");
+                                    "MatchClass cls field can only contain Name, Attribute or Tuple nodes.");
                     ret = 0;
                     break;
                 }
