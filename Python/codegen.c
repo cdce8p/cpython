@@ -6636,6 +6636,28 @@ error:
 }
 
 static int
+codegen_pattern_contains(compiler *c, pattern_ty p,
+                         pattern_context *pc)
+{
+    assert(p->kind == MatchContains_kind);
+    pc->on_top++;
+    ADDOP_I(c, LOC(p), COPY, 1);
+    RETURN_IF_ERROR(codegen_pattern_subpattern(c, p->v.MatchContains.pattern, pc));
+    pc->on_top--;
+    VISIT(c, expr, p->v.MatchContains.right);
+    switch (p->v.MatchContains.op) {
+        case InPat:
+            ADDOP_I(c, LOC(p), CONTAINS_OP, 0);
+            break;
+        case NotInPat:
+            ADDOP_I(c, LOC(p), CONTAINS_OP, 1);
+            break;
+    }
+    RETURN_IF_ERROR(jump_to_fail_pop(c, LOC(p), pc, POP_JUMP_IF_FALSE));
+    return SUCCESS;
+}
+
+static int
 codegen_pattern_sequence(compiler *c, pattern_ty p,
                          pattern_context *pc)
 {
@@ -6743,6 +6765,8 @@ codegen_pattern(compiler *c, pattern_ty p, pattern_context *pc)
             return codegen_pattern_and(c, p, pc);
         case MatchNot_kind:
             return codegen_pattern_not(c, p, pc);
+        case MatchContains_kind:
+            return codegen_pattern_contains(c, p, pc);
     }
     // AST validator shouldn't let this happen, but if it does,
     // just fail, don't crash out of the interpreter

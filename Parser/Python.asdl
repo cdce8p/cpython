@@ -108,6 +108,8 @@ module Python
 
     cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
 
+    containop = InPat | NotInPat
+
     comprehension = (expr target, expr iter, expr* ifs, int is_async)
 
     excepthandler = ExceptHandler(expr? type, identifier? name, stmt* body)
@@ -142,6 +144,7 @@ module Python
             -- The optional "rest" MatchMapping parameter handles capturing extra mapping keys
 
             | MatchAs(pattern? pattern, identifier? name)
+            | MatchContains(pattern pattern, containop op, expr right)
             | MatchOr(pattern* patterns)
             | MatchAnd(pattern* patterns)
 

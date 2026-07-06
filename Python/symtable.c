@@ -2816,6 +2816,10 @@ symtable_visit_pattern(struct symtable *st, pattern_ty p)
             }
         }
         break;
+    case MatchContains_kind:
+        VISIT(st, pattern, p->v.MatchContains.pattern);
+        VISIT(st, expr, p->v.MatchContains.right);
+        break;
     case MatchOr_kind:
         VISIT_SEQ(st, pattern, p->v.MatchOr.patterns);
         break;
