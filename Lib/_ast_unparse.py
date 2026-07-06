@@ -1146,6 +1146,10 @@ class Unparser(NodeVisitor):
                     zip(attrs, node.kwd_patterns, strict=True),
                 )
 
+    def visit_MatchNot(self, node):
+        self.write("!")
+        self.traverse(node.pattern)
+
     def visit_MatchAs(self, node):
         name = node.name
         pattern = node.pattern
@@ -1163,3 +1167,8 @@ class Unparser(NodeVisitor):
         with self.require_parens(_Precedence.BOR, node):
             self.set_precedence(_Precedence.BOR.next(), *node.patterns)
             self.interleave(lambda: self.write(" | "), self.traverse, node.patterns)
+
+    def visit_MatchAnd(self, node):
+        with self.require_parens(_Precedence.BAND, node):
+            self.set_precedence(_Precedence.BAND.next(), *node.patterns)
+            self.interleave(lambda: self.write(" & "), self.traverse, node.patterns)

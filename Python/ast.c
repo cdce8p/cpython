@@ -663,6 +663,9 @@ validate_pattern(pattern_ty p, int star_ok)
             }
             ret = p->v.MatchStar.name == NULL || validate_capture(p->v.MatchStar.name);
             break;
+        case MatchNot_kind:
+            ret = validate_pattern(p->v.MatchNot.pattern, /*star_ok=*/0);
+            break;
         case MatchAs_kind:
             if (p->v.MatchAs.name && !validate_capture(p->v.MatchAs.name)) {
                 ret = 0;
@@ -689,6 +692,16 @@ validate_pattern(pattern_ty p, int star_ok)
             }
             ret = validate_patterns(p->v.MatchOr.patterns, /*star_ok=*/0);
             break;
+        case MatchAnd_kind:
+            if (asdl_seq_LEN(p->v.MatchAnd.patterns) < 2) {
+                PyErr_SetString(PyExc_ValueError,
+                                "MatchAnd requires at least 2 patterns");
+                ret = 0;
+                break;
+            }
+            ret = validate_patterns(p->v.MatchAnd.patterns, /*star_ok=*/0);
+            break;
+
     // No default case, so the compiler will emit a warning if new pattern
     // kinds are added without being handled here
     }
