@@ -72,6 +72,8 @@ struct ast_state {
     PyObject *If_type;
     PyObject *ImportFrom_type;
     PyObject *Import_type;
+    PyObject *InPat_singleton;
+    PyObject *InPat_type;
     PyObject *In_singleton;
     PyObject *In_type;
     PyObject *Interactive_type;
@@ -99,6 +101,7 @@ struct ast_state {
     PyObject *MatchAnd_type;
     PyObject *MatchAs_type;
     PyObject *MatchClass_type;
+    PyObject *MatchContains_type;
     PyObject *MatchMapping_type;
     PyObject *MatchNot_type;
     PyObject *MatchOr_type;
@@ -117,6 +120,8 @@ struct ast_state {
     PyObject *Nonlocal_type;
     PyObject *NotEq_singleton;
     PyObject *NotEq_type;
+    PyObject *NotInPat_singleton;
+    PyObject *NotInPat_type;
     PyObject *NotIn_singleton;
     PyObject *NotIn_type;
     PyObject *Not_singleton;
@@ -185,6 +190,7 @@ struct ast_state {
     PyObject *col_offset;
     PyObject *comparators;
     PyObject *comprehension_type;
+    PyObject *containop_type;
     PyObject *context_expr;
     PyObject *conversion;
     PyObject *ctx;
