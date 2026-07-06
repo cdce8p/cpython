@@ -925,6 +925,9 @@ astfold_pattern(pattern_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
             break;
         case MatchStar_kind:
             break;
+        case MatchNot_kind:
+            CALL(astfold_pattern, pattern_ty, node_->v.MatchNot.pattern);
+            break;
         case MatchAs_kind:
             if (node_->v.MatchAs.pattern) {
                 CALL(astfold_pattern, pattern_ty, node_->v.MatchAs.pattern);
@@ -932,6 +935,9 @@ astfold_pattern(pattern_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
             break;
         case MatchOr_kind:
             CALL_SEQ(astfold_pattern, pattern, node_->v.MatchOr.patterns);
+            break;
+        case MatchAnd_kind:
+            CALL_SEQ(astfold_pattern, pattern, node_->v.MatchAnd.patterns);
             break;
     // No default case, so the compiler will emit a warning if new pattern
     // kinds are added without being handled here

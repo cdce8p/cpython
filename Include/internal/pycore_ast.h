@@ -602,8 +602,8 @@ struct _match_case {
 
 enum _pattern_kind {MatchValue_kind=1, MatchSingleton_kind=2,
                      MatchSequence_kind=3, MatchMapping_kind=4,
-                     MatchClass_kind=5, MatchStar_kind=6, MatchAs_kind=7,
-                     MatchOr_kind=8};
+                     MatchClass_kind=5, MatchNot_kind=6, MatchStar_kind=7,
+                     MatchAs_kind=8, MatchOr_kind=9, MatchAnd_kind=10};
 struct _pattern {
     enum _pattern_kind kind;
     union {
@@ -633,6 +633,10 @@ struct _pattern {
         } MatchClass;
 
         struct {
+            pattern_ty pattern;
+        } MatchNot;
+
+        struct {
             identifier name;
         } MatchStar;
 
@@ -644,6 +648,10 @@ struct _pattern {
         struct {
             asdl_pattern_seq *patterns;
         } MatchOr;
+
+        struct {
+            asdl_pattern_seq *patterns;
+        } MatchAnd;
 
     } v;
     int lineno;
@@ -907,6 +915,8 @@ pattern_ty _PyAST_MatchClass(expr_ty cls, asdl_pattern_seq * patterns,
                              asdl_identifier_seq * kwd_attrs, asdl_pattern_seq
                              * kwd_patterns, int lineno, int col_offset, int
                              end_lineno, int end_col_offset, PyArena *arena);
+pattern_ty _PyAST_MatchNot(pattern_ty pattern, int lineno, int col_offset, int
+                           end_lineno, int end_col_offset, PyArena *arena);
 pattern_ty _PyAST_MatchStar(identifier name, int lineno, int col_offset, int
                             end_lineno, int end_col_offset, PyArena *arena);
 pattern_ty _PyAST_MatchAs(pattern_ty pattern, identifier name, int lineno, int
@@ -915,6 +925,9 @@ pattern_ty _PyAST_MatchAs(pattern_ty pattern, identifier name, int lineno, int
 pattern_ty _PyAST_MatchOr(asdl_pattern_seq * patterns, int lineno, int
                           col_offset, int end_lineno, int end_col_offset,
                           PyArena *arena);
+pattern_ty _PyAST_MatchAnd(asdl_pattern_seq * patterns, int lineno, int
+                           col_offset, int end_lineno, int end_col_offset,
+                           PyArena *arena);
 type_ignore_ty _PyAST_TypeIgnore(int lineno, string tag, PyArena *arena);
 type_param_ty _PyAST_TypeVar(identifier name, expr_ty bound, expr_ty
                              default_value, int lineno, int col_offset, int
