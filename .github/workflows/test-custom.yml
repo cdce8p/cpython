@@ -1,0 +1,19 @@
+name: Test custom changes
+
+on:
+  push:
+
+jobs:
+  build-test:
+    name: Build and Test
+    runs-on: ubuntu-26.04
+    env:
+      FORCE_COLOR: 1
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure CPython
+        run: ./configure CFLAGS="-Wno-unreachable-code-fallthrough"
+      - name: Build CPython
+        run: make -j4 -s
+      - name: Run ast + syntax tests
+        run: ./python -m test test_ast test_grammar test_syntax test_patma
