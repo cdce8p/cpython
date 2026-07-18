@@ -362,13 +362,14 @@ enum _expr_kind {BoolOp_kind=1, NamedExpr_kind=2, BinOp_kind=3, UnaryOp_kind=4,
                   Lambda_kind=5, IfExp_kind=6, Dict_kind=7, Set_kind=8,
                   ListComp_kind=9, SetComp_kind=10, DictComp_kind=11,
                   GeneratorExp_kind=12, NoneAwareAttribute_kind=13,
-                  NoneAwareSubscript_kind=14, Await_kind=15, Yield_kind=16,
-                  YieldFrom_kind=17, Compare_kind=18, Call_kind=19,
-                  FormattedValue_kind=20, Interpolation_kind=21,
-                  JoinedStr_kind=22, TemplateStr_kind=23, Constant_kind=24,
-                  Attribute_kind=25, Cascade_kind=26, CascadeAttribute_kind=27,
-                  Subscript_kind=28, Starred_kind=29, Name_kind=30,
-                  List_kind=31, Tuple_kind=32, Slice_kind=33};
+                  NoneAwareSubscript_kind=14, NoneAwareCascade_kind=15,
+                  Await_kind=16, Yield_kind=17, YieldFrom_kind=18,
+                  Compare_kind=19, Call_kind=20, FormattedValue_kind=21,
+                  Interpolation_kind=22, JoinedStr_kind=23,
+                  TemplateStr_kind=24, Constant_kind=25, Attribute_kind=26,
+                  Cascade_kind=27, CascadeAttribute_kind=28, Subscript_kind=29,
+                  Starred_kind=30, Name_kind=31, List_kind=32, Tuple_kind=33,
+                  Slice_kind=34};
 struct _expr {
     enum _expr_kind kind;
     union {
@@ -443,6 +444,11 @@ struct _expr {
             expr_ty value;
             expr_ty slice;
         } NoneAwareSubscript;
+
+        struct {
+            expr_ty base;
+            asdl_expr_seq *calls;
+        } NoneAwareCascade;
 
         struct {
             expr_ty value;
@@ -849,6 +855,9 @@ expr_ty _PyAST_NoneAwareAttribute(expr_ty value, identifier attr, int group,
 expr_ty _PyAST_NoneAwareSubscript(expr_ty value, expr_ty slice, int group, int
                                   lineno, int col_offset, int end_lineno, int
                                   end_col_offset, PyArena *arena);
+expr_ty _PyAST_NoneAwareCascade(expr_ty base, asdl_expr_seq * calls, int group,
+                                int lineno, int col_offset, int end_lineno, int
+                                end_col_offset, PyArena *arena);
 expr_ty _PyAST_Await(expr_ty value, int group, int lineno, int col_offset, int
                      end_lineno, int end_col_offset, PyArena *arena);
 expr_ty _PyAST_Yield(expr_ty value, int group, int lineno, int col_offset, int

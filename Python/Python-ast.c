@@ -132,6 +132,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
     Py_CLEAR(state->Name_type);
     Py_CLEAR(state->NamedExpr_type);
     Py_CLEAR(state->NoneAwareAttribute_type);
+    Py_CLEAR(state->NoneAwareCascade_type);
     Py_CLEAR(state->NoneAwareSubscript_type);
     Py_CLEAR(state->Nonlocal_type);
     Py_CLEAR(state->NotEq_singleton);
@@ -622,6 +623,10 @@ static const char * const NoneAwareAttribute_fields[]={
 static const char * const NoneAwareSubscript_fields[]={
     "value",
     "slice",
+};
+static const char * const NoneAwareCascade_fields[]={
+    "base",
+    "calls",
 };
 static const char * const Await_fields[]={
     "value",
@@ -3088,6 +3093,49 @@ add_ast_annotations(struct ast_state *state)
         return 0;
     }
     Py_DECREF(NoneAwareSubscript_annotations);
+    PyObject *NoneAwareCascade_annotations = PyDict_New();
+    if (!NoneAwareCascade_annotations) return 0;
+    {
+        PyObject *type = state->expr_type;
+        Py_INCREF(type);
+        cond = PyDict_SetItemString(NoneAwareCascade_annotations, "base", type)
+                                    == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(NoneAwareCascade_annotations);
+            return 0;
+        }
+    }
+    {
+        PyObject *type = state->expr_type;
+        type = Py_GenericAlias((PyObject *)&PyList_Type, type);
+        cond = type != NULL;
+        if (!cond) {
+            Py_DECREF(NoneAwareCascade_annotations);
+            return 0;
+        }
+        cond = PyDict_SetItemString(NoneAwareCascade_annotations, "calls",
+                                    type) == 0;
+        Py_DECREF(type);
+        if (!cond) {
+            Py_DECREF(NoneAwareCascade_annotations);
+            return 0;
+        }
+    }
+    cond = PyObject_SetAttrString(state->NoneAwareCascade_type, "_field_types",
+                                  NoneAwareCascade_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(NoneAwareCascade_annotations);
+        return 0;
+    }
+    cond = PyObject_SetAttrString(state->NoneAwareCascade_type,
+                                  "__annotations__",
+                                  NoneAwareCascade_annotations) == 0;
+    if (!cond) {
+        Py_DECREF(NoneAwareCascade_annotations);
+        return 0;
+    }
+    Py_DECREF(NoneAwareCascade_annotations);
     PyObject *Await_annotations = PyDict_New();
     if (!Await_annotations) return 0;
     {
@@ -6539,6 +6587,7 @@ init_types(void *arg)
         "     | GeneratorExp(expr elt, comprehension* generators)\n"
         "     | NoneAwareAttribute(expr value, identifier attr)\n"
         "     | NoneAwareSubscript(expr value, expr slice)\n"
+        "     | NoneAwareCascade(expr base, expr* calls)\n"
         "     | Await(expr value)\n"
         "     | Yield(expr? value)\n"
         "     | YieldFrom(expr value)\n"
@@ -6629,6 +6678,11 @@ init_types(void *arg)
                                                NoneAwareSubscript_fields, 2,
         "NoneAwareSubscript(expr value, expr slice)");
     if (!state->NoneAwareSubscript_type) return -1;
+    state->NoneAwareCascade_type = make_type(state, "NoneAwareCascade",
+                                             state->expr_type,
+                                             NoneAwareCascade_fields, 2,
+        "NoneAwareCascade(expr base, expr* calls)");
+    if (!state->NoneAwareCascade_type) return -1;
     state->Await_type = make_type(state, "Await", state->expr_type,
                                   Await_fields, 1,
         "Await(expr value)");
@@ -8305,6 +8359,31 @@ _PyAST_NoneAwareSubscript(expr_ty value, expr_ty slice, int group, int lineno,
     p->kind = NoneAwareSubscript_kind;
     p->v.NoneAwareSubscript.value = value;
     p->v.NoneAwareSubscript.slice = slice;
+    p->group = group;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_NoneAwareCascade(expr_ty base, asdl_expr_seq * calls, int group, int
+                        lineno, int col_offset, int end_lineno, int
+                        end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!base) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'base' is required for NoneAwareCascade");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = NoneAwareCascade_kind;
+    p->v.NoneAwareCascade.base = base;
+    p->v.NoneAwareCascade.calls = calls;
     p->group = group;
     p->lineno = lineno;
     p->col_offset = col_offset;
@@ -10144,6 +10223,22 @@ ast2obj_expr(struct ast_state *state, void* _o)
         value = ast2obj_expr(state, o->v.NoneAwareSubscript.slice);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->slice, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case NoneAwareCascade_kind:
+        tp = (PyTypeObject *)state->NoneAwareCascade_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.NoneAwareCascade.base);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->base, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_list(state, (asdl_seq*)o->v.NoneAwareCascade.calls,
+                             ast2obj_expr);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->calls, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -15250,6 +15345,75 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, const char*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->NoneAwareCascade_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty base;
+        asdl_expr_seq* calls;
+
+        if (PyObject_GetOptionalAttr(obj, state->base, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"base\" missing from NoneAwareCascade");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'NoneAwareCascade' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &base, "base", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->calls, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            tmp = PyList_New(0);
+            if (tmp == NULL) {
+                return -1;
+            }
+        }
+        {
+            int res;
+            Py_ssize_t len;
+            Py_ssize_t i;
+            if (!PyList_Check(tmp)) {
+                PyErr_Format(PyExc_TypeError, "NoneAwareCascade field \"calls\" must be a list, not a %T", tmp);
+                goto failed;
+            }
+            len = PyList_GET_SIZE(tmp);
+            calls = _Py_asdl_expr_seq_new(len, arena);
+            if (calls == NULL) goto failed;
+            for (i = 0; i < len; i++) {
+                expr_ty val;
+                PyObject *tmp2 = Py_NewRef(PyList_GET_ITEM(tmp, i));
+                if (_Py_EnterRecursiveCall(" while traversing 'NoneAwareCascade' node")) {
+                    goto failed;
+                }
+                res = obj2ast_expr(state, tmp2, &val, "calls", arena);
+                _Py_LeaveRecursiveCall();
+                Py_DECREF(tmp2);
+                if (res != 0) goto failed;
+                if (len != PyList_GET_SIZE(tmp)) {
+                    PyErr_SetString(PyExc_RuntimeError, "NoneAwareCascade field \"calls\" changed size during iteration");
+                    goto failed;
+                }
+                asdl_seq_SET(calls, i, val);
+            }
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_NoneAwareCascade(base, calls, group, lineno, col_offset,
+                                       end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Await_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -18926,6 +19090,10 @@ astmodule_exec(PyObject *m)
     }
     if (PyModule_AddObjectRef(m, "NoneAwareSubscript",
         state->NoneAwareSubscript_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "NoneAwareCascade",
+        state->NoneAwareCascade_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Await", state->Await_type) < 0) {

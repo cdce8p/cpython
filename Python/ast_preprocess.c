@@ -639,6 +639,10 @@ astfold_expr(expr_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
         CALL(astfold_expr, expr_ty, node_->v.NoneAwareSubscript.value);
         CALL(astfold_expr, expr_ty, node_->v.NoneAwareSubscript.slice);
         break;
+    case NoneAwareCascade_kind:
+        CALL(astfold_expr, expr_ty, node_->v.NoneAwareCascade.base);
+        CALL_SEQ(astfold_expr, expr, node_->v.NoneAwareCascade.calls);
+        break;
     case Cascade_kind:
         CALL(astfold_expr, expr_ty, node_->v.Cascade.base);
         CALL_SEQ(astfold_expr, expr, node_->v.Cascade.calls);
