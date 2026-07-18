@@ -2414,6 +2414,34 @@ class GrammarTests(unittest.TestCase):
             # i.e. a itself.
             await a..func_a()
 
+    def test_none_aware_cascade(self):
+        class B:
+            cnt = 0
+
+            b = None
+            c = 1
+            l = [1, 2]
+
+            def func_a(self, var=None):
+                self.cnt += 1
+
+            def __getitem__(self, idx):
+                return idx
+
+        a = None
+        b = B()
+
+        self.assertEqual(a?..b, None)
+        self.assertEqual(a?..b..func_a()..c, None)
+        self.assertEqual(a?..b..func_a(x for x in range(3))..l, None)
+        self.assertEqual(a?..l[0].bit_length()..c, None)
+        self.assertEqual(a?..b?.c, None)
+        self.assertEqual(a?..b?[2].c, None)
+        self.assertEqual(a?..[2]..c, None)
+        self.assertEqual(b?..b?.c..func_a()..c, b)
+        self.assertEqual(b?..[2]..c, b)
+        self.assertEqual(b.cnt, 1)
+
 
 if __name__ == '__main__':
     unittest.main()
