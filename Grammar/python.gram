@@ -862,11 +862,15 @@ cascade[expr_ty]:
     | a=primary b=('..' c=cascade_primary { c })+ {
         CHECK_VERSION(expr_ty, 16, "Cascade expressions are",
                       _PyAST_Cascade(a, CHECK(asdl_expr_seq*, b), EXTRA_EXPR)) }
+    | a=primary '?' b=('..' c=cascade_primary { c })+ {
+        CHECK_VERSION(expr_ty, 16, "None aware cascade expressions are",
+                      _PyAST_NoneAwareCascade(a, CHECK(asdl_expr_seq*, b), EXTRA_EXPR)) }
     | primary
 
 cascade_primary[expr_ty]:
     | a=cascade_primary '.' b=NAME {
         _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA_EXPR) }
+    | cascade_none_aware_attribute !'='
     | a=cascade_primary b=genexp { _PyAST_Call(a, CHECK(asdl_expr_seq*, (asdl_expr_seq*)_PyPegen_singleton_seq(p, b)), NULL, EXTRA_EXPR) }
     | a=cascade_primary '(' b=[arguments] ')' {
         _PyAST_Call(a,
@@ -875,8 +879,19 @@ cascade_primary[expr_ty]:
                  EXTRA_EXPR) }
     | a=cascade_primary '[' b=slices ']' {
         _PyAST_Subscript(a, b, Load, EXTRA_EXPR) }
+    | cascade_none_aware_subscript !'='
     | '[' a=slices ']' { _PyAST_CascadeSubscript(a, EXTRA_EXPR) }
     | a=NAME { _PyAST_CascadeAttribute(a->v.Name.id, EXTRA_EXPR) }
+
+cascade_none_aware_attribute[expr_ty]:
+    | a=cascade_primary '?' '.' b=NAME {
+        CHECK_VERSION(expr_ty, 16, "None aware cascade expressions are",
+                      _PyAST_NoneAwareAttribute(a, b->v.Name.id, EXTRA_EXPR)) }
+
+cascade_none_aware_subscript[expr_ty]:
+    | a=cascade_primary '?' '[' b=slices ']' {
+        CHECK_VERSION(expr_ty, 16, "None aware subscript operator is",
+        _PyAST_NoneAwareSubscript(a, b, EXTRA_EXPR)) }
 
 primary[expr_ty]:
     | a=primary '.' b=NAME { _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA_EXPR) }
