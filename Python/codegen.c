@@ -208,6 +208,7 @@ static int codegen_slice_two_parts(compiler *, expr_ty);
 static int codegen_slice(compiler *, expr_ty);
 static int codegen_none_aware_attribute(compiler *, expr_ty);
 static int codegen_none_aware_subscript(compiler *, expr_ty);
+static int codegen_none_aware_cascade(compiler *, expr_ty);
 static int codegen_cascade_expr(compiler *, expr_ty);
 
 static int codegen_body(compiler *, location, asdl_stmt_seq *, bool);
@@ -5623,6 +5624,8 @@ codegen_visit_expr_impl(compiler *c, expr_ty e, bool result_is_unused)
         return codegen_none_aware_attribute(c, e);
     case NoneAwareSubscript_kind:
         return codegen_none_aware_subscript(c, e);
+    case NoneAwareCascade_kind:
+        return codegen_none_aware_cascade(c, e);
     case Cascade_kind:
         return codegen_cascade_expr(c, e);
     case CascadeAttribute_kind:
@@ -5963,6 +5966,34 @@ codegen_none_aware_subscript(compiler *c, expr_ty e)
     else {
         VISIT(c, expr, e->v.Subscript.slice);
         ADDOP_I(c, loc, BINARY_OP, NB_SUBSCR);
+    }
+
+    if (use_jump_target == 1) {
+        USE_LABEL(c, end);
+    }
+    return SUCCESS;
+}
+
+static int
+codegen_none_aware_cascade(compiler *c, expr_ty e)
+{
+    assert(e->kind == NoneAwareCascade_kind);
+    location loc = LOC(e);
+
+    NEW_JUMP_TARGET_LABEL(c, end);
+    int use_jump_target = _PyCompile_PushNATarget(c, loc, e->v.NoneAwareCascade.base, end);
+    jump_target_label next = _PyCompile_TopNATarget(c);
+
+    VISIT(c, expr, e->v.NoneAwareCascade.base);
+    _PyCompile_PopNATarget(c);
+    ADDOP_I(c, loc, COPY, 1);
+    ADDOP_JUMP(c, loc, POP_JUMP_IF_NONE, next);
+
+    Py_ssize_t n = asdl_seq_LEN(e->v.Cascade.calls);
+    for (Py_ssize_t i = 0; i < n; i++) {
+        ADDOP_I(c, loc, COPY, 1);
+        VISIT(c, expr, (expr_ty)asdl_seq_GET(e->v.Cascade.calls, i));
+        ADDOP(c, loc, POP_TOP);
     }
 
     if (use_jump_target == 1) {

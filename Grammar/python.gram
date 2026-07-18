@@ -879,6 +879,7 @@ cascade[expr_ty]:
     | a=primary b=('..' c=cascade_primary { c })+ {
         CHECK_VERSION(expr_ty, 16, "Cascade expressions are",
                       _PyAST_Cascade(a, CHECK(asdl_expr_seq*, b), EXTRA_EXPR)) }
+    | none_aware_cascade !'='
     | a=primary '{' b=','.('.' c=cascade_primary { c })+ [','] '}' {
         CHECK_VERSION(expr_ty, 16, "Cascade expressions are",
                       _PyAST_Cascade(a, CHECK(asdl_expr_seq*, b), EXTRA_EXPR)) }
@@ -909,6 +910,11 @@ primary[expr_ty]:
     | a=primary '[' b=slices ']' { _PyAST_Subscript(a, b, Load, EXTRA_EXPR) }
     | none_aware_subscript !'='
     | atom
+
+none_aware_cascade[expr_ty]:
+    | a=primary '?' b=('..' c=cascade_primary { c })+ {
+        CHECK_VERSION(expr_ty, 16, "None aware cascade expressions are",
+                      _PyAST_NoneAwareCascade(a, CHECK(asdl_expr_seq*, b), EXTRA_EXPR)) }
 
 none_aware_attribute[expr_ty]:
     | a=primary '?' '.' b=NAME {

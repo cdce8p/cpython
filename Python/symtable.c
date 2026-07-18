@@ -2626,6 +2626,10 @@ symtable_visit_expr(struct symtable *st, expr_ty e)
         VISIT(st, expr, e->v.NoneAwareSubscript.value);
         VISIT(st, expr, e->v.NoneAwareSubscript.slice);
         break;
+    case NoneAwareCascade_kind:
+        VISIT(st, expr, e->v.NoneAwareCascade.base);
+        VISIT_SEQ(st, expr, e->v.NoneAwareCascade.calls);
+        break;
     case Cascade_kind:
         VISIT(st, expr, e->v.Cascade.base);
         VISIT_SEQ(st, expr, e->v.Cascade.calls);

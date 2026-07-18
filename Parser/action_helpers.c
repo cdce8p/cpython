@@ -1156,6 +1156,8 @@ _PyPegen_get_expr_name(expr_ty e)
             return "none aware expression";
         case NoneAwareSubscript_kind:
             return "none aware subscript expression";
+        case NoneAwareCascade_kind:
+            return "none aware cascade expression";
         case Cascade_kind:
             return "cascade expression";
         case CascadeAttribute_kind:

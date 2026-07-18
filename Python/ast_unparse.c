@@ -956,10 +956,12 @@ append_ast_none_aware_subscript(PyUnicodeWriter *writer, expr_ty e)
 }
 
 static int
-append_cascade_expr(PyUnicodeWriter *writer, expr_ty e)
+append_cascade_expr(PyUnicodeWriter *writer, expr_ty e, int none_aware)
 {
     Py_ssize_t i, call_count;
     APPEND_EXPR(e->v.Cascade.base, PR_ATOM);
+    if (none_aware == 1)
+        APPEND_STR("?");
     call_count = asdl_seq_LEN(e->v.Cascade.calls);
     for (i = 0; i < call_count; i++) {
         APPEND_STR("..");
@@ -1048,8 +1050,10 @@ append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
         return append_ast_none_aware_attribute(writer, e);
     case NoneAwareSubscript_kind:
         return append_ast_none_aware_subscript(writer, e);
+    case NoneAwareCascade_kind:
+        return append_cascade_expr(writer, e, 1);
     case Cascade_kind:
-        return append_cascade_expr(writer, e);
+        return append_cascade_expr(writer, e, 0);
     case CascadeAttribute_kind:
         return append_ast_cascade_attribute(writer, e);
     // No default so compiler emits a warning for unhandled cases
