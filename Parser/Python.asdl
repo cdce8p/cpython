@@ -71,6 +71,7 @@ module Python
          | GeneratorExp(expr elt, comprehension* generators)
          | NoneAwareAttribute(expr value, identifier attr)
          | NoneAwareSubscript(expr value, expr slice)
+         | NoneAwareCascade(expr base, expr* calls)
          -- the grammar constrains where yield expressions can occur
          | Await(expr value)
          | Yield(expr? value)
