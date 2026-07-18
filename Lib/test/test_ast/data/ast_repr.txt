@@ -220,3 +220,5 @@ Module(body=[Expr(value=NoneAwareAttribute(value=Name(...), attr='b'))], type_ig
 Module(body=[Expr(value=NoneAwareSubscript(value=Name(...), slice=Name(...)))], type_ignores=[])
 Module(body=[Expr(value=Cascade(base=Name(...), calls=[CascadeAttribute(...)]))], type_ignores=[])
 Module(body=[Expr(value=Cascade(base=Name(...), calls=[CascadeSubscript(...)]))], type_ignores=[])
+Module(body=[Expr(value=NoneAwareCascade(base=Name(...), calls=[CascadeAttribute(...)]))], type_ignores=[])
+Module(body=[Expr(value=NoneAwareCascade(base=Name(...), calls=[CascadeSubscript(...)]))], type_ignores=[])
