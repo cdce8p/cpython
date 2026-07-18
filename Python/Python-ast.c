@@ -134,6 +134,7 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, Name_type),
         offsetof(struct ast_state, NamedExpr_type),
         offsetof(struct ast_state, NoneAwareAttribute_type),
+        offsetof(struct ast_state, NoneAwareCascade_type),
         offsetof(struct ast_state, NoneAwareSubscript_type),
         offsetof(struct ast_state, Nonlocal_type),
         offsetof(struct ast_state, NotEq_singleton),
@@ -630,6 +631,10 @@ static const char * const NoneAwareSubscript_fields[]={
     "value",
     "slice",
 };
+static const char * const NoneAwareCascade_fields[]={
+    "base",
+    "calls",
+};
 static const char * const Await_fields[]={
     "value",
 };
@@ -1107,6 +1112,10 @@ add_ast_annotations(struct ast_state *state)
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, slice),
          offsetof(struct ast_state, expr_type), 0},
+        {offsetof(struct ast_state, base),
+         offsetof(struct ast_state, expr_type), 0},
+        {offsetof(struct ast_state, calls),
+         offsetof(struct ast_state, expr_type), FIELD_SEQUENCE},
         {offsetof(struct ast_state, value),
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, value),
@@ -1339,78 +1348,79 @@ add_ast_annotations(struct ast_state *state)
         {offsetof(struct ast_state, GeneratorExp_type), 110, 2},
         {offsetof(struct ast_state, NoneAwareAttribute_type), 112, 2},
         {offsetof(struct ast_state, NoneAwareSubscript_type), 114, 2},
-        {offsetof(struct ast_state, Await_type), 116, 1},
-        {offsetof(struct ast_state, Yield_type), 117, 1},
-        {offsetof(struct ast_state, YieldFrom_type), 118, 1},
-        {offsetof(struct ast_state, Compare_type), 119, 3},
-        {offsetof(struct ast_state, Call_type), 122, 3},
-        {offsetof(struct ast_state, FormattedValue_type), 125, 3},
-        {offsetof(struct ast_state, Interpolation_type), 128, 4},
-        {offsetof(struct ast_state, JoinedStr_type), 132, 1},
-        {offsetof(struct ast_state, TemplateStr_type), 133, 1},
-        {offsetof(struct ast_state, Constant_type), 134, 2},
-        {offsetof(struct ast_state, Attribute_type), 136, 3},
-        {offsetof(struct ast_state, Cascade_type), 139, 2},
-        {offsetof(struct ast_state, CascadeAttribute_type), 141, 1},
-        {offsetof(struct ast_state, CascadeSubscript_type), 142, 1},
-        {offsetof(struct ast_state, Subscript_type), 143, 3},
-        {offsetof(struct ast_state, Starred_type), 146, 2},
-        {offsetof(struct ast_state, Name_type), 148, 2},
-        {offsetof(struct ast_state, List_type), 150, 2},
-        {offsetof(struct ast_state, Tuple_type), 152, 2},
-        {offsetof(struct ast_state, Slice_type), 154, 3},
-        {offsetof(struct ast_state, Load_type), 157, 0},
-        {offsetof(struct ast_state, Store_type), 157, 0},
-        {offsetof(struct ast_state, Del_type), 157, 0},
-        {offsetof(struct ast_state, And_type), 157, 0},
-        {offsetof(struct ast_state, Or_type), 157, 0},
-        {offsetof(struct ast_state, Add_type), 157, 0},
-        {offsetof(struct ast_state, Sub_type), 157, 0},
-        {offsetof(struct ast_state, Mult_type), 157, 0},
-        {offsetof(struct ast_state, MatMult_type), 157, 0},
-        {offsetof(struct ast_state, Div_type), 157, 0},
-        {offsetof(struct ast_state, Mod_type), 157, 0},
-        {offsetof(struct ast_state, Pow_type), 157, 0},
-        {offsetof(struct ast_state, LShift_type), 157, 0},
-        {offsetof(struct ast_state, RShift_type), 157, 0},
-        {offsetof(struct ast_state, BitOr_type), 157, 0},
-        {offsetof(struct ast_state, BitXor_type), 157, 0},
-        {offsetof(struct ast_state, BitAnd_type), 157, 0},
-        {offsetof(struct ast_state, FloorDiv_type), 157, 0},
-        {offsetof(struct ast_state, Invert_type), 157, 0},
-        {offsetof(struct ast_state, Not_type), 157, 0},
-        {offsetof(struct ast_state, UAdd_type), 157, 0},
-        {offsetof(struct ast_state, USub_type), 157, 0},
-        {offsetof(struct ast_state, Eq_type), 157, 0},
-        {offsetof(struct ast_state, NotEq_type), 157, 0},
-        {offsetof(struct ast_state, Lt_type), 157, 0},
-        {offsetof(struct ast_state, LtE_type), 157, 0},
-        {offsetof(struct ast_state, Gt_type), 157, 0},
-        {offsetof(struct ast_state, GtE_type), 157, 0},
-        {offsetof(struct ast_state, Is_type), 157, 0},
-        {offsetof(struct ast_state, IsNot_type), 157, 0},
-        {offsetof(struct ast_state, In_type), 157, 0},
-        {offsetof(struct ast_state, NotIn_type), 157, 0},
-        {offsetof(struct ast_state, comprehension_type), 157, 4},
-        {offsetof(struct ast_state, ExceptHandler_type), 161, 3},
-        {offsetof(struct ast_state, arguments_type), 164, 7},
-        {offsetof(struct ast_state, arg_type), 171, 3},
-        {offsetof(struct ast_state, keyword_type), 174, 2},
-        {offsetof(struct ast_state, alias_type), 176, 2},
-        {offsetof(struct ast_state, withitem_type), 178, 2},
-        {offsetof(struct ast_state, match_case_type), 180, 3},
-        {offsetof(struct ast_state, MatchValue_type), 183, 1},
-        {offsetof(struct ast_state, MatchSingleton_type), 184, 1},
-        {offsetof(struct ast_state, MatchSequence_type), 185, 1},
-        {offsetof(struct ast_state, MatchMapping_type), 186, 3},
-        {offsetof(struct ast_state, MatchClass_type), 189, 4},
-        {offsetof(struct ast_state, MatchStar_type), 193, 1},
-        {offsetof(struct ast_state, MatchAs_type), 194, 2},
-        {offsetof(struct ast_state, MatchOr_type), 196, 1},
-        {offsetof(struct ast_state, TypeIgnore_type), 197, 2},
-        {offsetof(struct ast_state, TypeVar_type), 199, 3},
-        {offsetof(struct ast_state, ParamSpec_type), 202, 2},
-        {offsetof(struct ast_state, TypeVarTuple_type), 204, 2},
+        {offsetof(struct ast_state, NoneAwareCascade_type), 116, 2},
+        {offsetof(struct ast_state, Await_type), 118, 1},
+        {offsetof(struct ast_state, Yield_type), 119, 1},
+        {offsetof(struct ast_state, YieldFrom_type), 120, 1},
+        {offsetof(struct ast_state, Compare_type), 121, 3},
+        {offsetof(struct ast_state, Call_type), 124, 3},
+        {offsetof(struct ast_state, FormattedValue_type), 127, 3},
+        {offsetof(struct ast_state, Interpolation_type), 130, 4},
+        {offsetof(struct ast_state, JoinedStr_type), 134, 1},
+        {offsetof(struct ast_state, TemplateStr_type), 135, 1},
+        {offsetof(struct ast_state, Constant_type), 136, 2},
+        {offsetof(struct ast_state, Attribute_type), 138, 3},
+        {offsetof(struct ast_state, Cascade_type), 141, 2},
+        {offsetof(struct ast_state, CascadeAttribute_type), 143, 1},
+        {offsetof(struct ast_state, CascadeSubscript_type), 144, 1},
+        {offsetof(struct ast_state, Subscript_type), 145, 3},
+        {offsetof(struct ast_state, Starred_type), 148, 2},
+        {offsetof(struct ast_state, Name_type), 150, 2},
+        {offsetof(struct ast_state, List_type), 152, 2},
+        {offsetof(struct ast_state, Tuple_type), 154, 2},
+        {offsetof(struct ast_state, Slice_type), 156, 3},
+        {offsetof(struct ast_state, Load_type), 159, 0},
+        {offsetof(struct ast_state, Store_type), 159, 0},
+        {offsetof(struct ast_state, Del_type), 159, 0},
+        {offsetof(struct ast_state, And_type), 159, 0},
+        {offsetof(struct ast_state, Or_type), 159, 0},
+        {offsetof(struct ast_state, Add_type), 159, 0},
+        {offsetof(struct ast_state, Sub_type), 159, 0},
+        {offsetof(struct ast_state, Mult_type), 159, 0},
+        {offsetof(struct ast_state, MatMult_type), 159, 0},
+        {offsetof(struct ast_state, Div_type), 159, 0},
+        {offsetof(struct ast_state, Mod_type), 159, 0},
+        {offsetof(struct ast_state, Pow_type), 159, 0},
+        {offsetof(struct ast_state, LShift_type), 159, 0},
+        {offsetof(struct ast_state, RShift_type), 159, 0},
+        {offsetof(struct ast_state, BitOr_type), 159, 0},
+        {offsetof(struct ast_state, BitXor_type), 159, 0},
+        {offsetof(struct ast_state, BitAnd_type), 159, 0},
+        {offsetof(struct ast_state, FloorDiv_type), 159, 0},
+        {offsetof(struct ast_state, Invert_type), 159, 0},
+        {offsetof(struct ast_state, Not_type), 159, 0},
+        {offsetof(struct ast_state, UAdd_type), 159, 0},
+        {offsetof(struct ast_state, USub_type), 159, 0},
+        {offsetof(struct ast_state, Eq_type), 159, 0},
+        {offsetof(struct ast_state, NotEq_type), 159, 0},
+        {offsetof(struct ast_state, Lt_type), 159, 0},
+        {offsetof(struct ast_state, LtE_type), 159, 0},
+        {offsetof(struct ast_state, Gt_type), 159, 0},
+        {offsetof(struct ast_state, GtE_type), 159, 0},
+        {offsetof(struct ast_state, Is_type), 159, 0},
+        {offsetof(struct ast_state, IsNot_type), 159, 0},
+        {offsetof(struct ast_state, In_type), 159, 0},
+        {offsetof(struct ast_state, NotIn_type), 159, 0},
+        {offsetof(struct ast_state, comprehension_type), 159, 4},
+        {offsetof(struct ast_state, ExceptHandler_type), 163, 3},
+        {offsetof(struct ast_state, arguments_type), 166, 7},
+        {offsetof(struct ast_state, arg_type), 173, 3},
+        {offsetof(struct ast_state, keyword_type), 176, 2},
+        {offsetof(struct ast_state, alias_type), 178, 2},
+        {offsetof(struct ast_state, withitem_type), 180, 2},
+        {offsetof(struct ast_state, match_case_type), 182, 3},
+        {offsetof(struct ast_state, MatchValue_type), 185, 1},
+        {offsetof(struct ast_state, MatchSingleton_type), 186, 1},
+        {offsetof(struct ast_state, MatchSequence_type), 187, 1},
+        {offsetof(struct ast_state, MatchMapping_type), 188, 3},
+        {offsetof(struct ast_state, MatchClass_type), 191, 4},
+        {offsetof(struct ast_state, MatchStar_type), 195, 1},
+        {offsetof(struct ast_state, MatchAs_type), 196, 2},
+        {offsetof(struct ast_state, MatchOr_type), 198, 1},
+        {offsetof(struct ast_state, TypeIgnore_type), 199, 2},
+        {offsetof(struct ast_state, TypeVar_type), 201, 3},
+        {offsetof(struct ast_state, ParamSpec_type), 204, 2},
+        {offsetof(struct ast_state, TypeVarTuple_type), 206, 2},
     };
     char *base = (char *)state;
     PyObject *annotations = NULL;
@@ -2656,6 +2666,7 @@ init_types(void *arg)
         "     | GeneratorExp(expr elt, comprehension* generators)\n"
         "     | NoneAwareAttribute(expr value, identifier attr)\n"
         "     | NoneAwareSubscript(expr value, expr slice)\n"
+        "     | NoneAwareCascade(expr base, expr* calls)\n"
         "     | Await(expr value)\n"
         "     | Yield(expr? value)\n"
         "     | YieldFrom(expr value)\n"
@@ -2747,6 +2758,11 @@ init_types(void *arg)
                                                NoneAwareSubscript_fields, 2,
         "NoneAwareSubscript(expr value, expr slice)");
     if (!state->NoneAwareSubscript_type) return -1;
+    state->NoneAwareCascade_type = make_type(state, "NoneAwareCascade",
+                                             state->expr_type,
+                                             NoneAwareCascade_fields, 2,
+        "NoneAwareCascade(expr base, expr* calls)");
+    if (!state->NoneAwareCascade_type) return -1;
     state->Await_type = make_type(state, "Await", state->expr_type,
                                   Await_fields, 1,
         "Await(expr value)");
@@ -4428,6 +4444,31 @@ _PyAST_NoneAwareSubscript(expr_ty value, expr_ty slice, int group, int lineno,
     p->kind = NoneAwareSubscript_kind;
     p->v.NoneAwareSubscript.value = value;
     p->v.NoneAwareSubscript.slice = slice;
+    p->group = group;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+expr_ty
+_PyAST_NoneAwareCascade(expr_ty base, asdl_expr_seq * calls, int group, int
+                        lineno, int col_offset, int end_lineno, int
+                        end_col_offset, PyArena *arena)
+{
+    expr_ty p;
+    if (!base) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'base' is required for NoneAwareCascade");
+        return NULL;
+    }
+    p = (expr_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = NoneAwareCascade_kind;
+    p->v.NoneAwareCascade.base = base;
+    p->v.NoneAwareCascade.calls = calls;
     p->group = group;
     p->lineno = lineno;
     p->col_offset = col_offset;
@@ -6283,6 +6324,22 @@ ast2obj_expr(struct ast_state *state, void* _o)
         value = ast2obj_expr(state, o->v.NoneAwareSubscript.slice);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->slice, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case NoneAwareCascade_kind:
+        tp = (PyTypeObject *)state->NoneAwareCascade_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.NoneAwareCascade.base);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->base, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_list(state, (asdl_seq*)o->v.NoneAwareCascade.calls,
+                             ast2obj_expr);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->calls, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -11394,6 +11451,75 @@ obj2ast_expr(struct ast_state *state, PyObject* obj, expr_ty* out, const char*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->NoneAwareCascade_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty base;
+        asdl_expr_seq* calls;
+
+        if (PyObject_GetOptionalAttr(obj, state->base, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"base\" missing from NoneAwareCascade");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'NoneAwareCascade' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &base, "base", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->calls, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            tmp = PyList_New(0);
+            if (tmp == NULL) {
+                return -1;
+            }
+        }
+        {
+            int res;
+            Py_ssize_t len;
+            Py_ssize_t i;
+            if (!PyList_Check(tmp)) {
+                PyErr_Format(PyExc_TypeError, "NoneAwareCascade field \"calls\" must be a list, not a %T", tmp);
+                goto failed;
+            }
+            len = PyList_GET_SIZE(tmp);
+            calls = _Py_asdl_expr_seq_new(len, arena);
+            if (calls == NULL) goto failed;
+            for (i = 0; i < len; i++) {
+                expr_ty val;
+                PyObject *tmp2 = Py_NewRef(PyList_GET_ITEM(tmp, i));
+                if (_Py_EnterRecursiveCall(" while traversing 'NoneAwareCascade' node")) {
+                    goto failed;
+                }
+                res = obj2ast_expr(state, tmp2, &val, "calls", arena);
+                _Py_LeaveRecursiveCall();
+                Py_DECREF(tmp2);
+                if (res != 0) goto failed;
+                if (len != PyList_GET_SIZE(tmp)) {
+                    PyErr_SetString(PyExc_RuntimeError, "NoneAwareCascade field \"calls\" changed size during iteration");
+                    goto failed;
+                }
+                asdl_seq_SET(calls, i, val);
+            }
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_NoneAwareCascade(base, calls, group, lineno, col_offset,
+                                       end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->Await_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -15082,6 +15208,10 @@ astmodule_exec(PyObject *m)
     }
     if (PyModule_AddObjectRef(m, "NoneAwareSubscript",
         state->NoneAwareSubscript_type) < 0) {
+        return -1;
+    }
+    if (PyModule_AddObjectRef(m, "NoneAwareCascade",
+        state->NoneAwareCascade_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "Await", state->Await_type) < 0) {
