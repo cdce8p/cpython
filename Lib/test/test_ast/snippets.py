@@ -382,6 +382,9 @@ eval_tests = [
   # Cascade
   "a..b",
   "a..[2]",
+  # None-aware cascade
+  "a?..b",
+  "a?..[2]",
 ]
 
 
@@ -628,5 +631,7 @@ eval_results = [
 ('Expression', ('NoneAwareSubscript', (1, 0, 1, 5), ('Name', (1, 0, 1, 1), 'a', ('Load',)), ('Name', (1, 3, 1, 4), 'b', ('Load',)))),
 ('Expression', ('Cascade', (1, 0, 1, 4), ('Name', (1, 0, 1, 1), 'a', ('Load',)), [('CascadeAttribute', (1, 3, 1, 4), 'b')])),
 ('Expression', ('Cascade', (1, 0, 1, 6), ('Name', (1, 0, 1, 1), 'a', ('Load',)), [('CascadeSubscript', (1, 3, 1, 6), ('Constant', (1, 4, 1, 5), 2, None))])),
+('Expression', ('NoneAwareCascade', (1, 0, 1, 5), ('Name', (1, 0, 1, 1), 'a', ('Load',)), [('CascadeAttribute', (1, 4, 1, 5), 'b')])),
+('Expression', ('NoneAwareCascade', (1, 0, 1, 7), ('Name', (1, 0, 1, 1), 'a', ('Load',)), [('CascadeSubscript', (1, 4, 1, 7), ('Constant',(1, 5, 1, 6), 2, None))])),
 ]
 main()

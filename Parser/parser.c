@@ -220,188 +220,190 @@ static char *soft_keywords[] = {
 #define await_primary_type 1131
 #define cascade_type 1132
 #define cascade_primary_type 1133  // Left-recursive
-#define primary_type 1134  // Left-recursive
-#define none_aware_attribute_type 1135  // Left-recursive
-#define none_aware_subscript_type 1136  // Left-recursive
-#define slices_type 1137
-#define slice_type 1138
-#define atom_type 1139
-#define group_type 1140
-#define lambdef_type 1141
-#define lambda_params_type 1142
-#define lambda_parameters_type 1143
-#define lambda_slash_no_default_type 1144
-#define lambda_slash_with_default_type 1145
-#define lambda_star_etc_type 1146
-#define lambda_kwds_type 1147
-#define lambda_param_no_default_type 1148
-#define lambda_param_with_default_type 1149
-#define lambda_param_maybe_default_type 1150
-#define lambda_param_type 1151
-#define fstring_middle_type 1152
-#define fstring_replacement_field_type 1153
-#define fstring_conversion_type 1154
-#define fstring_full_format_spec_type 1155
-#define fstring_format_spec_type 1156
-#define fstring_type 1157
-#define tstring_format_spec_replacement_field_type 1158
-#define tstring_format_spec_type 1159
-#define tstring_full_format_spec_type 1160
-#define tstring_replacement_field_type 1161
-#define tstring_middle_type 1162
-#define tstring_type 1163
-#define string_type 1164
-#define strings_type 1165
-#define display_items_type 1166
-#define display_item_type 1167
-#define list_type 1168
-#define tuple_type 1169
-#define set_type 1170
-#define dict_type 1171
-#define double_starred_kvpairs_type 1172
-#define double_starred_kvpair_type 1173
-#define kvpair_type 1174
-#define for_if_clauses_type 1175
-#define for_if_clause_type 1176
-#define listcomp_type 1177
-#define setcomp_type 1178
-#define genexp_type 1179
-#define dictcomp_type 1180
-#define arguments_type 1181
-#define args_type 1182
-#define kwargs_type 1183
-#define starred_expression_type 1184
-#define kwarg_or_starred_type 1185
-#define kwarg_or_double_starred_type 1186
-#define star_targets_type 1187
-#define star_target_type 1188
-#define target_type 1189
-#define single_target_type 1190
-#define attribute_or_subscript_target_type 1191
-#define target_value_type 1192
-#define del_targets_type 1193
-#define del_target_type 1194
-#define type_expressions_type 1195
-#define func_type_comment_type 1196
-#define _loop0_1_type 1269
-#define _loop1_2_type 1270
-#define _loop0_3_type 1271
-#define _gather_4_type 1272
-#define _tmp_5_type 1273
-#define _tmp_6_type 1274
-#define _tmp_7_type 1275
-#define _tmp_8_type 1276
-#define _tmp_9_type 1277
-#define _tmp_10_type 1278
-#define _tmp_11_type 1279
-#define _loop1_12_type 1280
-#define _loop0_13_type 1281
-#define _gather_14_type 1282
-#define _tmp_15_type 1283
-#define _tmp_16_type 1284
-#define _loop0_17_type 1285
-#define _loop1_18_type 1286
-#define _loop0_19_type 1287
-#define _gather_20_type 1288
-#define _tmp_21_type 1289
-#define _loop0_22_type 1290
-#define _gather_23_type 1291
-#define _loop1_24_type 1292
-#define _tmp_25_type 1293
-#define _tmp_26_type 1294
-#define _loop0_27_type 1295
-#define _loop0_28_type 1296
-#define _loop1_29_type 1297
-#define _loop1_30_type 1298
-#define _loop0_31_type 1299
-#define _loop1_32_type 1300
-#define _loop0_33_type 1301
-#define _gather_34_type 1302
-#define _tmp_35_type 1303
-#define _loop1_36_type 1304
-#define _loop1_37_type 1305
-#define _loop1_38_type 1306
-#define _loop0_39_type 1307
-#define _gather_40_type 1308
-#define _tmp_41_type 1309
-#define _tmp_42_type 1310
-#define _tmp_43_type 1311
-#define _loop0_44_type 1312
-#define _gather_45_type 1313
-#define _loop0_46_type 1314
-#define _gather_47_type 1315
-#define _tmp_48_type 1316
-#define _loop0_49_type 1317
-#define _gather_50_type 1318
-#define _loop0_51_type 1319
-#define _gather_52_type 1320
-#define _loop0_53_type 1321
-#define _gather_54_type 1322
-#define _loop1_55_type 1323
-#define _loop1_56_type 1324
-#define _loop0_57_type 1325
-#define _gather_58_type 1326
-#define _loop1_59_type 1327
-#define _loop1_60_type 1328
-#define _loop1_61_type 1329
-#define _tmp_62_type 1330
-#define _loop1_63_type 1331
-#define _loop0_64_type 1332
-#define _gather_65_type 1333
-#define _tmp_66_type 1334
-#define _tmp_67_type 1335
-#define _tmp_68_type 1336
-#define _tmp_69_type 1337
-#define _tmp_70_type 1338
-#define _loop0_71_type 1339
-#define _loop0_72_type 1340
-#define _loop1_73_type 1341
-#define _loop1_74_type 1342
-#define _loop0_75_type 1343
-#define _loop1_76_type 1344
-#define _loop0_77_type 1345
-#define _loop0_78_type 1346
-#define _loop0_79_type 1347
-#define _loop0_80_type 1348
-#define _loop1_81_type 1349
-#define _loop1_82_type 1350
-#define _loop0_83_type 1351
-#define _gather_84_type 1352
-#define _tmp_85_type 1353
-#define _loop0_86_type 1354
-#define _gather_87_type 1355
-#define _loop1_88_type 1356
-#define _loop0_89_type 1357
-#define _tmp_90_type 1358
-#define _loop0_91_type 1359
-#define _gather_92_type 1360
-#define _tmp_93_type 1361
-#define _loop0_94_type 1362
-#define _gather_95_type 1363
-#define _tmp_96_type 1364
-#define _loop0_97_type 1365
-#define _gather_98_type 1366
-#define _loop0_99_type 1367
-#define _tmp_100_type 1368
-#define _tmp_101_type 1369
-#define _loop0_102_type 1370
-#define _gather_103_type 1371
-#define _loop0_104_type 1372
-#define _gather_105_type 1373
-#define _tmp_106_type 1374
-#define _tmp_180_type 1448
-#define _tmp_181_type 1449
-#define _tmp_182_type 1450
-#define _tmp_183_type 1451
-#define _tmp_184_type 1452
-#define _tmp_185_type 1453
-#define _tmp_186_type 1454
-#define _tmp_187_type 1455
-#define _tmp_188_type 1456
-#define _tmp_189_type 1457
-#define _tmp_190_type 1458
-#define _tmp_191_type 1459
-#define _tmp_203_type 1471
+#define cascade_none_aware_attribute_type 1134  // Left-recursive
+#define cascade_none_aware_subscript_type 1135  // Left-recursive
+#define primary_type 1136  // Left-recursive
+#define none_aware_attribute_type 1137  // Left-recursive
+#define none_aware_subscript_type 1138  // Left-recursive
+#define slices_type 1139
+#define slice_type 1140
+#define atom_type 1141
+#define group_type 1142
+#define lambdef_type 1143
+#define lambda_params_type 1144
+#define lambda_parameters_type 1145
+#define lambda_slash_no_default_type 1146
+#define lambda_slash_with_default_type 1147
+#define lambda_star_etc_type 1148
+#define lambda_kwds_type 1149
+#define lambda_param_no_default_type 1150
+#define lambda_param_with_default_type 1151
+#define lambda_param_maybe_default_type 1152
+#define lambda_param_type 1153
+#define fstring_middle_type 1154
+#define fstring_replacement_field_type 1155
+#define fstring_conversion_type 1156
+#define fstring_full_format_spec_type 1157
+#define fstring_format_spec_type 1158
+#define fstring_type 1159
+#define tstring_format_spec_replacement_field_type 1160
+#define tstring_format_spec_type 1161
+#define tstring_full_format_spec_type 1162
+#define tstring_replacement_field_type 1163
+#define tstring_middle_type 1164
+#define tstring_type 1165
+#define string_type 1166
+#define strings_type 1167
+#define display_items_type 1168
+#define display_item_type 1169
+#define list_type 1170
+#define tuple_type 1171
+#define set_type 1172
+#define dict_type 1173
+#define double_starred_kvpairs_type 1174
+#define double_starred_kvpair_type 1175
+#define kvpair_type 1176
+#define for_if_clauses_type 1177
+#define for_if_clause_type 1178
+#define listcomp_type 1179
+#define setcomp_type 1180
+#define genexp_type 1181
+#define dictcomp_type 1182
+#define arguments_type 1183
+#define args_type 1184
+#define kwargs_type 1185
+#define starred_expression_type 1186
+#define kwarg_or_starred_type 1187
+#define kwarg_or_double_starred_type 1188
+#define star_targets_type 1189
+#define star_target_type 1190
+#define target_type 1191
+#define single_target_type 1192
+#define attribute_or_subscript_target_type 1193
+#define target_value_type 1194
+#define del_targets_type 1195
+#define del_target_type 1196
+#define type_expressions_type 1197
+#define func_type_comment_type 1198
+#define _loop0_1_type 1271
+#define _loop1_2_type 1272
+#define _loop0_3_type 1273
+#define _gather_4_type 1274
+#define _tmp_5_type 1275
+#define _tmp_6_type 1276
+#define _tmp_7_type 1277
+#define _tmp_8_type 1278
+#define _tmp_9_type 1279
+#define _tmp_10_type 1280
+#define _tmp_11_type 1281
+#define _loop1_12_type 1282
+#define _loop0_13_type 1283
+#define _gather_14_type 1284
+#define _tmp_15_type 1285
+#define _tmp_16_type 1286
+#define _loop0_17_type 1287
+#define _loop1_18_type 1288
+#define _loop0_19_type 1289
+#define _gather_20_type 1290
+#define _tmp_21_type 1291
+#define _loop0_22_type 1292
+#define _gather_23_type 1293
+#define _loop1_24_type 1294
+#define _tmp_25_type 1295
+#define _tmp_26_type 1296
+#define _loop0_27_type 1297
+#define _loop0_28_type 1298
+#define _loop1_29_type 1299
+#define _loop1_30_type 1300
+#define _loop0_31_type 1301
+#define _loop1_32_type 1302
+#define _loop0_33_type 1303
+#define _gather_34_type 1304
+#define _tmp_35_type 1305
+#define _loop1_36_type 1306
+#define _loop1_37_type 1307
+#define _loop1_38_type 1308
+#define _loop0_39_type 1309
+#define _gather_40_type 1310
+#define _tmp_41_type 1311
+#define _tmp_42_type 1312
+#define _tmp_43_type 1313
+#define _loop0_44_type 1314
+#define _gather_45_type 1315
+#define _loop0_46_type 1316
+#define _gather_47_type 1317
+#define _tmp_48_type 1318
+#define _loop0_49_type 1319
+#define _gather_50_type 1320
+#define _loop0_51_type 1321
+#define _gather_52_type 1322
+#define _loop0_53_type 1323
+#define _gather_54_type 1324
+#define _loop1_55_type 1325
+#define _loop1_56_type 1326
+#define _loop0_57_type 1327
+#define _gather_58_type 1328
+#define _loop1_59_type 1329
+#define _loop1_60_type 1330
+#define _loop1_61_type 1331
+#define _tmp_62_type 1332
+#define _loop1_63_type 1333
+#define _loop0_64_type 1334
+#define _gather_65_type 1335
+#define _tmp_66_type 1336
+#define _tmp_67_type 1337
+#define _tmp_68_type 1338
+#define _tmp_69_type 1339
+#define _tmp_70_type 1340
+#define _loop0_71_type 1341
+#define _loop0_72_type 1342
+#define _loop1_73_type 1343
+#define _loop1_74_type 1344
+#define _loop0_75_type 1345
+#define _loop1_76_type 1346
+#define _loop0_77_type 1347
+#define _loop0_78_type 1348
+#define _loop0_79_type 1349
+#define _loop0_80_type 1350
+#define _loop1_81_type 1351
+#define _loop1_82_type 1352
+#define _loop0_83_type 1353
+#define _gather_84_type 1354
+#define _tmp_85_type 1355
+#define _loop0_86_type 1356
+#define _gather_87_type 1357
+#define _loop1_88_type 1358
+#define _loop0_89_type 1359
+#define _tmp_90_type 1360
+#define _loop0_91_type 1361
+#define _gather_92_type 1362
+#define _tmp_93_type 1363
+#define _loop0_94_type 1364
+#define _gather_95_type 1365
+#define _tmp_96_type 1366
+#define _loop0_97_type 1367
+#define _gather_98_type 1368
+#define _loop0_99_type 1369
+#define _tmp_100_type 1370
+#define _tmp_101_type 1371
+#define _loop0_102_type 1372
+#define _gather_103_type 1373
+#define _loop0_104_type 1374
+#define _gather_105_type 1375
+#define _tmp_106_type 1376
+#define _tmp_180_type 1450
+#define _tmp_181_type 1451
+#define _tmp_182_type 1452
+#define _tmp_183_type 1453
+#define _tmp_184_type 1454
+#define _tmp_185_type 1455
+#define _tmp_186_type 1456
+#define _tmp_187_type 1457
+#define _tmp_188_type 1458
+#define _tmp_189_type 1459
+#define _tmp_190_type 1460
+#define _tmp_191_type 1461
+#define _tmp_203_type 1473
 
 // Rules shared between the C files of this parser
 #define simple_stmt_rule _PyPegen_simple_stmt_rule
@@ -761,6 +763,8 @@ static expr_ty power_rule(Parser *p);
 static expr_ty await_primary_rule(Parser *p);
 static expr_ty cascade_rule(Parser *p);
 static expr_ty cascade_primary_rule(Parser *p);
+static expr_ty cascade_none_aware_attribute_rule(Parser *p);
+static expr_ty cascade_none_aware_subscript_rule(Parser *p);
 static expr_ty primary_rule(Parser *p);
 static expr_ty slices_rule(Parser *p);
 static expr_ty slice_rule(Parser *p);
@@ -14514,7 +14518,10 @@ await_primary_rule(Parser *p)
     return _res;
 }
 
-// cascade: primary (('..' cascade_primary))+ | primary
+// cascade:
+//     | primary (('..' cascade_primary))+
+//     | primary '?' (('..' cascade_primary))+
+//     | primary
 static expr_ty
 cascade_rule(Parser *p)
 {
@@ -14574,6 +14581,45 @@ cascade_rule(Parser *p)
         D(fprintf(stderr, "%*c%s cascade[%d-%d]: %s failed!\n", p->level, ' ',
                   p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "primary (('..' cascade_primary))+"));
     }
+    { // primary '?' (('..' cascade_primary))+
+        if (p->error_indicator) {
+            p->level--;
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> cascade[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "primary '?' (('..' cascade_primary))+"));
+        Token * _literal;
+        expr_ty a;
+        asdl_seq * b;
+        if (
+            (a = ((!p->call_invalid_rules && _prefix_9_valid) ? (p->mark = _prefix_9_end, _prefix_9_result) : (_prefix_9_result = primary_rule(p), _prefix_9_end = p->mark, _prefix_9_valid = 1, _prefix_9_result)))  // primary
+            &&
+            (_literal = _PyPegen_expect_token(p, 55))  // token='?'
+            &&
+            (b = _loop1_63_rule(p))  // (('..' cascade_primary))+
+        )
+        {
+            D(fprintf(stderr, "%*c+ cascade[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "primary '?' (('..' cascade_primary))+"));
+            Token *_token = _PyPegen_get_last_nonnwhitespace_token(p);
+            if (_token == NULL) {
+                p->level--;
+                return NULL;
+            }
+            int _end_lineno = _token->end_lineno;
+            UNUSED(_end_lineno); // Only used by EXTRA macro
+            int _end_col_offset = _token->end_col_offset;
+            UNUSED(_end_col_offset); // Only used by EXTRA macro
+            _res = CHECK_VERSION ( expr_ty , 16 , "None aware cascade expressions are" , _PyAST_NoneAwareCascade ( a , CHECK ( asdl_expr_seq* , b ) , EXTRA_EXPR ) );
+            if ((_res == NULL || p->error_indicator) && PyErr_Occurred()) {
+                p->error_indicator = 1;
+                p->level--;
+                return NULL;
+            }
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s cascade[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "primary '?' (('..' cascade_primary))+"));
+    }
     { // primary
         if (p->error_indicator) {
             p->level--;
@@ -14602,9 +14648,11 @@ cascade_rule(Parser *p)
 // Left-recursive
 // cascade_primary:
 //     | cascade_primary '.' NAME
+//     | cascade_none_aware_attribute !'='
 //     | cascade_primary genexp
 //     | cascade_primary '(' arguments? ')'
 //     | cascade_primary '[' slices ']'
+//     | cascade_none_aware_subscript !'='
 //     | '[' slices ']'
 //     | NAME
 static expr_ty cascade_primary_raw(Parser *);
@@ -14677,7 +14725,7 @@ cascade_primary_raw(Parser *p)
         expr_ty a;
         expr_ty b;
         if (
-            (a = ((!p->call_invalid_rules && _prefix_10_valid) ? (p->mark = _prefix_10_end, _prefix_10_result) : (_prefix_10_result = cascade_primary_rule(p), _prefix_10_end = p->mark, _prefix_10_valid = 1, _prefix_10_result)))  // cascade_primary
+            (a = cascade_primary_rule(p))  // cascade_primary
             &&
             (_literal = _PyPegen_expect_token(p, 23))  // token='.'
             &&
@@ -14705,6 +14753,27 @@ cascade_primary_raw(Parser *p)
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s cascade_primary[%d-%d]: %s failed!\n", p->level, ' ',
                   p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "cascade_primary '.' NAME"));
+    }
+    { // cascade_none_aware_attribute !'='
+        if (p->error_indicator) {
+            p->level--;
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> cascade_primary[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "cascade_none_aware_attribute !'='"));
+        expr_ty cascade_none_aware_attribute_var;
+        if (
+            (cascade_none_aware_attribute_var = cascade_none_aware_attribute_rule(p))  // cascade_none_aware_attribute
+            &&
+            _PyPegen_lookahead_with_int(0, _PyPegen_expect_token, p, 22)  // token='='
+        )
+        {
+            D(fprintf(stderr, "%*c+ cascade_primary[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "cascade_none_aware_attribute !'='"));
+            _res = cascade_none_aware_attribute_var;
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s cascade_primary[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "cascade_none_aware_attribute !'='"));
     }
     { // cascade_primary genexp
         if (p->error_indicator) {
@@ -14826,6 +14895,27 @@ cascade_primary_raw(Parser *p)
         D(fprintf(stderr, "%*c%s cascade_primary[%d-%d]: %s failed!\n", p->level, ' ',
                   p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "cascade_primary '[' slices ']'"));
     }
+    { // cascade_none_aware_subscript !'='
+        if (p->error_indicator) {
+            p->level--;
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> cascade_primary[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "cascade_none_aware_subscript !'='"));
+        expr_ty cascade_none_aware_subscript_var;
+        if (
+            (cascade_none_aware_subscript_var = cascade_none_aware_subscript_rule(p))  // cascade_none_aware_subscript
+            &&
+            _PyPegen_lookahead_with_int(0, _PyPegen_expect_token, p, 22)  // token='='
+        )
+        {
+            D(fprintf(stderr, "%*c+ cascade_primary[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "cascade_none_aware_subscript !'='"));
+            _res = cascade_none_aware_subscript_var;
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s cascade_primary[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "cascade_none_aware_subscript !'='"));
+    }
     { // '[' slices ']'
         if (p->error_indicator) {
             p->level--;
@@ -14897,6 +14987,151 @@ cascade_primary_raw(Parser *p)
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s cascade_primary[%d-%d]: %s failed!\n", p->level, ' ',
                   p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "NAME"));
+    }
+    _res = NULL;
+  done:
+    p->level--;
+    return _res;
+}
+
+// Left-recursive
+// cascade_none_aware_attribute: cascade_primary '?' '.' NAME
+static expr_ty
+cascade_none_aware_attribute_rule(Parser *p)
+{
+    if (p->level++ == MAXSTACK || _PyPegen_stack_exhausted(p)) {
+        _Pypegen_stack_overflow(p);
+    }
+    if (p->error_indicator) {
+        p->level--;
+        return NULL;
+    }
+    expr_ty _res = NULL;
+    int _mark = p->mark;
+    if (p->mark == p->fill && _PyPegen_fill_token(p) < 0) {
+        p->error_indicator = 1;
+        p->level--;
+        return NULL;
+    }
+    int _start_lineno = p->tokens[_mark]->lineno;
+    UNUSED(_start_lineno); // Only used by EXTRA macro
+    int _start_col_offset = p->tokens[_mark]->col_offset;
+    UNUSED(_start_col_offset); // Only used by EXTRA macro
+    { // cascade_primary '?' '.' NAME
+        if (p->error_indicator) {
+            p->level--;
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> cascade_none_aware_attribute[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "cascade_primary '?' '.' NAME"));
+        Token * _literal;
+        Token * _literal_1;
+        expr_ty a;
+        expr_ty b;
+        if (
+            (a = cascade_primary_rule(p))  // cascade_primary
+            &&
+            (_literal = _PyPegen_expect_token(p, 55))  // token='?'
+            &&
+            (_literal_1 = _PyPegen_expect_token(p, 23))  // token='.'
+            &&
+            (b = _PyPegen_name_token(p))  // NAME
+        )
+        {
+            D(fprintf(stderr, "%*c+ cascade_none_aware_attribute[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "cascade_primary '?' '.' NAME"));
+            Token *_token = _PyPegen_get_last_nonnwhitespace_token(p);
+            if (_token == NULL) {
+                p->level--;
+                return NULL;
+            }
+            int _end_lineno = _token->end_lineno;
+            UNUSED(_end_lineno); // Only used by EXTRA macro
+            int _end_col_offset = _token->end_col_offset;
+            UNUSED(_end_col_offset); // Only used by EXTRA macro
+            _res = CHECK_VERSION ( expr_ty , 16 , "None aware cascade expressions are" , _PyAST_NoneAwareAttribute ( a , b -> v . Name . id , EXTRA_EXPR ) );
+            if ((_res == NULL || p->error_indicator) && PyErr_Occurred()) {
+                p->error_indicator = 1;
+                p->level--;
+                return NULL;
+            }
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s cascade_none_aware_attribute[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "cascade_primary '?' '.' NAME"));
+    }
+    _res = NULL;
+  done:
+    p->level--;
+    return _res;
+}
+
+// Left-recursive
+// cascade_none_aware_subscript: cascade_primary '?' '[' slices ']'
+static expr_ty
+cascade_none_aware_subscript_rule(Parser *p)
+{
+    if (p->level++ == MAXSTACK || _PyPegen_stack_exhausted(p)) {
+        _Pypegen_stack_overflow(p);
+    }
+    if (p->error_indicator) {
+        p->level--;
+        return NULL;
+    }
+    expr_ty _res = NULL;
+    int _mark = p->mark;
+    if (p->mark == p->fill && _PyPegen_fill_token(p) < 0) {
+        p->error_indicator = 1;
+        p->level--;
+        return NULL;
+    }
+    int _start_lineno = p->tokens[_mark]->lineno;
+    UNUSED(_start_lineno); // Only used by EXTRA macro
+    int _start_col_offset = p->tokens[_mark]->col_offset;
+    UNUSED(_start_col_offset); // Only used by EXTRA macro
+    { // cascade_primary '?' '[' slices ']'
+        if (p->error_indicator) {
+            p->level--;
+            return NULL;
+        }
+        D(fprintf(stderr, "%*c> cascade_none_aware_subscript[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "cascade_primary '?' '[' slices ']'"));
+        Token * _literal;
+        Token * _literal_1;
+        Token * _literal_2;
+        expr_ty a;
+        expr_ty b;
+        if (
+            (a = cascade_primary_rule(p))  // cascade_primary
+            &&
+            (_literal = _PyPegen_expect_token(p, 55))  // token='?'
+            &&
+            (_literal_1 = _PyPegen_expect_token(p, 9))  // token='['
+            &&
+            (b = slices_rule(p))  // slices
+            &&
+            (_literal_2 = _PyPegen_expect_token(p, 10))  // token=']'
+        )
+        {
+            D(fprintf(stderr, "%*c+ cascade_none_aware_subscript[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "cascade_primary '?' '[' slices ']'"));
+            Token *_token = _PyPegen_get_last_nonnwhitespace_token(p);
+            if (_token == NULL) {
+                p->level--;
+                return NULL;
+            }
+            int _end_lineno = _token->end_lineno;
+            UNUSED(_end_lineno); // Only used by EXTRA macro
+            int _end_col_offset = _token->end_col_offset;
+            UNUSED(_end_col_offset); // Only used by EXTRA macro
+            _res = CHECK_VERSION ( expr_ty , 16 , "None aware subscript operator is" , _PyAST_NoneAwareSubscript ( a , b , EXTRA_EXPR ) );
+            if ((_res == NULL || p->error_indicator) && PyErr_Occurred()) {
+                p->error_indicator = 1;
+                p->level--;
+                return NULL;
+            }
+            goto done;
+        }
+        p->mark = _mark;
+        D(fprintf(stderr, "%*c%s cascade_none_aware_subscript[%d-%d]: %s failed!\n", p->level, ' ',
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "cascade_primary '?' '[' slices ']'"));
     }
     _res = NULL;
   done:
