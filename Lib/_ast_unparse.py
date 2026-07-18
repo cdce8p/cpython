@@ -952,8 +952,16 @@ class Unparser(NodeVisitor):
         self.write(node.attr)
 
     def visit_Cascade(self, node):
+        self._cascade_helper(node, False)
+
+    def visit_NoneAwareCascade(self, node):
+        self._cascade_helper(node, True)
+
+    def _cascade_helper(self, node, none_aware):
         self.set_precedence(_Precedence.ATOM, node.base)
         self.traverse(node.base)
+        if none_aware:
+            self.write("?")
         for e in node.calls:
             self.write("..")
             self.traverse(e)
