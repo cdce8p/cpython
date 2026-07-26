@@ -430,6 +430,10 @@ class AnnotationsFutureTestCase(unittest.TestCase):
         eq("t'{a!s}'")
         eq("t'{a:b}'")
         eq("t'{a:b=}'")
+        eq("a?.b.c()")
+        eq("a?[2].b")
+        eq("(a?.b).c")
+        eq("(a?.b or c).c")
 
     def test_fstring_debug_annotations(self):
         # f-strings with '=' don't round trip very well, so set the expected
