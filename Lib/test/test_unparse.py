@@ -138,6 +138,13 @@ class ASTTestCase(ASTTestMixin, unittest.TestCase):
             ast2 = ast.parse(code2, **kwargs)
             self.assertASTEqual(ast1, ast2)
 
+    def check_string_roundtrip(self, code1, expected, **kwargs):
+        expected = expected or code1
+        with self.subTest(code1=code1, expected=expected):
+            ast1 = ast.parse(code1, **kwargs)
+            code2 = ast.unparse(ast1)
+            self.assertEqual(code2, expected)
+
     def check_invalid(self, node, raises=ValueError):
         with self.subTest(node=node):
             self.assertRaises(raises, ast.unparse, node)
@@ -297,6 +304,21 @@ class UnparseTestCase(ASTTestCase):
             )),
             '''t"{'foo'!r}"''',
         )
+
+    def test_none_aware_expressions(self):
+        for c1, expected in [
+            ("a?.b?.c(x=1)", None),
+            ("a?[2]?.c()", None),
+            ("(a?.b(var=2)).d?[2].e", None),
+            ("(a?.b or c).c", None),
+            # Regression tests for group attribute
+            # The parentheses are only preserved where it changes the precedence
+            ("Name1 and (Name2 or Name3)", None),
+            ("a[(a := b, c)]", "a[(a := b), c]"),
+            ("(((a)))", "a"),
+        ]:
+            self.check_ast_roundtrip(c1)
+            self.check_string_roundtrip(c1, expected)
 
     def test_strings(self):
         self.check_ast_roundtrip("u'foo'")

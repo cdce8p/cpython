@@ -71,6 +71,10 @@ append_charp(PyUnicodeWriter *writer, const char *charp)
         first = false; \
     } while (0)
 
+#define APPEND_STR_IF_NOT_GROUP(cond, str)  do { \
+        APPEND_STR_IF((cond) && !(e->group == 1 && level > PR_GROUP), (str)); \
+    } while (0)
+
 #define APPEND_EXPR(expr, pr)  do { \
         if (-1 == append_ast_expr(writer, (expr), (pr))) { \
             return -1; \
@@ -133,6 +137,7 @@ enum {
     PR_FACTOR,          /* unary '+', '-', '~' */
     PR_POWER,           /* '**' */
     PR_AWAIT,           /* 'await' */
+    PR_GROUP,
     PR_ATOM,
 };
 
@@ -144,7 +149,7 @@ append_ast_boolop(PyUnicodeWriter *writer, expr_ty e, int level)
     const char *op = (e->v.BoolOp.op == And) ? " and " : " or ";
     int pr = (e->v.BoolOp.op == And) ? PR_AND : PR_OR;
 
-    APPEND_STR_IF(level > pr, "(");
+    APPEND_STR_IF_NOT_GROUP(level > pr, "(");
 
     values = e->v.BoolOp.values;
     value_count = asdl_seq_LEN(values);
@@ -154,7 +159,7 @@ append_ast_boolop(PyUnicodeWriter *writer, expr_ty e, int level)
         APPEND_EXPR((expr_ty)asdl_seq_GET(values, i), pr + 1);
     }
 
-    APPEND_STR_IF(level > pr, ")");
+    APPEND_STR_IF_NOT_GROUP(level > pr, ")");
     return 0;
 }
 
@@ -185,11 +190,11 @@ append_ast_binop(PyUnicodeWriter *writer, expr_ty e, int level)
         return -1;
     }
 
-    APPEND_STR_IF(level > pr, "(");
+    APPEND_STR_IF_NOT_GROUP(level > pr, "(");
     APPEND_EXPR(e->v.BinOp.left, pr + rassoc);
     APPEND_STR(op);
     APPEND_EXPR(e->v.BinOp.right, pr + !rassoc);
-    APPEND_STR_IF(level > pr, ")");
+    APPEND_STR_IF_NOT_GROUP(level > pr, ")");
     return 0;
 }
 
@@ -210,10 +215,10 @@ append_ast_unaryop(PyUnicodeWriter *writer, expr_ty e, int level)
         return -1;
     }
 
-    APPEND_STR_IF(level > pr, "(");
+    APPEND_STR_IF_NOT_GROUP(level > pr, "(");
     APPEND_STR(op);
     APPEND_EXPR(e->v.UnaryOp.operand, pr);
-    APPEND_STR_IF(level > pr, ")");
+    APPEND_STR_IF_NOT_GROUP(level > pr, ")");
     return 0;
 }
 
@@ -956,7 +961,7 @@ append_ast_none_aware_subscript(PyUnicodeWriter *writer, expr_ty e)
 }
 
 static int
-append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
+append_ast_expr_dispatch(PyUnicodeWriter *writer, expr_ty e, int level)
 {
     switch (e->kind) {
     case BoolOp_kind:
@@ -1034,6 +1039,15 @@ append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level)
     PyErr_SetString(PyExc_SystemError,
                     "unknown expression kind");
     return -1;
+}
+
+static int
+append_ast_expr(PyUnicodeWriter *writer, expr_ty e, int level) {
+    int cond = e->group && level > PR_GROUP;
+    APPEND_STR_IF(cond, "(");
+    int res = append_ast_expr_dispatch(writer, e, level);
+    APPEND_STR_IF(cond, ")");
+    return res;
 }
 
 static PyObject *

@@ -1063,6 +1063,7 @@ class AST_Tests(unittest.TestCase):
             FACTOR = enum.auto()          # unary '+', '-', '~'
             POWER = enum.auto()           # '**'
             AWAIT = enum.auto()           # 'await'
+            GROUP = enum.auto()
             ATOM = enum.auto()
             def next(self):
                 try:
