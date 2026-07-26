@@ -33,6 +33,7 @@ class _Precedence:
     FACTOR = auto()          # unary '+', '-', '~'
     POWER = auto()           # '**'
     AWAIT = auto()           # 'await'
+    GROUP = auto()
     ATOM = auto()
 
     def next(self):
@@ -58,6 +59,7 @@ class Unparser(NodeVisitor):
         self._indent = 0
         self._in_try_star = False
         self._in_interactive = False
+        self._last_parentheses_node = None
 
     def interleave(self, inter, f, seq):
         """Call f on each item in seq, calling inter() in between."""
@@ -144,9 +146,18 @@ class Unparser(NodeVisitor):
         else:
             return nullcontext()
 
+    @contextmanager
     def require_parens(self, precedence, node):
         """Shortcut to adding precedence related parens"""
-        return self.delimit_if("(", ")", self.get_precedence(node) > precedence)
+        if (
+            self.get_precedence(node) > precedence
+            and node is not self._last_parentheses_node
+        ):
+            self._last_parentheses_node = node
+            with self.delimit("(", ")"):
+                yield
+        else:
+            yield
 
     def get_precedence(self, node):
         return self._precedences.get(node, _Precedence.TEST)
@@ -181,7 +192,11 @@ class Unparser(NodeVisitor):
             for item in node:
                 self.traverse(item)
         else:
-            super().visit(node)
+            if getattr(node, "group", 0) == 1:
+                with self.require_parens(_Precedence.GROUP, node):
+                    super().visit(node)
+            else:
+                super().visit(node)
 
     # Note: as visit() resets the output text, do NOT rely on
     # NodeVisitor.generic_visit to handle any nodes (as it calls back in to
