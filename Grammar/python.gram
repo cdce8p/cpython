@@ -733,6 +733,16 @@ element_expression[expr_ty]:
     | disjunction
     | lambdef
 
+none_aware_expression[expr_ty]:
+    | invalid_if_expression
+    | invalid_element_expression
+    | invalid_legacy_expression
+    | if_expression
+    | '?' a=bitwise_or { CHECK_VERSION(
+        expr_ty, 16, "none aware element expressions are", _PyAST_NoneAwareElement(a, EXTRA)) }
+    | disjunction
+    | lambdef
+
 if_expression[expr_ty]:
     | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
 
@@ -1105,12 +1115,12 @@ setcomp[expr_ty]:
     | invalid_comprehension
 
 genexp[expr_ty]:
-    | '(' a=( assignment_expression | expression !':=' | starred_expression ) b=for_if_clauses ')' { _PyAST_GeneratorExp(a, b, EXTRA) }
+    | '(' a=( assignment_expression | none_aware_expression !':=' | starred_expression ) b=for_if_clauses ')' { _PyAST_GeneratorExp(a, b, EXTRA) }
     | invalid_comprehension
 
 dictcomp[expr_ty]:
     | '{' a=kvpair b=for_if_clauses '}' { _PyAST_DictComp(a->key, a->value, b, EXTRA) }
-    | '{' '**' a=expression b=for_if_clauses '}' { _PyAST_DictComp(a, NULL, b, EXTRA) }
+    | '{' '**' a=none_aware_expression b=for_if_clauses '}' { _PyAST_DictComp(a, NULL, b, EXTRA) }
 
 # FUNCTION CALL ARGUMENTS
 # =======================

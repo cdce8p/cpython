@@ -2097,6 +2097,12 @@ class GrammarTests(unittest.TestCase):
         self.assertEqual(f"Hello{" World" if y is not None}", "Hello")
 
     def test_none_aware_element(self):
+        class Done(Exception): ...
+
+        async def async_from_iter(it):
+            for item in it:
+                yield item
+
         def test1(foo):
             return foo
 
@@ -2119,6 +2125,44 @@ class GrammarTests(unittest.TestCase):
 
         self.assertEqual(f"Hello{?i}", "Hello2")
         self.assertEqual(f"Hello{?y}", "Hello")
+
+        [?x for x in [1, None, 2]]
+        [*?x for x in [(1,), None, (2,)]]
+        {?x for x in [1, None, 2]}
+        {*?x for x in [(1,), None, (2,)]}
+        {?k: ?v for k, v in [(1, None), (None, 2), (3, 3)]}
+        {**?k for k in [{1: 1}, None]}
+
+        self.assertEqual(list(?x for x in [1, None, 2]), [1, 2])
+        self.assertEqual([?x for x in [1, None, 2]], [1, 2])
+        self.assertEqual([*(?x) for x in [(1,), None, (2,)]], [1, 2])
+        self.assertEqual({?x for x in [1, None, 2]}, {1, 2})
+        self.assertEqual({*(?x) for x in [(1,), None, (2,)]}, {1, 2})
+        self.assertEqual({?k: ?v for k, v in [(1, None), (None, 2), (3, 3)]}, {3: 3})
+        self.assertEqual({**(?k) for k in [{1: 1}, None]}, {1: 1})
+
+        async def foo():
+            [?x async for x in async_from_iter([1, None, 2])]
+            [*?x async for x in async_from_iter([(1,), None, (2,)])]
+            {?x async for x in async_from_iter([1, None, 2])}
+            {*?x async for x in async_from_iter([(1,), None, (2,)])}
+            {?k: ?v async for k, v in async_from_iter([(1, None), (None, 2), (3, 3)])}
+            {**?k async for k in async_from_iter([{1: 1}, None])}
+
+            gen = (?x async for x in async_from_iter([1, None, 2]))
+            self.assertEqual([x async for x in gen], [1, 2])
+            self.assertEqual([?x async for x in async_from_iter([1, None, 2])], [1, 2])
+            self.assertEqual([*(?x) async for x in async_from_iter([(1,), None, (2,)])], [1, 2])
+            self.assertEqual({?x async for x in async_from_iter([1, None, 2])}, {1, 2})
+            self.assertEqual({*(?x) async for x in async_from_iter([(1,), None, (2,)])}, {1, 2})
+            self.assertEqual(
+                {?k: ?v async for k, v in async_from_iter([(1, None), (None, 2), (3, 3)])}, {3: 3}
+            )
+            self.assertEqual({**(?k) async for k in async_from_iter([{1: 1}, None])}, {1: 1})
+            raise Done
+
+        with self.assertRaises(Done):
+            foo().send(None)
 
 
 if __name__ == '__main__':

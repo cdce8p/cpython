@@ -307,6 +307,18 @@ class UnparseTestCase(ASTTestCase):
         self.check_ast_roundtrip("{1: 1, **?k}")
         self.check_ast_roundtrip("f\"Hello{\" World\" if i is not None}\"")
         self.check_ast_roundtrip("f\"Hello{?i}\"")
+        self.check_ast_roundtrip("[?x for x in y]")
+        self.check_ast_roundtrip("[*?x for x in y]")
+        self.check_ast_roundtrip("{?x for x in y}")
+        self.check_ast_roundtrip("{*?x for x in y}")
+        self.check_ast_roundtrip("{?k: ?v for k, v in y.items()}")
+        self.check_ast_roundtrip("{**?k for k in y}")
+        self.check_ast_roundtrip("[?x async for x in y]")
+        self.check_ast_roundtrip("[*?x async for x in y]")
+        self.check_ast_roundtrip("{?x async for x in y}")
+        self.check_ast_roundtrip("{*?x async for x in y}")
+        self.check_ast_roundtrip("{?k: ?v async for k, v in y.items()}")
+        self.check_ast_roundtrip("{**?k async for k in y}")
 
     def test_strings(self):
         self.check_ast_roundtrip("u'foo'")
