@@ -4750,7 +4750,15 @@ codegen_unpack_starred(compiler *c, location loc, expr_ty value, bool yield)
 {
     NEW_JUMP_TARGET_LABEL(c, unpack_start);
     NEW_JUMP_TARGET_LABEL(c, unpack_end);
-    VISIT(c, expr, value);
+    NEW_JUMP_TARGET_LABEL(c, cleanup);
+    NEW_JUMP_TARGET_LABEL(c, end);
+    if (value->kind == NoneAwareElement_kind) {
+        VISIT(c, expr, value->v.NoneAwareElement.item);
+        ADDOP_I(c, loc, COPY, 1);
+        ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+    } else {
+        VISIT(c, expr, value);
+    }
     ADDOP_I(c, loc, GET_ITER, 0);
     USE_LABEL(c, unpack_start);
     ADDOP_JUMP(c, loc, FOR_ITER, unpack_end);
@@ -4762,6 +4770,11 @@ codegen_unpack_starred(compiler *c, location loc, expr_ty value, bool yield)
     USE_LABEL(c, unpack_end);
     ADDOP(c, NO_LOCATION, END_FOR);
     ADDOP(c, NO_LOCATION, POP_ITER);
+    ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+    USE_LABEL(c, cleanup);
+    ADDOP(c, loc, POP_TOP);
+    USE_LABEL(c, end);
     return SUCCESS;
 }
 
@@ -4770,10 +4783,23 @@ codegen_comprehension_generator_helper(compiler *c, location elt_loc, int depth,
                                        expr_ty elt, expr_ty val, int type,
                                        bool avoid_creation)
 {
+    NEW_JUMP_TARGET_LABEL(c, cleanup);
+    NEW_JUMP_TARGET_LABEL(c, cleanup2);
+    NEW_JUMP_TARGET_LABEL(c, end);
+
     switch (type) {
     case COMP_GENEXP:
         assert(!avoid_creation);
-        if (elt->kind == Starred_kind) {
+        if (elt->kind == NoneAwareElement_kind) {
+            VISIT(c, expr, elt->v.NoneAwareElement.item);
+            ADDOP_I(c, elt_loc, COPY, 1);
+            ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, end);
+            ADDOP_YIELD(c, elt_loc);
+
+            USE_LABEL(c, end);
+            ADDOP(c, elt_loc, POP_TOP);
+        }
+        else if (elt->kind == Starred_kind) {
             RETURN_IF_ERROR(codegen_unpack_starred(c, elt_loc, elt->v.Starred.value, /*yield=*/true));
         }
         else {
@@ -4784,7 +4810,10 @@ codegen_comprehension_generator_helper(compiler *c, location elt_loc, int depth,
         break;
     case COMP_LISTCOMP:
         if (avoid_creation) {
-            if (elt->kind == Starred_kind) {
+            if (elt->kind == NoneAwareElement_kind) {
+                VISIT(c, expr, elt->v.NoneAwareElement.item);
+                ADDOP(c, elt_loc, POP_TOP);
+            } else if (elt->kind == Starred_kind) {
                 RETURN_IF_ERROR(codegen_unpack_starred(c, elt_loc, elt->v.Starred.value, /*yield=*/false));
             } else {
                 VISIT(c, expr, elt);
@@ -4792,9 +4821,32 @@ codegen_comprehension_generator_helper(compiler *c, location elt_loc, int depth,
             }
             break;
         }
-        if (elt->kind == Starred_kind) {
-            VISIT(c, expr, elt->v.Starred.value);
+        if (elt->kind == NoneAwareElement_kind) {
+            VISIT(c, expr, elt->v.NoneAwareElement.item);
+            ADDOP_I(c, elt_loc, COPY, 1);
+            ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+            ADDOP_I(c, elt_loc, LIST_APPEND, depth + 1);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, cleanup);
+            ADDOP(c, elt_loc, POP_TOP);
+            USE_LABEL(c, end);
+        }
+        else if (elt->kind == Starred_kind) {
+            expr_ty value = elt->v.Starred.value;
+            if (value->kind == NoneAwareElement_kind) {
+                VISIT(c, expr, value->v.NoneAwareElement.item);
+                ADDOP_I(c, elt_loc, COPY, 1);
+                ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+            } else {
+                VISIT(c, expr, value);
+            }
             ADDOP_I(c, elt_loc, LIST_EXTEND, depth + 1);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, cleanup);
+            ADDOP(c, elt_loc, POP_TOP);
+            USE_LABEL(c, end);
         }
         else {
             VISIT(c, expr, elt);
@@ -4803,9 +4855,32 @@ codegen_comprehension_generator_helper(compiler *c, location elt_loc, int depth,
         break;
     case COMP_SETCOMP:
         assert(!avoid_creation);
-        if (elt->kind == Starred_kind) {
-            VISIT(c, expr, elt->v.Starred.value);
+        if (elt->kind == NoneAwareElement_kind) {
+            VISIT(c, expr, elt->v.NoneAwareElement.item);
+            ADDOP_I(c, elt_loc, COPY, 1);
+            ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+            ADDOP_I(c, elt_loc, SET_ADD, depth + 1);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, cleanup);
+            ADDOP(c, elt_loc, POP_TOP);
+            USE_LABEL(c, end);
+        }
+        else if (elt->kind == Starred_kind) {
+            expr_ty value = elt->v.Starred.value;
+            if (value->kind == NoneAwareElement_kind) {
+                VISIT(c, expr, value->v.NoneAwareElement.item);
+                ADDOP_I(c, elt_loc, COPY, 1);
+                ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+            } else {
+                VISIT(c, expr, elt->v.Starred.value);
+            }
             ADDOP_I(c, elt_loc, SET_UPDATE, depth + 1);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, cleanup);
+            ADDOP(c, elt_loc, POP_TOP);
+            USE_LABEL(c, end);
         }
         else {
             VISIT(c, expr, elt);
@@ -4816,19 +4891,53 @@ codegen_comprehension_generator_helper(compiler *c, location elt_loc, int depth,
         assert(!avoid_creation);
         if (val == NULL) {
             /* unpacking (**) case */
-            VISIT(c, expr, elt);
+            if (elt->kind == NoneAwareElement_kind) {
+                VISIT(c, expr, elt->v.NoneAwareElement.item);
+                ADDOP_I(c, elt_loc, COPY, 1);
+                ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+            } else {
+                VISIT(c, expr, elt);
+            }
             ADDOP_I(c, elt_loc, DICT_UPDATE, depth + 1);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, cleanup);
+            ADDOP(c, elt_loc, POP_TOP);
+            USE_LABEL(c, end);
         }
         else {
             /* With '{k: v}', k is evaluated before v, so we do
             the same. */
-            VISIT(c, expr, elt);
-            VISIT(c, expr, val);
+            if (elt->kind == NoneAwareElement_kind) {
+                VISIT(c, expr, elt->v.NoneAwareElement.item);
+                ADDOP_I(c, elt_loc, COPY, 1);
+                ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+            } else {
+                VISIT(c, expr, elt);
+            }
+            if (val->kind == NoneAwareElement_kind) {
+                VISIT(c, expr, val->v.NoneAwareElement.item);
+                ADDOP_I(c, elt_loc, COPY, 1);
+                ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup2);
+            } else {
+                VISIT(c, expr, val);
+            }
             elt_loc = LOCATION(elt->lineno,
                                val->end_lineno,
                                elt->col_offset,
                                val->end_col_offset);
             ADDOP_I(c, elt_loc, MAP_ADD, depth + 1);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, cleanup);
+            ADDOP(c, elt_loc, POP_TOP);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, cleanup2);
+            ADDOP(c, elt_loc, POP_TOP);
+            ADDOP(c, elt_loc, POP_TOP);
+
+            USE_LABEL(c, end);
         }
         break;
     default:
@@ -5657,7 +5766,8 @@ codegen_visit_expr_impl(compiler *c, expr_ty e, bool result_is_unused)
             "if element expression must be in a list, tuple, set, dict or f-string");
     case NoneAwareElement_kind:
         return _PyCompile_Error(c, loc,
-            "none aware element expression must be in a list, tuple, set, dict or f-string");
+            "none aware element expression must be in a list, tuple, set, dict, "
+            "comprehension, generator expression or f-string");
     case Dict_kind:
         return codegen_dict(c, e);
     case Set_kind:
