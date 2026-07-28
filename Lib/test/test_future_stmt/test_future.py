@@ -438,6 +438,12 @@ class AnnotationsFutureTestCase(unittest.TestCase):
         eq("{1: 1, **?k}")
         eq("f\"Hello{(' World' if i is not None)}\"")
         eq("f'Hello{?i}'")
+        eq("[?x for x in y]")
+        eq("[*?x for x in y]")
+        eq("{?x for x in y}")
+        eq("{*?x for x in y}")
+        eq("{?k: ?v for k, v in y.items()}")
+        eq("{**?k for k in y}")
 
     def test_fstring_debug_annotations(self):
         # f-strings with '=' don't round trip very well, so set the expected
