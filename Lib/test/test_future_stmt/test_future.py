@@ -444,6 +444,7 @@ class AnnotationsFutureTestCase(unittest.TestCase):
         eq("{*?x for x in y}")
         eq("{?k: ?v for k, v in y.items()}")
         eq("{**?k for k in y}")
+        eq(f"func(1, 2 if i is not None, ?x, *?x, a=4, b=5 if i is not None, c=?x, **?x)")
 
     def test_fstring_debug_annotations(self):
         # f-strings with '=' don't round trip very well, so set the expected
