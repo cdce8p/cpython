@@ -2067,6 +2067,9 @@ class GrammarTests(unittest.TestCase):
         def test1(foo):
             return foo
 
+        def test2(*args, **kwargs):
+            return args, kwargs
+
         i = 2
         y = None
         self.assertEqual([1, 2 if i is not None, 3 if y is not None], [1, 2])
@@ -2096,6 +2099,46 @@ class GrammarTests(unittest.TestCase):
         self.assertEqual(f"Hello{" World" if i is not None}", "Hello World")
         self.assertEqual(f"Hello{" World" if y is not None}", "Hello")
 
+        self.assertEqual(
+            test2(1, 2 if i is not None, 3 if y is not None),
+            ((1, 2), {}),
+        )
+        self.assertEqual(
+            test2(1, 2 if i is not None, *[4, 5]),
+            ((1, 2, 4, 5), {}),
+        )
+        self.assertEqual(
+            test2(1, *([4, 5] if i is not None), *([6, 7] if y is not None)),
+            ((1, 4, 5), {}),
+        )
+        self.assertEqual(
+            test2(1, *([] if i is not None), *([] if y is not None)),
+            ((1,), {}),
+        )
+        self.assertEqual(
+            test2(a=1, b=2 if i is not None, c=3 if y is not None),
+            ((), {"a": 1, "b": 2}),
+        )
+        self.assertEqual(
+            test2(a=1, b=2 if i is not None, **{"d": 4}),
+            ((), {"a": 1, "b": 2, "d": 4}),
+        )
+        self.assertEqual(
+            test2(a=1, **{"d": 4}, **({"e": 5} if i is not None), **({"f": 6} if y is not None)),
+            ((), {"a": 1, "d": 4, "e": 5}),
+        )
+        self.assertEqual(
+            test2(a=1, **{"d": 4}, **({} if i is not None), **({} if y is not None)),
+            ((), {"a": 1, "d": 4}),
+        )
+        self.assertEqual(
+            test2(
+                1, 2 if i is not None, 3 if y is not None,
+                a=1, b=2 if i is not None, c=3 if y is not None
+            ),
+            ((1, 2), {"a": 1, "b": 2}),
+        )
+
     def test_none_aware_element(self):
         class Done(Exception): ...
 
@@ -2105,6 +2148,9 @@ class GrammarTests(unittest.TestCase):
 
         def test1(foo):
             return foo
+
+        def test2(*args, **kwargs):
+            return args, kwargs
 
         i = 2
         l = [8, 9]
@@ -2163,6 +2209,48 @@ class GrammarTests(unittest.TestCase):
 
         with self.assertRaises(Done):
             foo().send(None)
+
+        a = [4, 5]
+        b = {"e": 5}
+        self.assertEqual(
+            test2(1, ?i, ?y),
+            ((1, 2), {}),
+        )
+        self.assertEqual(
+            test2(1, ?i, *[4, 5]),
+            ((1, 2, 4, 5), {}),
+        )
+        self.assertEqual(
+            test2(1, *?a, *?y),
+            ((1, 4, 5), {}),
+        )
+        self.assertEqual(
+            test2(1, *(?[])),
+            ((1,), {}),
+        )
+        self.assertEqual(
+            test2(a=1, b=?i, c=?y),
+            ((), {"a": 1, "b": 2}),
+        )
+        self.assertEqual(
+            test2(a=1, b=?i, **{"d": 4}),
+            ((), {"a": 1, "b": 2, "d": 4}),
+        )
+        self.assertEqual(
+            test2(a=1, **{"d": 4}, **?b, **?y),
+            ((), {"a": 1, "d": 4, "e": 5}),
+        )
+        self.assertEqual(
+            test2(a=1, **{"d": 4}, **(?{})),
+            ((), {"a": 1, "d": 4}),
+        )
+        self.assertEqual(
+            test2(
+                1, ?i, ?y,
+                a=1, b=?i, c=?y
+            ),
+            ((1, 2), {"a": 1, "b": 2}),
+        )
 
 
 if __name__ == '__main__':
