@@ -319,6 +319,9 @@ class UnparseTestCase(ASTTestCase):
         self.check_ast_roundtrip("{*?x async for x in y}")
         self.check_ast_roundtrip("{?k: ?v async for k, v in y.items()}")
         self.check_ast_roundtrip("{**?k async for k in y}")
+        self.check_ast_roundtrip(
+            "func(1, 2 if i is not None, ?x, *?x, a=4, b=5 if i is not None, c=?x, **?x)"
+        )
 
     def test_strings(self):
         self.check_ast_roundtrip("u'foo'")

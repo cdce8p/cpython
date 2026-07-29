@@ -1130,7 +1130,7 @@ arguments[expr_ty] (memo):
     | invalid_arguments
 
 args[expr_ty]:
-    | a[asdl_expr_seq*]=','.(starred_expression | ( assignment_expression | expression !':=') !'=')+ b=[',' k=kwargs {k}] {
+    | a[asdl_expr_seq*]=','.(starred_expression | ( assignment_expression | element_expression !':=') !'=')+ b=[',' k=kwargs {k}] {
         _PyPegen_collect_call_seqs(p, a, b, EXTRA) }
     | a=kwargs { _PyAST_Call(_PyPegen_dummy_name(p),
                           CHECK_NULL_ALLOWED(asdl_expr_seq*, _PyPegen_seq_extract_starred_exprs(p, a)),
@@ -1144,20 +1144,20 @@ kwargs[asdl_seq*]:
 
 starred_expression[expr_ty]:
     | invalid_starred_expression_unpacking
-    | '*' a=expression { _PyAST_Starred(a, Load, EXTRA) }
+    | '*' a=element_expression { _PyAST_Starred(a, Load, EXTRA) }
     | invalid_starred_expression
 
 kwarg_or_starred[KeywordOrStarred*]:
     | invalid_kwarg
-    | a=NAME '=' b=expression {
+    | a=NAME '=' b=element_expression {
         _PyPegen_keyword_or_starred(p, CHECK(keyword_ty, _PyAST_keyword(a->v.Name.id, b, EXTRA)), 1) }
     | a=starred_expression { _PyPegen_keyword_or_starred(p, a, 0) }
 
 kwarg_or_double_starred[KeywordOrStarred*]:
     | invalid_kwarg
-    | a=NAME '=' b=expression {
+    | a=NAME '=' b=element_expression {
         _PyPegen_keyword_or_starred(p, CHECK(keyword_ty, _PyAST_keyword(a->v.Name.id, b, EXTRA)), 1) }
-    | '**' a=expression { _PyPegen_keyword_or_starred(p, CHECK(keyword_ty, _PyAST_keyword(NULL, a, EXTRA)), 1) }
+    | '**' a=element_expression { _PyPegen_keyword_or_starred(p, CHECK(keyword_ty, _PyAST_keyword(NULL, a, EXTRA)), 1) }
 
 # ASSIGNMENT TARGETS
 # ==================

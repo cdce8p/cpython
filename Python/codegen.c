@@ -4268,17 +4268,19 @@ maybe_optimize_method_call(compiler *c, expr_ty e)
     if (CALL_STACK_USE(argsl, kwdsl) >= _PY_STACK_USE_GUIDELINE) {
         return 0;
     }
-    /* Check that there are no *varargs types of arguments. */
+    /* Check that there are no *varargs, NoneAwareElement or IfElement types of arguments. */
     for (i = 0; i < argsl; i++) {
         expr_ty elt = asdl_seq_GET(args, i);
-        if (elt->kind == Starred_kind) {
+        if (elt->kind == Starred_kind || elt->kind == NoneAwareElement_kind
+            || elt->kind == IfElement_kind) {
             return 0;
         }
     }
 
     for (i = 0; i < kwdsl; i++) {
         keyword_ty kw = asdl_seq_GET(kwds, i);
-        if (kw->arg == NULL) {
+        if (kw->arg == NULL || kw->value->kind == NoneAwareElement_kind
+            || kw->value->kind == IfElement_kind) {
             return 0;
         }
     }
@@ -4531,19 +4533,48 @@ codegen_subkwargs(compiler *c, location loc,
     Py_ssize_t i, n = end - begin;
     keyword_ty kw;
     assert(n > 0);
-    int big = n*2 > _PY_STACK_USE_GUIDELINE;
-    if (big) {
+    int big = n*2 > _PY_STACK_USE_GUIDELINE || true;
+    int seen_special = 0;
+    for (i = begin; i < end; i++) {
+        kw = asdl_seq_GET(keywords, i);
+        if (kw->value->kind == NoneAwareElement_kind
+            || kw->value->kind == IfElement_kind) {
+            seen_special = 1;
+            break;
+        }
+    }
+    if (big || seen_special) {
         ADDOP_I(c, NO_LOCATION, BUILD_MAP, 0);
     }
     for (i = begin; i < end; i++) {
+        NEW_JUMP_TARGET_LABEL(c, cleanup1);
+        NEW_JUMP_TARGET_LABEL(c, cleanup2);
+        NEW_JUMP_TARGET_LABEL(c, end);
         kw = asdl_seq_GET(keywords, i);
         ADDOP_LOAD_CONST(c, loc, kw->arg);
-        VISIT(c, expr, kw->value);
+        if (kw->value->kind == NoneAwareElement_kind) {
+            VISIT(c, expr, kw->value->v.NoneAwareElement.item);
+            ADDOP_I(c, loc, COPY, 1);
+            ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup1);
+        } else if (kw->value->kind == IfElement_kind) {
+            RETURN_IF_ERROR(
+                codegen_jump_if(c, loc, kw->value->v.IfElement.test, cleanup2, 0));
+            VISIT(c, expr, kw->value->v.IfElement.item);
+        } else {
+            VISIT(c, expr, kw->value);
+        }
         if (big) {
             ADDOP_I(c, NO_LOCATION, MAP_ADD, 1);
         }
+        ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+        USE_LABEL(c, cleanup1);
+        ADDOP(c, loc, POP_TOP);
+        USE_LABEL(c, cleanup2);
+        ADDOP(c, loc, POP_TOP);
+        USE_LABEL(c, end);
     }
-    if (!big) {
+    if (!big && !seen_special) {
         ADDOP_I(c, loc, BUILD_MAP, n);
     }
     return SUCCESS;
@@ -4589,13 +4620,15 @@ codegen_call_helper_impl(compiler *c, location loc,
     }
     for (i = 0; i < nelts; i++) {
         expr_ty elt = asdl_seq_GET(args, i);
-        if (elt->kind == Starred_kind) {
+        if (elt->kind == Starred_kind || elt->kind == NoneAwareElement_kind
+            || elt->kind == IfElement_kind) {
             goto ex_call;
         }
     }
     for (i = 0; i < nkwelts; i++) {
         keyword_ty kw = asdl_seq_GET(keywords, i);
-        if (kw->arg == NULL) {
+        if (kw->arg == NULL || kw->value->kind == NoneAwareElement_kind
+            || kw->value->kind == IfElement_kind) {
             goto ex_call;
         }
     }
@@ -4603,7 +4636,8 @@ codegen_call_helper_impl(compiler *c, location loc,
     /* No * or ** args, so can use faster calling sequence */
     for (i = 0; i < nelts; i++) {
         expr_ty elt = asdl_seq_GET(args, i);
-        assert(elt->kind != Starred_kind);
+        assert(elt->kind != Starred_kind && elt->kind != NoneAwareElement_kind
+               && elt->kind != IfElement_kind);
         VISIT(c, expr, elt);
     }
     if (injected_arg) {
@@ -4641,6 +4675,8 @@ ex_call:
             keyword_ty kw = asdl_seq_GET(keywords, i);
             if (kw->arg == NULL) {
                 /* A keyword argument unpacking. */
+                NEW_JUMP_TARGET_LABEL(c, cleanup);
+                NEW_JUMP_TARGET_LABEL(c, end);
                 if (nseen) {
                     RETURN_IF_ERROR(codegen_subkwargs(c, loc, keywords, i - nseen, i));
                     if (have_dict) {
@@ -4653,8 +4689,23 @@ ex_call:
                     ADDOP_I(c, loc, BUILD_MAP, 0);
                     have_dict = 1;
                 }
-                VISIT(c, expr, kw->value);
+                if (kw->value->kind == NoneAwareElement_kind) {
+                    VISIT(c, expr, kw->value->v.NoneAwareElement.item);
+                    ADDOP_I(c, loc, COPY, 1);
+                    ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+                } else if (kw->value->kind == IfElement_kind) {
+                    RETURN_IF_ERROR(
+                        codegen_jump_if(c, loc, kw->value->v.IfElement.test, end, 0));
+                    VISIT(c, expr, kw->value->v.IfElement.item);
+                } else {
+                    VISIT(c, expr, kw->value);
+                }
                 ADDOP_I(c, loc, DICT_MERGE, 1);
+                ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+                USE_LABEL(c, cleanup);
+                ADDOP(c, loc, POP_TOP);
+                USE_LABEL(c, end);
             }
             else {
                 nseen++;
