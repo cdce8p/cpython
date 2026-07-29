@@ -546,15 +546,12 @@ _PyEval_MatchClass(PyThreadState *tstate, PyObject *subject, PyObject *type,
     // Short circuit if there aren't any arguments:
     Py_ssize_t nkwargs = PyTuple_GET_SIZE(kwargs);
     Py_ssize_t nattrs = nargs + nkwargs;
-    if (!nattrs) {
-        return PyTuple_New(0);
-    }
     // So far so good:
     PyObject *seen = NULL;
     // Only check for duplicates if there is at least one positional attribute
     // and two or more attributes in total. Duplicate keyword attributes are
     // detected during the compile stage and raise a SyntaxError.
-    if (nargs > 0 && nattrs > 1) {
+    if (nattrs > 1) {
         seen = PySet_New(NULL);
         if (seen == NULL) {
             return NULL;
