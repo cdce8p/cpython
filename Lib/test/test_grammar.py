@@ -2139,6 +2139,23 @@ class GrammarTests(unittest.TestCase):
             ((1, 2), {"a": 1, "b": 2}),
         )
 
+        self.assertEqual(
+            range(10)[1 if i is not None : 2 if y is not None], range(1, 10),
+        )
+        self.assertEqual(
+            range(10)[1 if y is not None : 2 if i is not None], range(0, 2),
+        )
+        self.assertEqual(range(10)[:: 2 if i is not None], range(0, 10, 2))
+        self.assertEqual(range(10)[:: 2 if y is not None], range(0, 10))
+
+        class X:
+            def __getitem__(self, item):
+                return item
+        x = X()
+        self.assertEqual(
+            x[1, 2 if i is not None, 3 if y is not None], (1, 2),
+        )
+
     def test_none_aware_element(self):
         class Done(Exception): ...
 
@@ -2251,6 +2268,17 @@ class GrammarTests(unittest.TestCase):
             ),
             ((1, 2), {"a": 1, "b": 2}),
         )
+
+        self.assertEqual(range(10)[?i : ?y], range(2, 10))
+        self.assertEqual(range(10)[?y : ?i], range(0, 2))
+        self.assertEqual(range(10)[:: ?i], range(0, 10, 2))
+        self.assertEqual(range(10)[:: ?y], range(0, 10))
+
+        class X:
+            def __getitem__(self, item):
+                return item
+        x = X()
+        self.assertEqual(x[1, ?i, ?y], (1, 2))
 
 
 if __name__ == '__main__':

@@ -162,7 +162,7 @@ SyntaxError: expected 'else' after 'if' expression
 
 >>> a = (42 if True)
 Traceback (most recent call last):
-SyntaxError: if element expression must be in a list, tuple, set, dict or f-string
+SyntaxError: if element expression must be in a list, tuple, set, dict, subscript or f-string
 
 # >>> a = [1, 42 if True, 4]
 # Traceback (most recent call last):
@@ -170,35 +170,35 @@ SyntaxError: if element expression must be in a list, tuple, set, dict or f-stri
 
 >>> a = [1, *?([1] if False)]
 Traceback (most recent call last):
-SyntaxError: if element expression must be in a list, tuple, set, dict or f-string
+SyntaxError: if element expression must be in a list, tuple, set, dict, subscript or f-string
 
 >>> [x if x is not None for x in [1, None, 2]]
 Traceback (most recent call last):
-SyntaxError: if element expression must be in a list, tuple, set, dict or f-string
+SyntaxError: if element expression must be in a list, tuple, set, dict, subscript or f-string
 
 >>> [*(x if x is not None) for x in [(1,), None, (2,)]]
 Traceback (most recent call last):
-SyntaxError: if element expression must be in a list, tuple, set, dict or f-string
+SyntaxError: if element expression must be in a list, tuple, set, dict, subscript or f-string
 
 >>> {x if x is not None for x in [1, None, 2]}
 Traceback (most recent call last):
-SyntaxError: if element expression must be in a list, tuple, set, dict or f-string
+SyntaxError: if element expression must be in a list, tuple, set, dict, subscript or f-string
 
 >>> {*(x if x is not None) for x in [(1,), None, (2,)]}
 Traceback (most recent call last):
-SyntaxError: if element expression must be in a list, tuple, set, dict or f-string
+SyntaxError: if element expression must be in a list, tuple, set, dict, subscript or f-string
 
 >>> {k if k is not None: v for k, v in [(1, None), (None, 2), (3, 3)]}
 Traceback (most recent call last):
-SyntaxError: if element expression must be in a list, tuple, set, dict or f-string
+SyntaxError: if element expression must be in a list, tuple, set, dict, subscript or f-string
 
 >>> {k: v if v is not None for k, v in [(1, None), (None, 2), (3, 3)]}
 Traceback (most recent call last):
-SyntaxError: if element expression must be in a list, tuple, set, dict or f-string
+SyntaxError: if element expression must be in a list, tuple, set, dict, subscript or f-string
 
 >>> {**(k if k is not None) for k in [{1: 1}, None]}
 Traceback (most recent call last):
-SyntaxError: if element expression must be in a list, tuple, set, dict or f-string
+SyntaxError: if element expression must be in a list, tuple, set, dict, subscript or f-string
 
 >>> x = 1 if 1 else pass
 Traceback (most recent call last):
