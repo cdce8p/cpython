@@ -15561,7 +15561,9 @@ slices_rule(Parser *p)
     return _res;
 }
 
-// slice: expression? ':' expression? [':' expression?] | named_expression
+// slice:
+//     | element_expression? ':' element_expression? [':' element_expression?]
+//     | element_named_expression
 static expr_ty
 slice_rule(Parser *p)
 {
@@ -15583,27 +15585,27 @@ slice_rule(Parser *p)
     UNUSED(_start_lineno); // Only used by EXTRA macro
     int _start_col_offset = p->tokens[_mark]->col_offset;
     UNUSED(_start_col_offset); // Only used by EXTRA macro
-    { // expression? ':' expression? [':' expression?]
+    { // element_expression? ':' element_expression? [':' element_expression?]
         if (p->error_indicator) {
             p->level--;
             return NULL;
         }
-        D(fprintf(stderr, "%*c> slice[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "expression? ':' expression? [':' expression?]"));
+        D(fprintf(stderr, "%*c> slice[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "element_expression? ':' element_expression? [':' element_expression?]"));
         Token * _literal;
         void *a;
         void *b;
         void *c;
         if (
-            (a = expression_rule(p), !p->error_indicator)  // expression?
+            (a = element_expression_rule(p), !p->error_indicator)  // element_expression?
             &&
             (_literal = _PyPegen_expect_token(p, 11))  // token=':'
             &&
-            (b = expression_rule(p), !p->error_indicator)  // expression?
+            (b = element_expression_rule(p), !p->error_indicator)  // element_expression?
             &&
-            (c = _tmp_65_rule(p), !p->error_indicator)  // [':' expression?]
+            (c = _tmp_65_rule(p), !p->error_indicator)  // [':' element_expression?]
         )
         {
-            D(fprintf(stderr, "%*c+ slice[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "expression? ':' expression? [':' expression?]"));
+            D(fprintf(stderr, "%*c+ slice[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "element_expression? ':' element_expression? [':' element_expression?]"));
             Token *_token = _PyPegen_get_last_nonnwhitespace_token(p);
             if (_token == NULL) {
                 p->level--;
@@ -15623,20 +15625,20 @@ slice_rule(Parser *p)
         }
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s slice[%d-%d]: %s failed!\n", p->level, ' ',
-                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "expression? ':' expression? [':' expression?]"));
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "element_expression? ':' element_expression? [':' element_expression?]"));
     }
-    { // named_expression
+    { // element_named_expression
         if (p->error_indicator) {
             p->level--;
             return NULL;
         }
-        D(fprintf(stderr, "%*c> slice[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "named_expression"));
+        D(fprintf(stderr, "%*c> slice[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "element_named_expression"));
         expr_ty a;
         if (
-            (a = named_expression_rule(p))  // named_expression
+            (a = element_named_expression_rule(p))  // element_named_expression
         )
         {
-            D(fprintf(stderr, "%*c+ slice[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "named_expression"));
+            D(fprintf(stderr, "%*c+ slice[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "element_named_expression"));
             _res = a;
             if ((_res == NULL || p->error_indicator) && PyErr_Occurred()) {
                 p->error_indicator = 1;
@@ -15647,7 +15649,7 @@ slice_rule(Parser *p)
         }
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s slice[%d-%d]: %s failed!\n", p->level, ' ',
-                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "named_expression"));
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "element_named_expression"));
     }
     _res = NULL;
   done:
@@ -32276,7 +32278,7 @@ _gather_64_rule(Parser *p)
     return _res;
 }
 
-// _tmp_65: ':' expression?
+// _tmp_65: ':' element_expression?
 static void *
 _tmp_65_rule(Parser *p)
 {
@@ -32289,21 +32291,21 @@ _tmp_65_rule(Parser *p)
     }
     void * _res = NULL;
     int _mark = p->mark;
-    { // ':' expression?
+    { // ':' element_expression?
         if (p->error_indicator) {
             p->level--;
             return NULL;
         }
-        D(fprintf(stderr, "%*c> _tmp_65[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "':' expression?"));
+        D(fprintf(stderr, "%*c> _tmp_65[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "':' element_expression?"));
         Token * _literal;
         void *d;
         if (
             (_literal = _PyPegen_expect_token(p, 11))  // token=':'
             &&
-            (d = expression_rule(p), !p->error_indicator)  // expression?
+            (d = element_expression_rule(p), !p->error_indicator)  // element_expression?
         )
         {
-            D(fprintf(stderr, "%*c+ _tmp_65[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "':' expression?"));
+            D(fprintf(stderr, "%*c+ _tmp_65[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "':' element_expression?"));
             _res = d;
             if ((_res == NULL || p->error_indicator) && PyErr_Occurred()) {
                 p->error_indicator = 1;
@@ -32314,7 +32316,7 @@ _tmp_65_rule(Parser *p)
         }
         p->mark = _mark;
         D(fprintf(stderr, "%*c%s _tmp_65[%d-%d]: %s failed!\n", p->level, ' ',
-                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "':' expression?"));
+                  p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "':' element_expression?"));
     }
     _res = NULL;
   done:
