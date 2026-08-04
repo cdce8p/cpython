@@ -5918,11 +5918,12 @@ codegen_visit_expr_impl(compiler *c, expr_ty e, bool result_is_unused)
         return codegen_ifexp(c, e);
     case IfElement_kind:
         return _PyCompile_Error(c, loc,
-            "if element expression must be in a list, tuple, set, dict or f-string");
+            "if element expression must be in a list, tuple, set, dict, subscript "
+            "or f-string");
     case NoneAwareElement_kind:
         return _PyCompile_Error(c, loc,
             "none aware element expression must be in a list, tuple, set, dict, "
-            "comprehension, generator expression or f-string");
+            "subscript, comprehension, generator expression or f-string");
     case Dict_kind:
         return codegen_dict(c, e);
     case Set_kind:
@@ -6302,15 +6303,53 @@ codegen_subscript(compiler *c, expr_ty e)
 static int
 codegen_slice_two_parts(compiler *c, expr_ty s)
 {
-    if (s->v.Slice.lower) {
-        VISIT(c, expr, s->v.Slice.lower);
+    expr_ty lower = s->v.Slice.lower;
+    if (lower) {
+        if (lower->kind == NoneAwareElement_kind) {
+            VISIT(c, expr, lower->v.NoneAwareElement.item);
+        }
+        else if (lower->kind == IfElement_kind) {
+            NEW_JUMP_TARGET_LABEL(c, fallback);
+            NEW_JUMP_TARGET_LABEL(c, end);
+
+            RETURN_IF_ERROR(
+                codegen_jump_if(c, LOC(s), lower->v.IfElement.test, fallback, 0));
+            VISIT(c, expr, lower->v.IfElement.item);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, fallback);
+            ADDOP_LOAD_CONST(c, LOC(s), Py_None);
+            USE_LABEL(c, end);
+        }
+        else {
+            VISIT(c, expr, lower);
+        }
     }
     else {
         ADDOP_LOAD_CONST(c, LOC(s), Py_None);
     }
 
-    if (s->v.Slice.upper) {
-        VISIT(c, expr, s->v.Slice.upper);
+    expr_ty upper = s->v.Slice.upper;
+    if (upper) {
+        if (upper->kind == NoneAwareElement_kind) {
+            VISIT(c, expr, upper->v.NoneAwareElement.item);
+        }
+        else if (upper->kind == IfElement_kind) {
+            NEW_JUMP_TARGET_LABEL(c, fallback);
+            NEW_JUMP_TARGET_LABEL(c, end);
+
+            RETURN_IF_ERROR(
+                codegen_jump_if(c, LOC(s), upper->v.IfElement.test, fallback, 0));
+            VISIT(c, expr, upper->v.IfElement.item);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, fallback);
+            ADDOP_LOAD_CONST(c, LOC(s), Py_None);
+            USE_LABEL(c, end);
+        }
+        else {
+            VISIT(c, expr, upper);
+        }
     }
     else {
         ADDOP_LOAD_CONST(c, LOC(s), Py_None);
@@ -6348,9 +6387,42 @@ codegen_slice(compiler *c, expr_ty s)
 
     RETURN_IF_ERROR(codegen_slice_two_parts(c, s));
 
-    if (s->v.Slice.step) {
+    expr_ty step = s->v.Slice.step;
+    if (step) {
+        if (step->kind == NoneAwareElement_kind) {
+            NEW_JUMP_TARGET_LABEL(c, cleanup);
+            NEW_JUMP_TARGET_LABEL(c, end);
+
+            VISIT(c, expr, step->v.NoneAwareElement.item);
+            ADDOP_I(c, LOC(s), COPY, 1);
+            ADDOP_JUMP(c, NO_LOCATION, POP_JUMP_IF_NONE, cleanup);
+            ADDOP_I(c, LOC(s), BUILD_SLICE, 3);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, cleanup);
+            ADDOP(c, LOC(s), POP_TOP);
+            ADDOP_I(c, LOC(s), BUILD_SLICE, 2);
+            USE_LABEL(c, end);
+            return SUCCESS;
+        }
+        if (step->kind == IfElement_kind) {
+            NEW_JUMP_TARGET_LABEL(c, fallback);
+            NEW_JUMP_TARGET_LABEL(c, end);
+
+            RETURN_IF_ERROR(
+                codegen_jump_if(c, LOC(s), step->v.IfElement.test, fallback, 0));
+            VISIT(c, expr, step->v.IfElement.item);
+            ADDOP_I(c, LOC(s), BUILD_SLICE, 3);
+            ADDOP_JUMP(c, NO_LOCATION, JUMP_NO_INTERRUPT, end);
+
+            USE_LABEL(c, fallback);
+            ADDOP_I(c, LOC(s), BUILD_SLICE, 2);
+            USE_LABEL(c, end);
+            return SUCCESS;
+        }
+
         n++;
-        VISIT(c, expr, s->v.Slice.step);
+        VISIT(c, expr, step);
     }
 
     ADDOP_I(c, LOC(s), BUILD_SLICE, n);

@@ -322,6 +322,12 @@ class UnparseTestCase(ASTTestCase):
         self.check_ast_roundtrip(
             "func(1, 2 if i is not None, ?x, *?x, a=4, b=5 if i is not None, c=?x, **?x)"
         )
+        self.check_ast_roundtrip(
+            "a[0 if i is not None : 1 if y is not None : 2 if y is not None]"
+        )
+        self.check_ast_roundtrip("a[?i : ?y : ?y]")
+        self.check_ast_roundtrip("a[1 if i is not None, 2 if y is not None]")
+        self.check_ast_roundtrip("a[?i, ?y]")
 
     def test_strings(self):
         self.check_ast_roundtrip("u'foo'")

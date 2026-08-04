@@ -931,8 +931,8 @@ slices[expr_ty]:
     | a[asdl_expr_seq*]=','.(slice | starred_expression)+ [','] { _PyAST_Tuple(a, Load, EXTRA) }
 
 slice[expr_ty]:
-    | a=[expression] ':' b=[expression] c=[':' d=[expression] { d }] { _PyAST_Slice(a, b, c, EXTRA) }
-    | a=named_expression { a }
+    | a=[element_expression] ':' b=[element_expression] c=[':' d=[element_expression] { d }] { _PyAST_Slice(a, b, c, EXTRA) }
+    | a=element_named_expression { a }
 
 atom[expr_ty]:
     | NAME
