@@ -185,6 +185,10 @@ augassign[AugOperator*]:
     | '//=' { _PyPegen_augoperator(p, FloorDiv) }
 
 boolassign[BoolOperator*]:
+    | 'and' '=' { CHECK_VERSION(BoolOperator*, 16, "The 'and=' operator is",
+                                _PyPegen_booloperator(p, And)) }
+    | 'or' '=' { CHECK_VERSION(BoolOperator*, 16, "The 'or=' operator is",
+                               _PyPegen_booloperator(p, Or)) }
     | '??=' { CHECK_VERSION(BoolOperator*, 16, "The '\?\?=' operator is",
                             _PyPegen_booloperator(p, Coalesce)) }
 

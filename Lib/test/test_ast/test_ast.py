@@ -1004,6 +1004,13 @@ class AST_Tests(unittest.TestCase):
             ast.parse("a ?? b", feature_version=(3, 15))
             ast.parse("a ??= b", feature_version=(3, 15))
 
+    def test_boolean_assign_operators_feature_version(self):
+        ast.parse("a and= b", feature_version=(3, 16))
+        ast.parse("a or= b", feature_version=(3, 16))
+        with self.assertRaises(SyntaxError):
+            ast.parse("a and= b", feature_version=(3, 15))
+            ast.parse("a or= b", feature_version=(3, 15))
+
     def test_conditional_context_managers_parse_with_low_feature_version(self):
         # regression test for gh-115881
         ast.parse('with (x() if y else z()): ...', feature_version=(3, 8))
