@@ -204,7 +204,7 @@ static int codegen_visit_stmt(compiler *, stmt_ty);
 static int codegen_visit_keyword(compiler *, keyword_ty);
 static int codegen_visit_expr(compiler *, expr_ty);
 static int codegen_visit_unused_expr(compiler *, expr_ty);
-static int codegen_augassign_coalesceassign(compiler *, stmt_ty);
+static int codegen_augassign_boolassign(compiler *, stmt_ty);
 static int codegen_annassign(compiler *, stmt_ty);
 static int codegen_subscript(compiler *, expr_ty);
 static int codegen_slice_two_parts(compiler *, expr_ty);
@@ -3148,8 +3148,8 @@ codegen_visit_stmt(compiler *c, stmt_ty s)
         break;
     }
     case AugAssign_kind:
-    case CoalesceAssign_kind:
-        return codegen_augassign_coalesceassign(c, s);
+    case BoolAssign_kind:
+        return codegen_augassign_boolassign(c, s);
     case AnnAssign_kind:
         return codegen_annassign(c, s);
     case For_kind:
@@ -5675,15 +5675,15 @@ should_apply_two_element_slice_optimization(expr_ty s)
 }
 
 static int
-codegen_augassign_coalesceassign(compiler *c, stmt_ty s)
+codegen_augassign_boolassign(compiler *c, stmt_ty s)
 {
     expr_ty e;
 
-    assert(s->kind == AugAssign_kind || s->kind == CoalesceAssign_kind);
+    assert(s->kind == AugAssign_kind || s->kind == BoolAssign_kind);
     if (s->kind == AugAssign_kind) {
         e = s->v.AugAssign.target;
     } else {
-        e = s->v.CoalesceAssign.target;
+        e = s->v.BoolAssign.target;
     }
     NEW_JUMP_TARGET_LABEL(c, cleanup)
     NEW_JUMP_TARGET_LABEL(c, end);
@@ -5723,7 +5723,7 @@ codegen_augassign_coalesceassign(compiler *c, stmt_ty s)
                 e->kind);
         } else {
             PyErr_Format(PyExc_SystemError,
-                "invalid node type (%d) for coalesce assignment",
+                "invalid node type (%d) for boolean assignment",
                 e->kind);
         }
         return ERROR;
@@ -5735,8 +5735,18 @@ codegen_augassign_coalesceassign(compiler *c, stmt_ty s)
         VISIT(c, expr, s->v.AugAssign.value);
         ADDOP_INPLACE(c, loc, s->v.AugAssign.op);
     } else {
-        ADDOP_JUMP(c, loc, POP_JUMP_IF_NOT_NONE, cleanup);
-        VISIT(c, expr, s->v.CoalesceAssign.value);
+        switch (s->v.BoolAssign.op) {
+        case And:
+        case Or:
+            PyErr_Format(PyExc_SyntaxError,
+                "invalid operator for boolean assignment",
+                s->v.BoolAssign.op);
+            return ERROR;
+        case Coalesce:
+            ADDOP_JUMP(c, loc, POP_JUMP_IF_NOT_NONE, cleanup);
+            break;
+        }
+        VISIT(c, expr, s->v.BoolAssign.value);
     }
 
     loc = LOC(e);
