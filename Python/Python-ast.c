@@ -55,11 +55,11 @@ void _PyAST_Fini(PyInterpreterState *interp)
         offsetof(struct ast_state, BitOr_type),
         offsetof(struct ast_state, BitXor_singleton),
         offsetof(struct ast_state, BitXor_type),
+        offsetof(struct ast_state, BoolAssign_type),
         offsetof(struct ast_state, BoolOp_type),
         offsetof(struct ast_state, Break_type),
         offsetof(struct ast_state, Call_type),
         offsetof(struct ast_state, ClassDef_type),
-        offsetof(struct ast_state, CoalesceAssign_type),
         offsetof(struct ast_state, Coalesce_singleton),
         offsetof(struct ast_state, Coalesce_type),
         offsetof(struct ast_state, Compare_type),
@@ -477,15 +477,16 @@ static const char * const AugAssign_fields[]={
     "op",
     "value",
 };
+static const char * const BoolAssign_fields[]={
+    "target",
+    "op",
+    "value",
+};
 static const char * const AnnAssign_fields[]={
     "target",
     "annotation",
     "value",
     "simple",
-};
-static const char * const CoalesceAssign_fields[]={
-    "target",
-    "value",
 };
 static const char * const For_fields[]={
     "target",
@@ -941,16 +942,18 @@ add_ast_annotations(struct ast_state *state)
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, target),
          offsetof(struct ast_state, expr_type), 0},
+        {offsetof(struct ast_state, op),
+         offsetof(struct ast_state, boolop_type), 0},
+        {offsetof(struct ast_state, value),
+         offsetof(struct ast_state, expr_type), 0},
+        {offsetof(struct ast_state, target),
+         offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, annotation),
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, value),
          offsetof(struct ast_state, expr_type), FIELD_OPTIONAL},
         {offsetof(struct ast_state, simple),
          1, FIELD_BUILTIN},
-        {offsetof(struct ast_state, target),
-         offsetof(struct ast_state, expr_type), 0},
-        {offsetof(struct ast_state, value),
-         offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, target),
          offsetof(struct ast_state, expr_type), 0},
         {offsetof(struct ast_state, iter),
@@ -1291,111 +1294,111 @@ add_ast_annotations(struct ast_state *state)
         {offsetof(struct ast_state, Assign_type), 28, 3},
         {offsetof(struct ast_state, TypeAlias_type), 31, 3},
         {offsetof(struct ast_state, AugAssign_type), 34, 3},
-        {offsetof(struct ast_state, AnnAssign_type), 37, 4},
-        {offsetof(struct ast_state, CoalesceAssign_type), 41, 2},
-        {offsetof(struct ast_state, For_type), 43, 5},
-        {offsetof(struct ast_state, AsyncFor_type), 48, 5},
-        {offsetof(struct ast_state, While_type), 53, 3},
-        {offsetof(struct ast_state, If_type), 56, 3},
-        {offsetof(struct ast_state, With_type), 59, 3},
-        {offsetof(struct ast_state, AsyncWith_type), 62, 3},
-        {offsetof(struct ast_state, Match_type), 65, 2},
-        {offsetof(struct ast_state, Raise_type), 67, 2},
-        {offsetof(struct ast_state, Try_type), 69, 4},
-        {offsetof(struct ast_state, TryStar_type), 73, 4},
-        {offsetof(struct ast_state, Assert_type), 77, 2},
-        {offsetof(struct ast_state, Import_type), 79, 2},
-        {offsetof(struct ast_state, ImportFrom_type), 81, 4},
-        {offsetof(struct ast_state, Global_type), 85, 1},
-        {offsetof(struct ast_state, Nonlocal_type), 86, 1},
-        {offsetof(struct ast_state, Expr_type), 87, 1},
-        {offsetof(struct ast_state, Pass_type), 88, 0},
-        {offsetof(struct ast_state, Break_type), 88, 0},
-        {offsetof(struct ast_state, Continue_type), 88, 0},
-        {offsetof(struct ast_state, BoolOp_type), 88, 2},
-        {offsetof(struct ast_state, NamedExpr_type), 90, 2},
-        {offsetof(struct ast_state, BinOp_type), 92, 3},
-        {offsetof(struct ast_state, UnaryOp_type), 95, 2},
-        {offsetof(struct ast_state, Lambda_type), 97, 2},
-        {offsetof(struct ast_state, IfExp_type), 99, 3},
-        {offsetof(struct ast_state, Dict_type), 102, 2},
-        {offsetof(struct ast_state, Set_type), 104, 1},
-        {offsetof(struct ast_state, ListComp_type), 105, 2},
-        {offsetof(struct ast_state, SetComp_type), 107, 2},
-        {offsetof(struct ast_state, DictComp_type), 109, 3},
-        {offsetof(struct ast_state, GeneratorExp_type), 112, 2},
-        {offsetof(struct ast_state, NoneAwareAttribute_type), 114, 2},
-        {offsetof(struct ast_state, NoneAwareSubscript_type), 116, 2},
-        {offsetof(struct ast_state, Await_type), 118, 1},
-        {offsetof(struct ast_state, Yield_type), 119, 1},
-        {offsetof(struct ast_state, YieldFrom_type), 120, 1},
-        {offsetof(struct ast_state, Compare_type), 121, 3},
-        {offsetof(struct ast_state, Call_type), 124, 3},
-        {offsetof(struct ast_state, FormattedValue_type), 127, 3},
-        {offsetof(struct ast_state, Interpolation_type), 130, 4},
-        {offsetof(struct ast_state, JoinedStr_type), 134, 1},
-        {offsetof(struct ast_state, TemplateStr_type), 135, 1},
-        {offsetof(struct ast_state, Constant_type), 136, 2},
-        {offsetof(struct ast_state, Attribute_type), 138, 3},
-        {offsetof(struct ast_state, Subscript_type), 141, 3},
-        {offsetof(struct ast_state, Starred_type), 144, 2},
-        {offsetof(struct ast_state, Name_type), 146, 2},
-        {offsetof(struct ast_state, List_type), 148, 2},
-        {offsetof(struct ast_state, Tuple_type), 150, 2},
-        {offsetof(struct ast_state, Slice_type), 152, 3},
-        {offsetof(struct ast_state, Load_type), 155, 0},
-        {offsetof(struct ast_state, Store_type), 155, 0},
-        {offsetof(struct ast_state, Del_type), 155, 0},
-        {offsetof(struct ast_state, And_type), 155, 0},
-        {offsetof(struct ast_state, Or_type), 155, 0},
-        {offsetof(struct ast_state, Coalesce_type), 155, 0},
-        {offsetof(struct ast_state, Add_type), 155, 0},
-        {offsetof(struct ast_state, Sub_type), 155, 0},
-        {offsetof(struct ast_state, Mult_type), 155, 0},
-        {offsetof(struct ast_state, MatMult_type), 155, 0},
-        {offsetof(struct ast_state, Div_type), 155, 0},
-        {offsetof(struct ast_state, Mod_type), 155, 0},
-        {offsetof(struct ast_state, Pow_type), 155, 0},
-        {offsetof(struct ast_state, LShift_type), 155, 0},
-        {offsetof(struct ast_state, RShift_type), 155, 0},
-        {offsetof(struct ast_state, BitOr_type), 155, 0},
-        {offsetof(struct ast_state, BitXor_type), 155, 0},
-        {offsetof(struct ast_state, BitAnd_type), 155, 0},
-        {offsetof(struct ast_state, FloorDiv_type), 155, 0},
-        {offsetof(struct ast_state, Invert_type), 155, 0},
-        {offsetof(struct ast_state, Not_type), 155, 0},
-        {offsetof(struct ast_state, UAdd_type), 155, 0},
-        {offsetof(struct ast_state, USub_type), 155, 0},
-        {offsetof(struct ast_state, Eq_type), 155, 0},
-        {offsetof(struct ast_state, NotEq_type), 155, 0},
-        {offsetof(struct ast_state, Lt_type), 155, 0},
-        {offsetof(struct ast_state, LtE_type), 155, 0},
-        {offsetof(struct ast_state, Gt_type), 155, 0},
-        {offsetof(struct ast_state, GtE_type), 155, 0},
-        {offsetof(struct ast_state, Is_type), 155, 0},
-        {offsetof(struct ast_state, IsNot_type), 155, 0},
-        {offsetof(struct ast_state, In_type), 155, 0},
-        {offsetof(struct ast_state, NotIn_type), 155, 0},
-        {offsetof(struct ast_state, comprehension_type), 155, 4},
-        {offsetof(struct ast_state, ExceptHandler_type), 159, 3},
-        {offsetof(struct ast_state, arguments_type), 162, 7},
-        {offsetof(struct ast_state, arg_type), 169, 3},
-        {offsetof(struct ast_state, keyword_type), 172, 2},
-        {offsetof(struct ast_state, alias_type), 174, 2},
-        {offsetof(struct ast_state, withitem_type), 176, 2},
-        {offsetof(struct ast_state, match_case_type), 178, 3},
-        {offsetof(struct ast_state, MatchValue_type), 181, 1},
-        {offsetof(struct ast_state, MatchSingleton_type), 182, 1},
-        {offsetof(struct ast_state, MatchSequence_type), 183, 1},
-        {offsetof(struct ast_state, MatchMapping_type), 184, 3},
-        {offsetof(struct ast_state, MatchClass_type), 187, 4},
-        {offsetof(struct ast_state, MatchStar_type), 191, 1},
-        {offsetof(struct ast_state, MatchAs_type), 192, 2},
-        {offsetof(struct ast_state, MatchOr_type), 194, 1},
-        {offsetof(struct ast_state, TypeIgnore_type), 195, 2},
-        {offsetof(struct ast_state, TypeVar_type), 197, 3},
-        {offsetof(struct ast_state, ParamSpec_type), 200, 2},
-        {offsetof(struct ast_state, TypeVarTuple_type), 202, 2},
+        {offsetof(struct ast_state, BoolAssign_type), 37, 3},
+        {offsetof(struct ast_state, AnnAssign_type), 40, 4},
+        {offsetof(struct ast_state, For_type), 44, 5},
+        {offsetof(struct ast_state, AsyncFor_type), 49, 5},
+        {offsetof(struct ast_state, While_type), 54, 3},
+        {offsetof(struct ast_state, If_type), 57, 3},
+        {offsetof(struct ast_state, With_type), 60, 3},
+        {offsetof(struct ast_state, AsyncWith_type), 63, 3},
+        {offsetof(struct ast_state, Match_type), 66, 2},
+        {offsetof(struct ast_state, Raise_type), 68, 2},
+        {offsetof(struct ast_state, Try_type), 70, 4},
+        {offsetof(struct ast_state, TryStar_type), 74, 4},
+        {offsetof(struct ast_state, Assert_type), 78, 2},
+        {offsetof(struct ast_state, Import_type), 80, 2},
+        {offsetof(struct ast_state, ImportFrom_type), 82, 4},
+        {offsetof(struct ast_state, Global_type), 86, 1},
+        {offsetof(struct ast_state, Nonlocal_type), 87, 1},
+        {offsetof(struct ast_state, Expr_type), 88, 1},
+        {offsetof(struct ast_state, Pass_type), 89, 0},
+        {offsetof(struct ast_state, Break_type), 89, 0},
+        {offsetof(struct ast_state, Continue_type), 89, 0},
+        {offsetof(struct ast_state, BoolOp_type), 89, 2},
+        {offsetof(struct ast_state, NamedExpr_type), 91, 2},
+        {offsetof(struct ast_state, BinOp_type), 93, 3},
+        {offsetof(struct ast_state, UnaryOp_type), 96, 2},
+        {offsetof(struct ast_state, Lambda_type), 98, 2},
+        {offsetof(struct ast_state, IfExp_type), 100, 3},
+        {offsetof(struct ast_state, Dict_type), 103, 2},
+        {offsetof(struct ast_state, Set_type), 105, 1},
+        {offsetof(struct ast_state, ListComp_type), 106, 2},
+        {offsetof(struct ast_state, SetComp_type), 108, 2},
+        {offsetof(struct ast_state, DictComp_type), 110, 3},
+        {offsetof(struct ast_state, GeneratorExp_type), 113, 2},
+        {offsetof(struct ast_state, NoneAwareAttribute_type), 115, 2},
+        {offsetof(struct ast_state, NoneAwareSubscript_type), 117, 2},
+        {offsetof(struct ast_state, Await_type), 119, 1},
+        {offsetof(struct ast_state, Yield_type), 120, 1},
+        {offsetof(struct ast_state, YieldFrom_type), 121, 1},
+        {offsetof(struct ast_state, Compare_type), 122, 3},
+        {offsetof(struct ast_state, Call_type), 125, 3},
+        {offsetof(struct ast_state, FormattedValue_type), 128, 3},
+        {offsetof(struct ast_state, Interpolation_type), 131, 4},
+        {offsetof(struct ast_state, JoinedStr_type), 135, 1},
+        {offsetof(struct ast_state, TemplateStr_type), 136, 1},
+        {offsetof(struct ast_state, Constant_type), 137, 2},
+        {offsetof(struct ast_state, Attribute_type), 139, 3},
+        {offsetof(struct ast_state, Subscript_type), 142, 3},
+        {offsetof(struct ast_state, Starred_type), 145, 2},
+        {offsetof(struct ast_state, Name_type), 147, 2},
+        {offsetof(struct ast_state, List_type), 149, 2},
+        {offsetof(struct ast_state, Tuple_type), 151, 2},
+        {offsetof(struct ast_state, Slice_type), 153, 3},
+        {offsetof(struct ast_state, Load_type), 156, 0},
+        {offsetof(struct ast_state, Store_type), 156, 0},
+        {offsetof(struct ast_state, Del_type), 156, 0},
+        {offsetof(struct ast_state, And_type), 156, 0},
+        {offsetof(struct ast_state, Or_type), 156, 0},
+        {offsetof(struct ast_state, Coalesce_type), 156, 0},
+        {offsetof(struct ast_state, Add_type), 156, 0},
+        {offsetof(struct ast_state, Sub_type), 156, 0},
+        {offsetof(struct ast_state, Mult_type), 156, 0},
+        {offsetof(struct ast_state, MatMult_type), 156, 0},
+        {offsetof(struct ast_state, Div_type), 156, 0},
+        {offsetof(struct ast_state, Mod_type), 156, 0},
+        {offsetof(struct ast_state, Pow_type), 156, 0},
+        {offsetof(struct ast_state, LShift_type), 156, 0},
+        {offsetof(struct ast_state, RShift_type), 156, 0},
+        {offsetof(struct ast_state, BitOr_type), 156, 0},
+        {offsetof(struct ast_state, BitXor_type), 156, 0},
+        {offsetof(struct ast_state, BitAnd_type), 156, 0},
+        {offsetof(struct ast_state, FloorDiv_type), 156, 0},
+        {offsetof(struct ast_state, Invert_type), 156, 0},
+        {offsetof(struct ast_state, Not_type), 156, 0},
+        {offsetof(struct ast_state, UAdd_type), 156, 0},
+        {offsetof(struct ast_state, USub_type), 156, 0},
+        {offsetof(struct ast_state, Eq_type), 156, 0},
+        {offsetof(struct ast_state, NotEq_type), 156, 0},
+        {offsetof(struct ast_state, Lt_type), 156, 0},
+        {offsetof(struct ast_state, LtE_type), 156, 0},
+        {offsetof(struct ast_state, Gt_type), 156, 0},
+        {offsetof(struct ast_state, GtE_type), 156, 0},
+        {offsetof(struct ast_state, Is_type), 156, 0},
+        {offsetof(struct ast_state, IsNot_type), 156, 0},
+        {offsetof(struct ast_state, In_type), 156, 0},
+        {offsetof(struct ast_state, NotIn_type), 156, 0},
+        {offsetof(struct ast_state, comprehension_type), 156, 4},
+        {offsetof(struct ast_state, ExceptHandler_type), 160, 3},
+        {offsetof(struct ast_state, arguments_type), 163, 7},
+        {offsetof(struct ast_state, arg_type), 170, 3},
+        {offsetof(struct ast_state, keyword_type), 173, 2},
+        {offsetof(struct ast_state, alias_type), 175, 2},
+        {offsetof(struct ast_state, withitem_type), 177, 2},
+        {offsetof(struct ast_state, match_case_type), 179, 3},
+        {offsetof(struct ast_state, MatchValue_type), 182, 1},
+        {offsetof(struct ast_state, MatchSingleton_type), 183, 1},
+        {offsetof(struct ast_state, MatchSequence_type), 184, 1},
+        {offsetof(struct ast_state, MatchMapping_type), 185, 3},
+        {offsetof(struct ast_state, MatchClass_type), 188, 4},
+        {offsetof(struct ast_state, MatchStar_type), 192, 1},
+        {offsetof(struct ast_state, MatchAs_type), 193, 2},
+        {offsetof(struct ast_state, MatchOr_type), 195, 1},
+        {offsetof(struct ast_state, TypeIgnore_type), 196, 2},
+        {offsetof(struct ast_state, TypeVar_type), 198, 3},
+        {offsetof(struct ast_state, ParamSpec_type), 201, 2},
+        {offsetof(struct ast_state, TypeVarTuple_type), 203, 2},
     };
     char *base = (char *)state;
     PyObject *annotations = NULL;
@@ -2446,8 +2449,8 @@ init_types(void *arg)
         "     | Assign(expr* targets, expr value, string? type_comment)\n"
         "     | TypeAlias(expr name, type_param* type_params, expr value)\n"
         "     | AugAssign(expr target, operator op, expr value)\n"
+        "     | BoolAssign(expr target, boolop op, expr value)\n"
         "     | AnnAssign(expr target, expr annotation, expr? value, int simple)\n"
-        "     | CoalesceAssign(expr target, expr value)\n"
         "     | For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)\n"
         "     | AsyncFor(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)\n"
         "     | While(expr test, stmt* body, stmt* orelse)\n"
@@ -2526,17 +2529,16 @@ init_types(void *arg)
                                       AugAssign_fields, 3,
         "AugAssign(expr target, operator op, expr value)");
     if (!state->AugAssign_type) return -1;
+    state->BoolAssign_type = make_type(state, "BoolAssign", state->stmt_type,
+                                       BoolAssign_fields, 3,
+        "BoolAssign(expr target, boolop op, expr value)");
+    if (!state->BoolAssign_type) return -1;
     state->AnnAssign_type = make_type(state, "AnnAssign", state->stmt_type,
                                       AnnAssign_fields, 4,
         "AnnAssign(expr target, expr annotation, expr? value, int simple)");
     if (!state->AnnAssign_type) return -1;
     if (PyObject_SetAttr(state->AnnAssign_type, state->value, Py_None) == -1)
         return -1;
-    state->CoalesceAssign_type = make_type(state, "CoalesceAssign",
-                                           state->stmt_type,
-                                           CoalesceAssign_fields, 2,
-        "CoalesceAssign(expr target, expr value)");
-    if (!state->CoalesceAssign_type) return -1;
     state->For_type = make_type(state, "For", state->stmt_type, For_fields, 5,
         "For(expr target, expr iter, stmt* body, stmt* orelse, string? type_comment)");
     if (!state->For_type) return -1;
@@ -3603,6 +3605,41 @@ _PyAST_AugAssign(expr_ty target, operator_ty op, expr_ty value, int lineno, int
 }
 
 stmt_ty
+_PyAST_BoolAssign(expr_ty target, boolop_ty op, expr_ty value, int lineno, int
+                  col_offset, int end_lineno, int end_col_offset, PyArena
+                  *arena)
+{
+    stmt_ty p;
+    if (!target) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'target' is required for BoolAssign");
+        return NULL;
+    }
+    if (!op) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'op' is required for BoolAssign");
+        return NULL;
+    }
+    if (!value) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field 'value' is required for BoolAssign");
+        return NULL;
+    }
+    p = (stmt_ty)_PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = BoolAssign_kind;
+    p->v.BoolAssign.target = target;
+    p->v.BoolAssign.op = op;
+    p->v.BoolAssign.value = value;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    p->end_lineno = end_lineno;
+    p->end_col_offset = end_col_offset;
+    return p;
+}
+
+stmt_ty
 _PyAST_AnnAssign(expr_ty target, expr_ty annotation, expr_ty value, int simple,
                  int lineno, int col_offset, int end_lineno, int
                  end_col_offset, PyArena *arena)
@@ -3626,35 +3663,6 @@ _PyAST_AnnAssign(expr_ty target, expr_ty annotation, expr_ty value, int simple,
     p->v.AnnAssign.annotation = annotation;
     p->v.AnnAssign.value = value;
     p->v.AnnAssign.simple = simple;
-    p->lineno = lineno;
-    p->col_offset = col_offset;
-    p->end_lineno = end_lineno;
-    p->end_col_offset = end_col_offset;
-    return p;
-}
-
-stmt_ty
-_PyAST_CoalesceAssign(expr_ty target, expr_ty value, int lineno, int
-                      col_offset, int end_lineno, int end_col_offset, PyArena
-                      *arena)
-{
-    stmt_ty p;
-    if (!target) {
-        PyErr_SetString(PyExc_ValueError,
-                        "field 'target' is required for CoalesceAssign");
-        return NULL;
-    }
-    if (!value) {
-        PyErr_SetString(PyExc_ValueError,
-                        "field 'value' is required for CoalesceAssign");
-        return NULL;
-    }
-    p = (stmt_ty)_PyArena_Malloc(arena, sizeof(*p));
-    if (!p)
-        return NULL;
-    p->kind = CoalesceAssign_kind;
-    p->v.CoalesceAssign.target = target;
-    p->v.CoalesceAssign.value = value;
     p->lineno = lineno;
     p->col_offset = col_offset;
     p->end_lineno = end_lineno;
@@ -5599,6 +5607,26 @@ ast2obj_stmt(struct ast_state *state, void* _o)
             goto failed;
         Py_DECREF(value);
         break;
+    case BoolAssign_kind:
+        tp = (PyTypeObject *)state->BoolAssign_type;
+        result = PyType_GenericNew(tp, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(state, o->v.BoolAssign.target);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->target, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_boolop(state, o->v.BoolAssign.op);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->op, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_expr(state, o->v.BoolAssign.value);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, state->value, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
     case AnnAssign_kind:
         tp = (PyTypeObject *)state->AnnAssign_type;
         result = PyType_GenericNew(tp, NULL, NULL);
@@ -5621,21 +5649,6 @@ ast2obj_stmt(struct ast_state *state, void* _o)
         value = ast2obj_int(state, o->v.AnnAssign.simple);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, state->simple, value) == -1)
-            goto failed;
-        Py_DECREF(value);
-        break;
-    case CoalesceAssign_kind:
-        tp = (PyTypeObject *)state->CoalesceAssign_type;
-        result = PyType_GenericNew(tp, NULL, NULL);
-        if (!result) goto failed;
-        value = ast2obj_expr(state, o->v.CoalesceAssign.target);
-        if (!value) goto failed;
-        if (PyObject_SetAttr(result, state->target, value) == -1)
-            goto failed;
-        Py_DECREF(value);
-        value = ast2obj_expr(state, o->v.CoalesceAssign.value);
-        if (!value) goto failed;
-        if (PyObject_SetAttr(result, state->value, value) == -1)
             goto failed;
         Py_DECREF(value);
         break;
@@ -8667,6 +8680,72 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, const char*
         if (*out == NULL) goto failed;
         return 0;
     }
+    tp = state->BoolAssign_type;
+    isinstance = PyObject_IsInstance(obj, tp);
+    if (isinstance == -1) {
+        return -1;
+    }
+    if (isinstance) {
+        expr_ty target;
+        boolop_ty op;
+        expr_ty value;
+
+        if (PyObject_GetOptionalAttr(obj, state->target, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"target\" missing from BoolAssign");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'BoolAssign' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &target, "target", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->op, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"op\" missing from BoolAssign");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'BoolAssign' node")) {
+                goto failed;
+            }
+            res = obj2ast_boolop(state, tmp, &op, "op", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (PyObject_GetOptionalAttr(obj, state->value, &tmp) < 0) {
+            return -1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"value\" missing from BoolAssign");
+            return -1;
+        }
+        else {
+            int res;
+            if (_Py_EnterRecursiveCall(" while traversing 'BoolAssign' node")) {
+                goto failed;
+            }
+            res = obj2ast_expr(state, tmp, &value, "value", arena);
+            _Py_LeaveRecursiveCall();
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = _PyAST_BoolAssign(target, op, value, lineno, col_offset,
+                                 end_lineno, end_col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
     tp = state->AnnAssign_type;
     isinstance = PyObject_IsInstance(obj, tp);
     if (isinstance == -1) {
@@ -8748,54 +8827,6 @@ obj2ast_stmt(struct ast_state *state, PyObject* obj, stmt_ty* out, const char*
         }
         *out = _PyAST_AnnAssign(target, annotation, value, simple, lineno,
                                 col_offset, end_lineno, end_col_offset, arena);
-        if (*out == NULL) goto failed;
-        return 0;
-    }
-    tp = state->CoalesceAssign_type;
-    isinstance = PyObject_IsInstance(obj, tp);
-    if (isinstance == -1) {
-        return -1;
-    }
-    if (isinstance) {
-        expr_ty target;
-        expr_ty value;
-
-        if (PyObject_GetOptionalAttr(obj, state->target, &tmp) < 0) {
-            return -1;
-        }
-        if (tmp == NULL) {
-            PyErr_SetString(PyExc_TypeError, "required field \"target\" missing from CoalesceAssign");
-            return -1;
-        }
-        else {
-            int res;
-            if (_Py_EnterRecursiveCall(" while traversing 'CoalesceAssign' node")) {
-                goto failed;
-            }
-            res = obj2ast_expr(state, tmp, &target, "target", arena);
-            _Py_LeaveRecursiveCall();
-            if (res != 0) goto failed;
-            Py_CLEAR(tmp);
-        }
-        if (PyObject_GetOptionalAttr(obj, state->value, &tmp) < 0) {
-            return -1;
-        }
-        if (tmp == NULL) {
-            PyErr_SetString(PyExc_TypeError, "required field \"value\" missing from CoalesceAssign");
-            return -1;
-        }
-        else {
-            int res;
-            if (_Py_EnterRecursiveCall(" while traversing 'CoalesceAssign' node")) {
-                goto failed;
-            }
-            res = obj2ast_expr(state, tmp, &value, "value", arena);
-            _Py_LeaveRecursiveCall();
-            if (res != 0) goto failed;
-            Py_CLEAR(tmp);
-        }
-        *out = _PyAST_CoalesceAssign(target, value, lineno, col_offset,
-                                     end_lineno, end_col_offset, arena);
         if (*out == NULL) goto failed;
         return 0;
     }
@@ -14825,11 +14856,10 @@ astmodule_exec(PyObject *m)
     if (PyModule_AddObjectRef(m, "AugAssign", state->AugAssign_type) < 0) {
         return -1;
     }
-    if (PyModule_AddObjectRef(m, "AnnAssign", state->AnnAssign_type) < 0) {
+    if (PyModule_AddObjectRef(m, "BoolAssign", state->BoolAssign_type) < 0) {
         return -1;
     }
-    if (PyModule_AddObjectRef(m, "CoalesceAssign", state->CoalesceAssign_type)
-        < 0) {
+    if (PyModule_AddObjectRef(m, "AnnAssign", state->AnnAssign_type) < 0) {
         return -1;
     }
     if (PyModule_AddObjectRef(m, "For", state->For_type) < 0) {
