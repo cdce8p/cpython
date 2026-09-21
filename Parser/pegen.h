@@ -155,6 +155,7 @@ typedef struct {
 } StarEtc;
 
 typedef struct { operator_ty kind; } AugOperator;
+typedef struct { boolop_ty kind; } BoolOperator;
 typedef struct {
     void *element;
     int is_keyword;
@@ -378,6 +379,7 @@ expr_ty _PyPegen_interpolation(Parser *, expr_ty, Token *, ResultTokenWithMetada
 expr_ty _PyPegen_formatted_value(Parser *, expr_ty, Token *, ResultTokenWithMetadata *, ResultTokenWithMetadata *, Token *,
                                  int, int, int, int, PyArena *);
 AugOperator *_PyPegen_augoperator(Parser*, operator_ty type);
+BoolOperator *_PyPegen_booloperator(Parser*, boolop_ty type);
 stmt_ty _PyPegen_function_def_decorators(Parser *, asdl_expr_seq *, stmt_ty);
 stmt_ty _PyPegen_class_def_decorators(Parser *, asdl_expr_seq *, stmt_ty);
 KeywordOrStarred *_PyPegen_keyword_or_starred(Parser *, void *, int);
