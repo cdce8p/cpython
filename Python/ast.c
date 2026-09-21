@@ -788,9 +788,9 @@ validate_stmt(stmt_ty stmt)
         ret = validate_expr(stmt->v.AugAssign.target, Store) &&
             validate_expr(stmt->v.AugAssign.value, Load);
         break;
-    case CoalesceAssign_kind:
-        ret = validate_expr(stmt->v.CoalesceAssign.target, Store) &&
-            validate_expr(stmt->v.CoalesceAssign.value, Load);
+    case BoolAssign_kind:
+        ret = validate_expr(stmt->v.BoolAssign.target, Store) &&
+            validate_expr(stmt->v.BoolAssign.value, Load);
         break;
     case AnnAssign_kind:
         if (stmt->v.AnnAssign.target->kind != Name_kind &&
