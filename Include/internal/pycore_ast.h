@@ -186,8 +186,8 @@ struct _mod {
 
 enum _stmt_kind {FunctionDef_kind=1, AsyncFunctionDef_kind=2, ClassDef_kind=3,
                   Return_kind=4, Delete_kind=5, Assign_kind=6,
-                  TypeAlias_kind=7, AugAssign_kind=8, AnnAssign_kind=9,
-                  CoalesceAssign_kind=10, For_kind=11, AsyncFor_kind=12,
+                  TypeAlias_kind=7, AugAssign_kind=8, BoolAssign_kind=9,
+                  AnnAssign_kind=10, For_kind=11, AsyncFor_kind=12,
                   While_kind=13, If_kind=14, With_kind=15, AsyncWith_kind=16,
                   Match_kind=17, Raise_kind=18, Try_kind=19, TryStar_kind=20,
                   Assert_kind=21, Import_kind=22, ImportFrom_kind=23,
@@ -253,15 +253,16 @@ struct _stmt {
 
         struct {
             expr_ty target;
+            boolop_ty op;
+            expr_ty value;
+        } BoolAssign;
+
+        struct {
+            expr_ty target;
             expr_ty annotation;
             expr_ty value;
             int simple;
         } AnnAssign;
-
-        struct {
-            expr_ty target;
-            expr_ty value;
-        } CoalesceAssign;
 
         struct {
             expr_ty target;
@@ -745,12 +746,12 @@ stmt_ty _PyAST_TypeAlias(expr_ty name, asdl_type_param_seq * type_params,
 stmt_ty _PyAST_AugAssign(expr_ty target, operator_ty op, expr_ty value, int
                          lineno, int col_offset, int end_lineno, int
                          end_col_offset, PyArena *arena);
+stmt_ty _PyAST_BoolAssign(expr_ty target, boolop_ty op, expr_ty value, int
+                          lineno, int col_offset, int end_lineno, int
+                          end_col_offset, PyArena *arena);
 stmt_ty _PyAST_AnnAssign(expr_ty target, expr_ty annotation, expr_ty value, int
                          simple, int lineno, int col_offset, int end_lineno,
                          int end_col_offset, PyArena *arena);
-stmt_ty _PyAST_CoalesceAssign(expr_ty target, expr_ty value, int lineno, int
-                              col_offset, int end_lineno, int end_col_offset,
-                              PyArena *arena);
 stmt_ty _PyAST_For(expr_ty target, expr_ty iter, asdl_stmt_seq * body,
                    asdl_stmt_seq * orelse, string type_comment, int lineno, int
                    col_offset, int end_lineno, int end_col_offset, PyArena
