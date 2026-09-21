@@ -2442,6 +2442,79 @@ class GrammarTests(unittest.TestCase):
         self.assertEqual(d, 1)
         self.assertEqual(e, 0)
 
+    def test_boolean_and_assign(self):
+        class A:
+            v1 = "Hello"
+            v2 = [None]
+            v3 = None
+
+        a = A()
+        b = "World"
+        c = None
+        d = 1
+        e = 0
+
+        self.assertEqual(a.v1, "Hello")
+        self.assertEqual(a.v2, [None])
+        self.assertIsNone(a.v3, None)
+        self.assertEqual(b, "World")
+        self.assertIsNone(c, None)
+        self.assertEqual(d, 1)
+        self.assertEqual(e, 0)
+
+
+        a.v1 and= 1
+        a.v2[0] and= 2
+        a.v3 and= 3
+        b and= 4
+        c and= 5
+        d and= 6
+        e and= 7
+
+        self.assertEqual(a.v1, 1)
+        self.assertEqual(a.v2, [None])
+        self.assertEqual(a.v3, None)
+        self.assertEqual(b, 4)
+        self.assertEqual(c, None)
+        self.assertEqual(d, 6)
+        self.assertEqual(e, 0)
+
+    def test_boolean_not_assign(self):
+        class A:
+            v1 = "Hello"
+            v2 = [None]
+            v3 = None
+
+        a = A()
+        b = "World"
+        c = None
+        d = 1
+        e = 0
+
+        self.assertEqual(a.v1, "Hello")
+        self.assertEqual(a.v2, [None])
+        self.assertIsNone(a.v3, None)
+        self.assertEqual(b, "World")
+        self.assertIsNone(c, None)
+        self.assertEqual(d, 1)
+        self.assertEqual(e, 0)
+
+        a.v1 or= 1
+        a.v2[0] or= 2
+        a.v3 or= 3
+        b or= 4
+        c or= 5
+        d or= 6
+        e or= 7
+
+        self.assertEqual(a.v1, "Hello")
+        self.assertEqual(a.v2, [2])
+        self.assertEqual(a.v3, 3)
+        self.assertEqual(b, "World")
+        self.assertEqual(c, 5)
+        self.assertEqual(d, 1)
+        self.assertEqual(e, 7)
+
 
 if __name__ == '__main__':
     unittest.main()
