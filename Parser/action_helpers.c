@@ -748,6 +748,18 @@ _PyPegen_augoperator(Parser *p, operator_ty kind)
     return a;
 }
 
+/* Encapsulates the value of an boolop_ty into an BoolOperator struct */
+BoolOperator *
+_PyPegen_booloperator(Parser *p, boolop_ty kind)
+{
+    BoolOperator *b = _PyArena_Malloc(p->arena, sizeof(BoolOperator));
+    if (!b) {
+        return NULL;
+    }
+    b->kind = kind;
+    return b;
+}
+
 /* Construct a FunctionDef equivalent to function_def, but with decorators */
 stmt_ty
 _PyPegen_function_def_decorators(Parser *p, asdl_expr_seq *decorators, stmt_ty function_def)
