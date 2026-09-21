@@ -5770,11 +5770,13 @@ codegen_augassign_boolassign(compiler *c, stmt_ty s)
     } else {
         switch (s->v.BoolAssign.op) {
         case And:
+            ADDOP(c, loc, TO_BOOL);
+            ADDOP_JUMP(c, loc, POP_JUMP_IF_FALSE, cleanup);
+            break;
         case Or:
-            PyErr_Format(PyExc_SyntaxError,
-                "invalid operator for boolean assignment",
-                s->v.BoolAssign.op);
-            return ERROR;
+            ADDOP(c, loc, TO_BOOL);
+            ADDOP_JUMP(c, loc, POP_JUMP_IF_TRUE, cleanup);
+            break;
         case Coalesce:
             ADDOP_JUMP(c, loc, POP_JUMP_IF_NOT_NONE, cleanup);
             break;

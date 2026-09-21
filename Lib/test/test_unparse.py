@@ -326,10 +326,16 @@ class UnparseTestCase(ASTTestCase):
             self.check_ast_roundtrip(c1)
             self.check_src_roundtrip(c1, expected)
 
-    def test_none_coalescing_operators(self):
+    def test_none_coalescing_operator(self):
         self.check_ast_roundtrip("a ?? c")
         self.check_ast_roundtrip("a or b.func() ?? c")
         self.check_ast_roundtrip("(a if True else b.func()) ?? c ?? c")
+
+    def test_boolean_assignment_operators(self):
+        self.check_ast_roundtrip("a and= c")
+        self.check_ast_roundtrip("a[1] and= c")
+        self.check_ast_roundtrip("a or= c")
+        self.check_ast_roundtrip("a[1] or= c")
         self.check_ast_roundtrip("a ??= c")
         self.check_ast_roundtrip("a[1] ??= c")
 
