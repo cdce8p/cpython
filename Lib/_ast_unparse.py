@@ -267,6 +267,12 @@ class Unparser(NodeVisitor):
         self.write(" " + self.binop[node.op.__class__.__name__] + "= ")
         self.traverse(node.value)
 
+    def visit_BoolAssign(self, node):
+        self.fill()
+        self.traverse(node.target)
+        self.write(f" {self.boolops[node.op.__class__.__name__]}=")
+        self.traverse(node.value)
+
     def visit_AnnAssign(self, node):
         self.fill()
         with self.delimit_if("(", ")", not node.simple and isinstance(node.target, Name)):
@@ -276,12 +282,6 @@ class Unparser(NodeVisitor):
         if node.value:
             self.write(" = ")
             self.traverse(node.value)
-
-    def visit_CoalesceAssign(self, node):
-        self.fill()
-        self.traverse(node.target)
-        self.write(" ??= ")
-        self.traverse(node.value)
 
     def visit_Return(self, node):
         self.fill("return")
