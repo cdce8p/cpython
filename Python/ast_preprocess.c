@@ -738,9 +738,9 @@ astfold_stmt(stmt_ty node_, PyArena *ctx_, _PyASTPreprocessState *state)
         CALL(astfold_expr, expr_ty, node_->v.AugAssign.target);
         CALL(astfold_expr, expr_ty, node_->v.AugAssign.value);
         break;
-    case CoalesceAssign_kind:
-        CALL(astfold_expr, expr_ty, node_->v.CoalesceAssign.target);
-        CALL(astfold_expr, expr_ty, node_->v.CoalesceAssign.value);
+    case BoolAssign_kind:
+        CALL(astfold_expr, expr_ty, node_->v.BoolAssign.target);
+        CALL(astfold_expr, expr_ty, node_->v.BoolAssign.value);
         break;
     case AnnAssign_kind:
         CALL(astfold_expr, expr_ty, node_->v.AnnAssign.target);
