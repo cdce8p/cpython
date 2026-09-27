@@ -388,10 +388,6 @@ int _PyOpcode_num_popped(int opcode, int oparg)  {
             return 1;
         case MATCH_KEYS:
             return 2;
-        case MATCH_MAPPING:
-            return 1;
-        case MATCH_SEQUENCE:
-            return 1;
         case NOP:
             return 0;
         case NOT_TAKEN:
@@ -885,10 +881,6 @@ int _PyOpcode_num_pushed(int opcode, int oparg)  {
             return 3;
         case MATCH_KEYS:
             return 3;
-        case MATCH_MAPPING:
-            return 2;
-        case MATCH_SEQUENCE:
-            return 2;
         case NOP:
             return 0;
         case NOT_TAKEN:
@@ -1274,8 +1266,6 @@ const struct opcode_metadata _PyOpcode_opcode_metadata[267] = {
     [MATCH_CLASS] = { true, INSTR_FMT_IB, HAS_ARG_FLAG | HAS_ERROR_FLAG | HAS_ERROR_NO_POP_FLAG | HAS_ESCAPES_FLAG },
     [MATCH_CLASS_GET_OPT_ATTR] = { true, INSTR_FMT_IB, HAS_ARG_FLAG | HAS_NAME_FLAG | HAS_ERROR_FLAG | HAS_ESCAPES_FLAG },
     [MATCH_KEYS] = { true, INSTR_FMT_IX, HAS_ERROR_FLAG | HAS_ESCAPES_FLAG },
-    [MATCH_MAPPING] = { true, INSTR_FMT_IX, 0 },
-    [MATCH_SEQUENCE] = { true, INSTR_FMT_IX, 0 },
     [NOP] = { true, INSTR_FMT_IX, HAS_PURE_FLAG },
     [NOT_TAKEN] = { true, INSTR_FMT_IX, HAS_PURE_FLAG },
     [POP_EXCEPT] = { true, INSTR_FMT_IX, HAS_ESCAPES_FLAG },
@@ -1496,8 +1486,6 @@ _PyOpcode_macro_expansion[256] = {
     [MATCH_CLASS] = { .nuops = 4, .uops = { { _MATCH_CLASS, OPARG_SIMPLE, 0 }, { _POP_TOP, OPARG_SIMPLE, 0 }, { _POP_TOP, OPARG_SIMPLE, 0 }, { _POP_TOP, OPARG_SIMPLE, 0 } } },
     [MATCH_CLASS_GET_OPT_ATTR] = { .nuops = 1, .uops = { { _MATCH_CLASS_GET_OPT_ATTR, OPARG_SIMPLE, 0 } } },
     [MATCH_KEYS] = { .nuops = 1, .uops = { { _MATCH_KEYS, OPARG_SIMPLE, 0 } } },
-    [MATCH_MAPPING] = { .nuops = 1, .uops = { { _MATCH_MAPPING, OPARG_SIMPLE, 0 } } },
-    [MATCH_SEQUENCE] = { .nuops = 1, .uops = { { _MATCH_SEQUENCE, OPARG_SIMPLE, 0 } } },
     [NOP] = { .nuops = 1, .uops = { { _NOP, OPARG_SIMPLE, 0 } } },
     [NOT_TAKEN] = { .nuops = 1, .uops = { { _NOP, OPARG_SIMPLE, 0 } } },
     [POP_EXCEPT] = { .nuops = 1, .uops = { { _POP_EXCEPT, OPARG_SIMPLE, 0 } } },
@@ -1733,8 +1721,6 @@ const char *_PyOpcode_OpName[267] = {
     [MATCH_CLASS] = "MATCH_CLASS",
     [MATCH_CLASS_GET_OPT_ATTR] = "MATCH_CLASS_GET_OPT_ATTR",
     [MATCH_KEYS] = "MATCH_KEYS",
-    [MATCH_MAPPING] = "MATCH_MAPPING",
-    [MATCH_SEQUENCE] = "MATCH_SEQUENCE",
     [NOP] = "NOP",
     [NOT_TAKEN] = "NOT_TAKEN",
     [POP_BLOCK] = "POP_BLOCK",
@@ -1834,6 +1820,8 @@ const uint8_t _PyOpcode_Caches[256] = {
 PyAPI_DATA(const uint8_t) _PyOpcode_Deopt[256];
 #ifdef NEED_OPCODE_METADATA
 const uint8_t _PyOpcode_Deopt[256] = {
+    [116] = 116,
+    [117] = 117,
     [118] = 118,
     [119] = 119,
     [120] = 120,
@@ -2028,8 +2016,6 @@ const uint8_t _PyOpcode_Deopt[256] = {
     [MATCH_CLASS] = MATCH_CLASS,
     [MATCH_CLASS_GET_OPT_ATTR] = MATCH_CLASS_GET_OPT_ATTR,
     [MATCH_KEYS] = MATCH_KEYS,
-    [MATCH_MAPPING] = MATCH_MAPPING,
-    [MATCH_SEQUENCE] = MATCH_SEQUENCE,
     [NOP] = NOP,
     [NOT_TAKEN] = NOT_TAKEN,
     [POP_EXCEPT] = POP_EXCEPT,
@@ -2095,6 +2081,8 @@ const uint8_t _PyOpcode_Deopt[256] = {
 #endif // NEED_OPCODE_METADATA
 
 #define EXTRA_CASES \
+    case 116: \
+    case 117: \
     case 118: \
     case 119: \
     case 120: \

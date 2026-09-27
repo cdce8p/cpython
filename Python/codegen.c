@@ -6412,7 +6412,8 @@ codegen_pattern_mapping(compiler *c, pattern_ty p,
     PyObject *star_target = p->v.MatchMapping.rest;
     // We need to keep the subject on top during the mapping and length checks:
     pc->on_top++;
-    ADDOP(c, LOC(p), MATCH_MAPPING);
+    ADDOP_I(c, LOC(p), COPY, 1);
+    ADDOP_I(c, LOC(p), CALL_INTRINSIC_1, INTRINSIC_MATCH_MAPPING);
     RETURN_IF_ERROR(jump_to_fail_pop(c, LOC(p), pc, POP_JUMP_IF_FALSE));
     if (!size && !star_target) {
         // If the pattern is just "{}", we're done! Pop the subject:
@@ -6673,7 +6674,8 @@ codegen_pattern_sequence(compiler *c, pattern_ty p,
     }
     // We need to keep the subject on top during the sequence and length checks:
     pc->on_top++;
-    ADDOP(c, LOC(p), MATCH_SEQUENCE);
+    ADDOP_I(c, LOC(p), COPY, 1);
+    ADDOP_I(c, LOC(p), CALL_INTRINSIC_1, INTRINSIC_MATCH_SEQUENCE);
     RETURN_IF_ERROR(jump_to_fail_pop(c, LOC(p), pc, POP_JUMP_IF_FALSE));
     if (star < 0) {
         // No star: len(subject) == size

@@ -1016,26 +1016,6 @@ iterations of the loop.
    .. versionadded:: 3.10
 
 
-.. opcode:: MATCH_MAPPING
-
-   If ``STACK[-1]`` is an instance of :class:`collections.abc.Mapping` (or, more
-   technically: if it has the :c:macro:`Py_TPFLAGS_MAPPING` flag set in its
-   :c:member:`~PyTypeObject.tp_flags`), push ``True`` onto the stack.  Otherwise,
-   push ``False``.
-
-   .. versionadded:: 3.10
-
-
-.. opcode:: MATCH_SEQUENCE
-
-   If ``STACK[-1]`` is an instance of :class:`collections.abc.Sequence` and is *not* an instance
-   of :class:`str`/:class:`bytes`/:class:`bytearray` (or, more technically: if it has
-   the :c:macro:`Py_TPFLAGS_SEQUENCE` flag set in its :c:member:`~PyTypeObject.tp_flags`),
-   push ``True`` onto the stack.  Otherwise, push ``False``.
-
-   .. versionadded:: 3.10
-
-
 .. opcode:: MATCH_KEYS
 
    ``STACK[-1]`` is a tuple of mapping keys, and ``STACK[-2]`` is the match subject.
@@ -1900,8 +1880,33 @@ iterations of the loop.
    |                                   | of the type alias's name,         |
    |                                   | type parameters, and value.       |
    +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_MATCH_MAPPING``       | Return ``true`` if subject is an  |
+   |                                   | instance of                       |
+   |                                   | :class:`collections.abc.Mapping`  |
+   |                                   | (or, more technically: if it has  |
+   |                                   | the :c:marco:`Py_TPFLAGS_MAPPING` |
+   |                                   | flag set in its                   |
+   |                                   | :c:member:`~PyTypeObject.tp_flags`|
+   |                                   | ). Otherwise ``false``.           |
+   +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_MATCH_SEQUENCE``      | Return ``true`` if subject is an  |
+   |                                   | instance of                       |
+   |                                   | :class:`collections.abc.Sequence` |
+   |                                   | and is *not* an instance of       |
+   |                                   | :class:`str` / :class:`bytes` /   |
+   |                                   | :class:`bytearray` (or, more      |
+   |                                   | technically: if it has the        |
+   |                                   | :c:marco:`Py_TPFLAGS_SEQUENCE`    |
+   |                                   | flag set in its                   |
+   |                                   | :c:member:`~PyTypeObject.tp_flags`|
+   |                                   | ). Otherwise ``false``.           |
+   +-----------------------------------+-----------------------------------+
 
    .. versionadded:: 3.12
+
+   .. versionchanged:: 3.16
+      Added ``INTRINSIC_MATCH_MAPPING`` and ``INTRINSIC_MATCH_SEQUENCE``.
+
 
 .. opcode:: CALL_INTRINSIC_2
 

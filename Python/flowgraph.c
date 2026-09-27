@@ -3018,8 +3018,6 @@ optimize_load_fast(cfg_builder *g)
                 case GET_LEN:
                 case IMPORT_FROM:
                 case MATCH_KEYS:
-                case MATCH_MAPPING:
-                case MATCH_SEQUENCE:
                 case WITH_EXCEPT_START: {
                     int num_popped = _PyOpcode_num_popped(opcode, oparg);
                     int num_pushed = _PyOpcode_num_pushed(opcode, oparg);

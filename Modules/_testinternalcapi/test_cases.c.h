@@ -10951,44 +10951,6 @@
             DISPATCH();
         }
 
-        TARGET(MATCH_MAPPING) {
-            #if _Py_TAIL_CALL_INTERP
-            int opcode = MATCH_MAPPING;
-            (void)(opcode);
-            #endif
-            frame->instr_ptr = next_instr;
-            next_instr += 1;
-            INSTRUCTION_STATS(MATCH_MAPPING);
-            _PyStackRef subject;
-            _PyStackRef res;
-            subject = stack_pointer[-1];
-            int match = PyStackRef_TYPE(subject)->tp_flags & Py_TPFLAGS_MAPPING;
-            res = match ? PyStackRef_True : PyStackRef_False;
-            stack_pointer[0] = res;
-            stack_pointer += 1;
-            ASSERT_WITHIN_STACK_BOUNDS(__FILE__, __LINE__);
-            DISPATCH();
-        }
-
-        TARGET(MATCH_SEQUENCE) {
-            #if _Py_TAIL_CALL_INTERP
-            int opcode = MATCH_SEQUENCE;
-            (void)(opcode);
-            #endif
-            frame->instr_ptr = next_instr;
-            next_instr += 1;
-            INSTRUCTION_STATS(MATCH_SEQUENCE);
-            _PyStackRef subject;
-            _PyStackRef res;
-            subject = stack_pointer[-1];
-            int match = PyStackRef_TYPE(subject)->tp_flags & Py_TPFLAGS_SEQUENCE;
-            res = match ? PyStackRef_True : PyStackRef_False;
-            stack_pointer[0] = res;
-            stack_pointer += 1;
-            ASSERT_WITHIN_STACK_BOUNDS(__FILE__, __LINE__);
-            DISPATCH();
-        }
-
         TARGET(NOP) {
             #if _Py_TAIL_CALL_INTERP
             int opcode = NOP;

@@ -3545,26 +3545,6 @@
             break;
         }
 
-        case _MATCH_MAPPING: {
-            JitOptRef res;
-            res = sym_new_not_null(ctx);
-            CHECK_STACK_BOUNDS(1);
-            stack_pointer[0] = res;
-            stack_pointer += 1;
-            ASSERT_WITHIN_STACK_BOUNDS(__FILE__, __LINE__);
-            break;
-        }
-
-        case _MATCH_SEQUENCE: {
-            JitOptRef res;
-            res = sym_new_not_null(ctx);
-            CHECK_STACK_BOUNDS(1);
-            stack_pointer[0] = res;
-            stack_pointer += 1;
-            ASSERT_WITHIN_STACK_BOUNDS(__FILE__, __LINE__);
-            break;
-        }
-
         case _MATCH_KEYS: {
             JitOptRef values_or_none;
             values_or_none = sym_new_not_null(ctx);

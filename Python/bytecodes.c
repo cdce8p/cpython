@@ -3726,16 +3726,6 @@ dummy_func(
 
         macro(MATCH_CLASS) = _MATCH_CLASS + POP_TOP + POP_TOP + POP_TOP;
 
-        inst(MATCH_MAPPING, (subject -- subject, res)) {
-            int match = PyStackRef_TYPE(subject)->tp_flags & Py_TPFLAGS_MAPPING;
-            res = match ? PyStackRef_True : PyStackRef_False;
-        }
-
-        inst(MATCH_SEQUENCE, (subject -- subject, res)) {
-            int match = PyStackRef_TYPE(subject)->tp_flags & Py_TPFLAGS_SEQUENCE;
-            res = match ? PyStackRef_True : PyStackRef_False;
-        }
-
         inst(MATCH_KEYS, (subject, keys -- subject, keys, values_or_none)) {
             // On successful match, PUSH(values). Otherwise, PUSH(None).
             PyObject *values_or_none_o = _PyEval_MatchKeys(tstate,
