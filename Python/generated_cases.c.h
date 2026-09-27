@@ -10836,7 +10836,7 @@
                     PyStackRef_AsPyObjectBorrow(names));
                 _PyFrame_StackPointerInvalidate(frame);
                 if (attrs_o) {
-                    assert(PyTuple_CheckExact(attrs_o));
+                    assert(attrs_o != NULL);
                     attrs = PyStackRef_FromPyObjectSteal(attrs_o);
                 }
                 else {

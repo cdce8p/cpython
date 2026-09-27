@@ -562,10 +562,13 @@ _PyEval_MatchClass(PyThreadState *tstate, PyObject *subject, PyObject *type,
             return NULL;
         }
     }
-    PyObject *attrs = PyTuple_New(nattrs);
-    if (attrs == NULL) {
-        Py_XDECREF(seen);
-        return NULL;
+    PyObject *attrs = NULL;
+    if (nattrs > 1) {
+        attrs = PyTuple_New(nattrs);
+        if (attrs == NULL) {
+            Py_XDECREF(seen);
+            return NULL;
+        }
     }
     // NOTE: From this point on, goto fail on failure:
     PyObject *match_args = NULL;
@@ -605,8 +608,13 @@ _PyEval_MatchClass(PyThreadState *tstate, PyObject *subject, PyObject *type,
         }
         if (match_self) {
             // Easy. Copy the subject itself, and move on to kwargs.
-            assert(PyTuple_GET_ITEM(attrs, 0) == NULL);
-            PyTuple_SET_ITEM(attrs, 0, Py_NewRef(subject));
+            if (nattrs > 1) {
+                assert(PyTuple_GET_ITEM(attrs, 0) == NULL);
+                PyTuple_SET_ITEM(attrs, 0, Py_NewRef(subject));
+            } else {
+                assert(attrs == NULL);
+                attrs = Py_NewRef(subject);
+            }
         }
         else {
             for (Py_ssize_t i = 0; i < nargs; i++) {
@@ -622,8 +630,13 @@ _PyEval_MatchClass(PyThreadState *tstate, PyObject *subject, PyObject *type,
                 if (attr == NULL) {
                     goto fail;
                 }
-                assert(PyTuple_GET_ITEM(attrs, i) == NULL);
-                PyTuple_SET_ITEM(attrs, i, attr);
+                if (nattrs > 1) {
+                    assert(PyTuple_GET_ITEM(attrs, i) == NULL);
+                    PyTuple_SET_ITEM(attrs, i, attr);
+                } else {
+                    assert(attrs == NULL);
+                    attrs = attr;
+                }
             }
         }
         Py_CLEAR(match_args);
@@ -635,6 +648,7 @@ _PyEval_MatchClass(PyThreadState *tstate, PyObject *subject, PyObject *type,
         if (attr == NULL) {
             goto fail;
         }
+        assert(PyTuple_CheckExact(attrs));
         assert(PyTuple_GET_ITEM(attrs, nargs + i) == NULL);
         PyTuple_SET_ITEM(attrs, nargs + i, attr);
     }
@@ -645,7 +659,7 @@ fail:
     // caller's problem. All we know is that the match failed.
     Py_XDECREF(match_args);
     Py_XDECREF(seen);
-    Py_DECREF(attrs);
+    Py_XDECREF(attrs);
     return NULL;
 }
 

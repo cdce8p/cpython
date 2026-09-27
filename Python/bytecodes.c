@@ -3709,7 +3709,7 @@ dummy_func(
                 PyStackRef_AsPyObjectBorrow(type), oparg,
                 PyStackRef_AsPyObjectBorrow(names));
             if (attrs_o) {
-                assert(PyTuple_CheckExact(attrs_o));  // Success!
+                assert(attrs_o != NULL);  // Success!
                 attrs = PyStackRef_FromPyObjectSteal(attrs_o);
             }
             else {

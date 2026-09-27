@@ -1775,13 +1775,18 @@ iterations of the loop.
    Pop ``STACK[-1]``, ``STACK[-2]``, and ``STACK[-3]``. If ``STACK[-3]`` is an
    instance of ``STACK[-2]`` and has the positional and keyword attributes
    required by *count* and ``STACK[-1]``, push a tuple of extracted attributes.
-   Otherwise, push ``None``.
+   If there is only one positional attribute, the extracted  attributed is pushed
+   to the stack directly. Otherwise, push ``None``.
 
    .. versionadded:: 3.10
 
    .. versionchanged:: 3.11
       Previously, this instruction also pushed a boolean value indicating
       success (``True``) or failure (``False``).
+
+   .. versionchanged:: 3.16
+      Previously, this instruction always pushed a tuple of all extracted attributes
+      even for just one.
 
 
 .. opcode:: RESUME (context)

@@ -6328,24 +6328,36 @@ codegen_pattern_class(compiler *c, pattern_ty p, pattern_context *pc)
     // TOS is now a tuple of (nargs + nattrs) attributes (or None):
     pc->on_top++;
     RETURN_IF_ERROR(jump_to_fail_pop(c, LOC(p), pc, POP_JUMP_IF_FALSE));
-    ADDOP_I(c, LOC(p), UNPACK_SEQUENCE, nargs + nattrs);
-    pc->on_top += nargs + nattrs - 1;
-    for (i = 0; i < nargs + nattrs; i++) {
+    if (nargs + nattrs > 1) {
+        ADDOP_I(c, LOC(p), UNPACK_SEQUENCE, nargs + nattrs);
+        pc->on_top += nargs + nattrs - 1;
+        for (i = 0; i < nargs + nattrs; i++) {
+            pc->on_top--;
+            pattern_ty pattern;
+            if (i < nargs) {
+                // Positional:
+                pattern = asdl_seq_GET(patterns, i);
+            }
+            else {
+                // Keyword:
+                pattern = asdl_seq_GET(kwd_patterns, i - nargs);
+            }
+            if (WILDCARD_CHECK(pattern)) {
+                ADDOP(c, LOC(p), POP_TOP);
+                continue;
+            }
+            RETURN_IF_ERROR(codegen_pattern_subpattern(c, pattern, pc));
+        }
+    } else {
+        assert(nargs == 1 && nattrs == 0);
         pc->on_top--;
         pattern_ty pattern;
-        if (i < nargs) {
-            // Positional:
-            pattern = asdl_seq_GET(patterns, i);
-        }
-        else {
-            // Keyword:
-            pattern = asdl_seq_GET(kwd_patterns, i - nargs);
-        }
+        pattern = asdl_seq_GET(patterns, 0);
         if (WILDCARD_CHECK(pattern)) {
             ADDOP(c, LOC(p), POP_TOP);
-            continue;
+        } else {
+            RETURN_IF_ERROR(codegen_pattern_subpattern(c, pattern, pc));
         }
-        RETURN_IF_ERROR(codegen_pattern_subpattern(c, pattern, pc));
     }
     // Success! Pop the tuple of attributes:
     return SUCCESS;
