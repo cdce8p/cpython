@@ -19,8 +19,10 @@
 #define INTRINSIC_SUBSCRIPT_GENERIC             10
 #define INTRINSIC_TYPEALIAS                     11
 #define INTRINSIC_BUILD_FROZENSET               12
+#define INTRINSIC_MATCH_MAPPING                 13
+#define INTRINSIC_MATCH_SEQUENCE                14
 
-#define MAX_INTRINSIC_1                         12
+#define MAX_INTRINSIC_1                         14
 
 
 /* Binary Functions: */

@@ -216,6 +216,20 @@ make_frozenset(PyThreadState* Py_UNUSED(ignored), PyObject *set)
     return _PySet_Freeze(set);
 }
 
+static PyObject *
+is_match_mapping(PyThreadState* Py_UNUSED(ignored), PyObject *subject)
+{
+    int match = Py_TYPE(subject)->tp_flags & Py_TPFLAGS_MAPPING;
+    return match ? Py_True : Py_False;
+}
+
+static PyObject *
+is_match_sequence(PyThreadState* Py_UNUSED(ignored), PyObject *subject)
+{
+    int match = Py_TYPE(subject)->tp_flags & Py_TPFLAGS_SEQUENCE;
+    return match ? Py_True : Py_False;
+}
+
 
 #define INTRINSIC_FUNC_ENTRY(N, F) \
     [N] = {F, #N},
@@ -235,6 +249,8 @@ _PyIntrinsics_UnaryFunctions[] = {
     INTRINSIC_FUNC_ENTRY(INTRINSIC_SUBSCRIPT_GENERIC, _Py_subscript_generic)
     INTRINSIC_FUNC_ENTRY(INTRINSIC_TYPEALIAS, _Py_make_typealias)
     INTRINSIC_FUNC_ENTRY(INTRINSIC_BUILD_FROZENSET, make_frozenset)
+    INTRINSIC_FUNC_ENTRY(INTRINSIC_MATCH_MAPPING, is_match_mapping)
+    INTRINSIC_FUNC_ENTRY(INTRINSIC_MATCH_SEQUENCE, is_match_sequence)
 };
 
 

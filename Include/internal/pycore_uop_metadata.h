@@ -259,8 +259,6 @@ const uint32_t _PyUop_Flags[MAX_UOP_ID+1] = {
     [_GET_LEN] = HAS_ERROR_FLAG | HAS_ESCAPES_FLAG,
     [_MATCH_CLASS_GET_OPT_ATTR] = HAS_ARG_FLAG | HAS_NAME_FLAG | HAS_ERROR_FLAG | HAS_ESCAPES_FLAG,
     [_MATCH_CLASS] = HAS_ARG_FLAG | HAS_ERROR_FLAG | HAS_ERROR_NO_POP_FLAG | HAS_ESCAPES_FLAG,
-    [_MATCH_MAPPING] = 0,
-    [_MATCH_SEQUENCE] = 0,
     [_MATCH_KEYS] = HAS_ERROR_FLAG | HAS_ESCAPES_FLAG,
     [_GET_ITER] = HAS_ARG_FLAG | HAS_ERROR_FLAG | HAS_ESCAPES_FLAG,
     [_GUARD_ITERATOR] = HAS_EXIT_FLAG,
@@ -2464,24 +2462,6 @@ const _PyUopCachingInfo _PyUop_Caching[MAX_UOP_ID+1] = {
             { 3, 3, _MATCH_CLASS_r33 },
         },
     },
-    [_MATCH_MAPPING] = {
-        .best = { 0, 1, 2, 2 },
-        .entries = {
-            { 2, 0, _MATCH_MAPPING_r02 },
-            { 2, 1, _MATCH_MAPPING_r12 },
-            { 3, 2, _MATCH_MAPPING_r23 },
-            { -1, -1, -1 },
-        },
-    },
-    [_MATCH_SEQUENCE] = {
-        .best = { 0, 1, 2, 2 },
-        .entries = {
-            { 2, 0, _MATCH_SEQUENCE_r02 },
-            { 2, 1, _MATCH_SEQUENCE_r12 },
-            { 3, 2, _MATCH_SEQUENCE_r23 },
-            { -1, -1, -1 },
-        },
-    },
     [_MATCH_KEYS] = {
         .best = { 2, 2, 2, 2 },
         .entries = {
@@ -4461,12 +4441,6 @@ const uint16_t _PyUop_Uncached[MAX_UOP_REGS_ID+1] = {
     [_GET_LEN_r12] = _GET_LEN,
     [_MATCH_CLASS_GET_OPT_ATTR_r13] = _MATCH_CLASS_GET_OPT_ATTR,
     [_MATCH_CLASS_r33] = _MATCH_CLASS,
-    [_MATCH_MAPPING_r02] = _MATCH_MAPPING,
-    [_MATCH_MAPPING_r12] = _MATCH_MAPPING,
-    [_MATCH_MAPPING_r23] = _MATCH_MAPPING,
-    [_MATCH_SEQUENCE_r02] = _MATCH_SEQUENCE,
-    [_MATCH_SEQUENCE_r12] = _MATCH_SEQUENCE,
-    [_MATCH_SEQUENCE_r23] = _MATCH_SEQUENCE,
     [_MATCH_KEYS_r23] = _MATCH_KEYS,
     [_GET_ITER_r12] = _GET_ITER,
     [_GUARD_ITERATOR_r01] = _GUARD_ITERATOR,
@@ -5920,14 +5894,6 @@ const char *const _PyOpcode_uop_name[MAX_UOP_REGS_ID+1] = {
     [_MATCH_CLASS_GET_OPT_ATTR_r13] = "_MATCH_CLASS_GET_OPT_ATTR_r13",
     [_MATCH_KEYS] = "_MATCH_KEYS",
     [_MATCH_KEYS_r23] = "_MATCH_KEYS_r23",
-    [_MATCH_MAPPING] = "_MATCH_MAPPING",
-    [_MATCH_MAPPING_r02] = "_MATCH_MAPPING_r02",
-    [_MATCH_MAPPING_r12] = "_MATCH_MAPPING_r12",
-    [_MATCH_MAPPING_r23] = "_MATCH_MAPPING_r23",
-    [_MATCH_SEQUENCE] = "_MATCH_SEQUENCE",
-    [_MATCH_SEQUENCE_r02] = "_MATCH_SEQUENCE_r02",
-    [_MATCH_SEQUENCE_r12] = "_MATCH_SEQUENCE_r12",
-    [_MATCH_SEQUENCE_r23] = "_MATCH_SEQUENCE_r23",
     [_MAYBE_EXPAND_METHOD] = "_MAYBE_EXPAND_METHOD",
     [_MAYBE_EXPAND_METHOD_r00] = "_MAYBE_EXPAND_METHOD_r00",
     [_MAYBE_EXPAND_METHOD_KW] = "_MAYBE_EXPAND_METHOD_KW",
@@ -6659,10 +6625,6 @@ int _PyUop_num_popped(int opcode, int oparg)
             return 0;
         case _MATCH_CLASS:
             return 3;
-        case _MATCH_MAPPING:
-            return 0;
-        case _MATCH_SEQUENCE:
-            return 0;
         case _MATCH_KEYS:
             return 0;
         case _GET_ITER:
