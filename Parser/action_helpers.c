@@ -1004,6 +1004,34 @@ _PyPegen_raise_error_for_missing_comma(Parser *p, expr_ty a, expr_ty b)
     );
 }
 
+expr_ty
+_PyPegen_primary_with_none_aware(Parser *p, expr_ty a)
+{
+    switch (a->kind) {
+        case Attribute_kind:
+            if (_PyPegen_primary_with_none_aware(p, a->v.Attribute.value)) {
+                return a;
+            }
+            break;
+        case Subscript_kind:
+            if (_PyPegen_primary_with_none_aware(p, a->v.Subscript.value)) {
+                return a;
+            }
+            break;
+        case Call_kind:
+            if (_PyPegen_primary_with_none_aware(p, a->v.Call.func)) {
+                return a;
+            }
+            break;
+        case NoneAwareAttribute_kind:
+        case NoneAwareSubscript_kind:
+            return a;
+        default:
+            return NULL;
+    }
+    return NULL;
+}
+
 static ResultTokenWithMetadata *
 result_token_with_metadata(Parser *p, void *result, PyObject *metadata)
 {
