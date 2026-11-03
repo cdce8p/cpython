@@ -2201,10 +2201,321 @@ _warn_relative_import_of_lazy(Parser *p, asdl_seq *dots, expr_ty module)
     return res;
 }
 
+static expr_ty
+_copy_boolop(Parser *p, expr_ty e) {
+    assert(e->kind == BoolOp_kind);
+    return _PyAST_BoolOp(e->v.BoolOp.op, e->v.BoolOp.values,
+                         EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_namedexpr(Parser *p, expr_ty e) {
+    assert(e->kind == NamedExpr_kind);
+    return _PyAST_NamedExpr(e->v.NamedExpr.target, e->v.NamedExpr.value,
+                            EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_binop(Parser *p, expr_ty e) {
+    assert(e->kind == BinOp_kind);
+    return _PyAST_BinOp(e->v.BinOp.left, e->v.BinOp.op, e->v.BinOp.right,
+                        EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_unaryop(Parser *p, expr_ty e) {
+    assert(e->kind == UnaryOp_kind);
+    return _PyAST_UnaryOp(e->v.UnaryOp.op, e->v.UnaryOp.operand, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_lambda(Parser *p, expr_ty e) {
+    assert(e->kind == Lambda_kind);
+    return _PyAST_Lambda(e->v.Lambda.args, e->v.Lambda.body, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_ifexp(Parser *p, expr_ty e) {
+    assert(e->kind == IfExp_kind);
+    return _PyAST_IfExp(e->v.IfExp.test, e->v.IfExp.body, e->v.IfExp.orelse,
+                        EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_dict(Parser *p, expr_ty e) {
+    assert(e->kind == Dict_kind);
+    return _PyAST_Dict(e->v.Dict.keys, e->v.Dict.values, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_set(Parser *p, expr_ty e) {
+    assert(e->kind == Set_kind);
+    return _PyAST_Set(e->v.Set.elts, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_listcomp(Parser *p, expr_ty e) {
+    assert(e->kind == ListComp_kind);
+    return _PyAST_ListComp(e->v.ListComp.elt, e->v.ListComp.generators,
+                           EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_setcomp(Parser *p, expr_ty e) {
+    assert(e->kind == SetComp_kind);
+    return _PyAST_SetComp(e->v.SetComp.elt, e->v.SetComp.generators,
+                          EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_dictcomp(Parser *p, expr_ty e) {
+    assert(e->kind == DictComp_kind);
+    return _PyAST_DictComp(e->v.DictComp.key, e->v.DictComp.value,
+                           e->v.DictComp.generators, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_generatorexp(Parser *p, expr_ty e) {
+    assert(e->kind == GeneratorExp_kind);
+    return _PyAST_GeneratorExp(e->v.GeneratorExp.elt,
+                               e->v.GeneratorExp.generators,
+                               EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_noneawareattribute(Parser *p, expr_ty e) {
+    assert(e->kind == NoneAwareAttribute_kind);
+    return _PyAST_NoneAwareAttribute(e->v.NoneAwareAttribute.value,
+                                     e->v.NoneAwareAttribute.attr,
+                                     EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_noneawaresubscript(Parser *p, expr_ty e) {
+    assert(e->kind == NoneAwareSubscript_kind);
+    return _PyAST_NoneAwareSubscript(e->v.NoneAwareSubscript.value,
+                                     e->v.NoneAwareSubscript.slice,
+                                     EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_await(Parser *p, expr_ty e) {
+    assert(e->kind == Await_kind);
+    return _PyAST_Await(e->v.Await.value, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_yield(Parser *p, expr_ty e) {
+    assert(e->kind == Yield_kind);
+    return _PyAST_Yield(e->v.Yield.value, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_yieldfrom(Parser *p, expr_ty e) {
+    assert(e->kind == YieldFrom_kind);
+    return _PyAST_YieldFrom(e->v.YieldFrom.value, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_compare(Parser *p, expr_ty e) {
+    assert(e->kind == Compare_kind);
+    return _PyAST_Compare(e->v.Compare.left, e->v.Compare.ops,
+                          e->v.Compare.comparators, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_call(Parser *p, expr_ty e) {
+    assert(e->kind == Call_kind);
+    return _PyAST_Call(e->v.Call.func, e->v.Call.args, e->v.Call.keywords,
+                       EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_formattedvalue(Parser *p, expr_ty e) {
+    assert(e->kind == FormattedValue_kind);
+    return _PyAST_FormattedValue(e->v.FormattedValue.value,
+                                 e->v.FormattedValue.conversion,
+                                 e->v.FormattedValue.format_spec,
+                                 EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_interpolation(Parser *p, expr_ty e) {
+    assert(e->kind == Interpolation_kind);
+    return _PyAST_Interpolation(e->v.Interpolation.value,
+                                e->v.Interpolation.str,
+                                e->v.Interpolation.conversion,
+                                e->v.Interpolation.format_spec,
+                                EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_joinedstr(Parser *p, expr_ty e) {
+    assert(e->kind == JoinedStr_kind);
+    return _PyAST_JoinedStr(e->v.JoinedStr.values, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_templatestr(Parser *p, expr_ty e) {
+    assert(e->kind == TemplateStr_kind);
+    return _PyAST_TemplateStr(e->v.TemplateStr.values, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_constant(Parser *p, expr_ty e) {
+    assert(e->kind == Constant_kind);
+    return _PyAST_Constant(e->v.Constant.value, e->v.Constant.kind, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_attribute(Parser *p, expr_ty e) {
+    assert(e->kind == Attribute_kind);
+    return _PyAST_Attribute(e->v.Attribute.value, e->v.Attribute.attr,
+                            e->v.Attribute.ctx, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_subscript(Parser *p, expr_ty e) {
+    assert(e->kind == Subscript_kind);
+    return _PyAST_Subscript(e->v.Subscript.value, e->v.Subscript.slice,
+                            e->v.Subscript.ctx, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_starred(Parser *p, expr_ty e) {
+    assert(e->kind == Starred_kind);
+    return _PyAST_Starred(e->v.Starred.value, e->v.Starred.ctx, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_name(Parser *p, expr_ty e) {
+    assert(e->kind == Name_kind);
+    return _PyAST_Name(e->v.Name.id, e->v.Name.ctx, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_list(Parser *p, expr_ty e) {
+    assert(e->kind == List_kind);
+    return _PyAST_List(e->v.List.elts, e->v.List.ctx, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_tuple(Parser *p, expr_ty e) {
+    assert(e->kind == Tuple_kind);
+    return _PyAST_Tuple(e->v.Tuple.elts, e->v.Tuple.ctx, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_slice(Parser *p, expr_ty e) {
+    assert(e->kind == Slice_kind);
+    return _PyAST_Slice(e->v.Slice.lower, e->v.Slice.upper, e->v.Slice.step,
+                        EXTRA_EXPRESSION(e, e));
+}
+
+
+
 expr_ty
 _PyPegen_set_group(Parser *p, expr_ty exp) {
-    exp->group = 1;
-    return exp;
+    assert(exp != NULL);
+
+    expr_ty new = NULL;
+    switch (exp->kind) {
+        case BoolOp_kind:
+            new = _copy_boolop(p, exp);
+            break;
+        case NamedExpr_kind:
+            new = _copy_namedexpr(p, exp);
+            break;
+        case BinOp_kind:
+            new = _copy_binop(p, exp);
+            break;
+        case UnaryOp_kind:
+            new = _copy_unaryop(p, exp);
+            break;
+        case Lambda_kind:
+            new = _copy_lambda(p, exp);
+            break;
+        case IfExp_kind:
+            new = _copy_ifexp(p, exp);
+            break;
+        case Dict_kind:
+            new = _copy_dict(p, exp);
+            break;
+        case Set_kind:
+            new = _copy_set(p, exp);
+            break;
+        case ListComp_kind:
+            new = _copy_listcomp(p, exp);
+            break;
+        case SetComp_kind:
+            new = _copy_setcomp(p, exp);
+            break;
+        case DictComp_kind:
+            new = _copy_dictcomp(p, exp);
+            break;
+        case GeneratorExp_kind:
+            new = _copy_generatorexp(p, exp);
+            break;
+        case NoneAwareAttribute_kind:
+            new = _copy_noneawareattribute(p, exp);
+            break;
+        case NoneAwareSubscript_kind:
+            new = _copy_noneawaresubscript(p, exp);
+            break;
+        case Await_kind:
+            new = _copy_await(p, exp);
+            break;
+        case Yield_kind:
+            new = _copy_yield(p, exp);
+            break;
+        case YieldFrom_kind:
+            new = _copy_yieldfrom(p, exp);
+            break;
+        case Compare_kind:
+            new = _copy_compare(p, exp);
+            break;
+        case Call_kind:
+            new = _copy_call(p, exp);
+            break;
+        case FormattedValue_kind:
+            new = _copy_formattedvalue(p, exp);
+            break;
+        case Interpolation_kind:
+            new = _copy_interpolation(p, exp);
+            break;
+        case JoinedStr_kind:
+            new = _copy_joinedstr(p, exp);
+            break;
+        case TemplateStr_kind:
+            new = _copy_templatestr(p, exp);
+            break;
+        case Constant_kind:
+            new = _copy_constant(p, exp);
+            break;
+        case Attribute_kind:
+            new = _copy_attribute(p, exp);
+            break;
+        case Subscript_kind:
+            new = _copy_subscript(p, exp);
+            break;
+        case Starred_kind:
+            new = _copy_starred(p, exp);
+            break;
+        case Name_kind:
+            new = _copy_name(p, exp);
+            break;
+        case List_kind:
+            new = _copy_list(p, exp);
+            break;
+        case Tuple_kind:
+            new = _copy_tuple(p, exp);
+            break;
+        case Slice_kind:
+            new = _copy_slice(p, exp);
+            break;
+    }
+    new->group = 1;
+    return new;
 }
 
 stmt_ty
