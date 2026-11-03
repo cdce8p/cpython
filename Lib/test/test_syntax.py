@@ -2931,7 +2931,12 @@ Invalid none attribute access expressions:
 
     >>> a?.b().c[0].d = 2
     Traceback (most recent call last):
-    SyntaxError: cannot assign to attribute here. Maybe you meant '==' instead of '='?
+    SyntaxError: cannot assign to none-aware expression
+
+    >>> a = None
+    >>> (a?.b).c = 2
+    Traceback (most recent call last):
+    AttributeError: 'NoneType' object has no attribute 'c' and no __dict__ for setting new attributes
 
 Invalid none subscript expressions:
 
@@ -2941,7 +2946,12 @@ Invalid none subscript expressions:
 
     >>> a?[b].c().d = 2
     Traceback (most recent call last):
-    SyntaxError: cannot assign to attribute here. Maybe you meant '==' instead of '='?
+    SyntaxError: cannot assign to none-aware subscript expression
+
+    >>> a = None
+    >>> (a?[b]).c = 2
+    Traceback (most recent call last):
+    AttributeError: 'NoneType' object has no attribute 'c' and no __dict__ for setting new attributes
 """
 
 import re
