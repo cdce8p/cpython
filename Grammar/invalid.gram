@@ -90,9 +90,14 @@ invalid_named_expression(memo):
             a, "cannot use assignment expressions with %s", _PyPegen_get_expr_name(a)) }
     | a=NAME '=' b=bitwise_or !('='|':=') {
         RAISE_SYNTAX_ERROR_KNOWN_RANGE(a, b, "invalid syntax. Maybe you meant '==' or ':=' instead of '='?") }
+    | a=primary_none_aware_without_invalid '=' {
+        RAISE_SYNTAX_ERROR_INVALID_TARGET(NONE_AWARE_TARGETS, a) }
     | !(list|tuple|genexp|'True'|'None'|'False') a=bitwise_or b='=' bitwise_or !('='|':=') {
         RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, "cannot assign to %s here. Maybe you meant '==' instead of '='?",
                                           _PyPegen_get_expr_name(a)) }
+
+primary_none_aware_without_invalid:
+    | a=primary { _PyPegen_primary_with_none_aware(p, a) }
 
 invalid_assignment:
     | a=invalid_ann_assign_target ':' expression {
@@ -114,8 +119,6 @@ invalid_assignment:
             "'%s' is an illegal expression for augmented assignment",
             _PyPegen_get_expr_name(a)
         )}
-    | a=(none_aware_attribute | none_aware_subscript) '=' {
-        RAISE_SYNTAX_ERROR_INVALID_TARGET(NONE_AWARE_TARGETS, a) }
 invalid_ann_assign_target[expr_ty]:
     | list
     | tuple
