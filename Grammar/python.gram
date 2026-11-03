@@ -862,7 +862,7 @@ await_primary[expr_ty] (memo):
 
 primary[expr_ty]:
     | a=primary '.' b=NAME { _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA_EXPR) }
-    | none_aware_attribute !'='
+    | none_aware_attribute
     | a=primary b=genexp { _PyAST_Call(a, CHECK(asdl_expr_seq*, (asdl_expr_seq*)_PyPegen_singleton_seq(p, b)), NULL, EXTRA_EXPR) }
     | a=primary '(' b=[arguments] ')' {
         _PyAST_Call(a,
@@ -870,7 +870,7 @@ primary[expr_ty]:
                  (b) ? ((expr_ty) b)->v.Call.keywords : NULL,
                  EXTRA_EXPR) }
     | a=primary '[' b=slices ']' { _PyAST_Subscript(a, b, Load, EXTRA_EXPR) }
-    | none_aware_subscript !'='
+    | none_aware_subscript
     | atom
 
 none_aware_attribute[expr_ty]:
