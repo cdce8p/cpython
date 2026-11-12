@@ -1311,6 +1311,77 @@ class AST_Tests(unittest.TestCase):
             self.assertEqual(wm.filename, filename)
             self.assertIs(wm.category, SyntaxWarning)
 
+    def test_group_attribute(self):
+        # Test attributes are copied correctly when setting group attribute
+        tests = [
+            "a or b",  # BoolOp
+            # NamedExpr
+            "a + b",  # BinOp
+            "-a",  # UnaryOp
+            "lambda a: a",  # Lambda
+            "a if b else c",  # IfExp
+            "{'a': b}",  # Dict
+            "{'a', 'b'}",  # Set
+            "[a for a in (1, 2) if True]",  # ListComp
+            "{a for a in (1, 2) if True}",  # SetComp
+            "{a: b for a, b in ((1, 1), (2, 2)) if True}",  # DictComp
+            "(a for a in (1, 2) if True)",  # GeneratorExpr
+            "a?.b",  # NoneAwareAttribute
+            "a?[b]",  # NoneAwareSubscript
+            "await a",  # Await
+            "yield a", # Yield
+            "yield from a", # YieldFrom
+            "a < b",  # Compare
+            "func(a, b=2)",  # Call
+            # FormattedValue
+            # Interpolation
+            "f'Hello'", # JoinedStr
+            "t'Hello'", # TemplateStr
+            "True",  # Constant
+            "a.b",  # Attribute
+            "a[b]",  # Subscript
+            # Starred
+            "a",  # Name
+            "[1, 2]",  # List
+            "(1, 2)",  # Tuple
+            # Slice
+        ]
+
+        def compare_ast_nodes(exp, exp_group):
+            self.assertEqual(exp.group, 0)
+            self.assertEqual(exp_group.group, 1)
+            for attr in exp._fields:
+                val = getattr(exp, attr)
+                val_group = getattr(exp, attr)
+                if isinstance(val, list):
+                    self.assertEqual(len(val), len(val_group))
+                    if len(val) > 0:
+                        self.assertEqual(
+                            val[0].__class__.__qualname__,
+                            val_group[0].__class__.__qualname__,
+                        )
+                elif val is not None:
+                    self.assertEqual(
+                        val.__class__.__qualname__,
+                        val_group.__class__.__qualname__,
+                    )
+                else:
+                    self.assertEqual(val, val_group)
+
+        for code in tests:
+            with self.subTest(code=code):
+                tree = ast.parse(code)
+                tree_group = ast.parse(f"({code}).a")
+                exp = tree.body[0].value
+                exp_group = tree_group.body[0].value.value
+                compare_ast_nodes(exp, exp_group)
+
+        with self.subTest(msg="NamedExpr"):
+            tree = ast.parse("func(a := b)")
+            tree_group = ast.parse("func((a := b))")
+            exp = tree.body[0].value.args[0]
+            exp_group = tree_group.body[0].value.args[0]
+            compare_ast_nodes(exp, exp_group)
 
 class CopyTests(unittest.TestCase):
     """Test copying and pickling AST nodes."""
