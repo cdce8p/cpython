@@ -135,7 +135,7 @@ _PyPegen_join_names_with_dot(Parser *p, expr_ty first_name, expr_ty second_name)
         return NULL;
     }
 
-    return _PyAST_Name(uni, Load, EXTRA_EXPR(first_name, second_name));
+    return _PyAST_Name(uni, Load, EXTRA_EXPRESSION(first_name, second_name));
 }
 
 /* Counts the total number of dots in seq's tokens */
@@ -268,7 +268,7 @@ _set_seq_context(Parser *p, asdl_expr_seq *seq, expr_context_ty ctx)
 static expr_ty
 _set_name_context(Parser *p, expr_ty e, expr_context_ty ctx)
 {
-    return _PyAST_Name(e->v.Name.id, ctx, EXTRA_EXPR(e, e));
+    return _PyAST_Name(e->v.Name.id, ctx, EXTRA_EXPRESSION(e, e));
 }
 
 static expr_ty
@@ -278,7 +278,7 @@ _set_tuple_context(Parser *p, expr_ty e, expr_context_ty ctx)
     if (!seq && PyErr_Occurred()) {
         return NULL;
     }
-    return _PyAST_Tuple(seq, ctx, EXTRA_EXPR(e, e));
+    return _PyAST_Tuple(seq, ctx, EXTRA_EXPRESSION(e, e));
 }
 
 static expr_ty
@@ -288,21 +288,21 @@ _set_list_context(Parser *p, expr_ty e, expr_context_ty ctx)
     if (!seq && PyErr_Occurred()) {
         return NULL;
     }
-    return _PyAST_List(seq, ctx, EXTRA_EXPR(e, e));
+    return _PyAST_List(seq, ctx, EXTRA_EXPRESSION(e, e));
 }
 
 static expr_ty
 _set_subscript_context(Parser *p, expr_ty e, expr_context_ty ctx)
 {
     return _PyAST_Subscript(e->v.Subscript.value, e->v.Subscript.slice,
-                            ctx, EXTRA_EXPR(e, e));
+                            ctx, EXTRA_EXPRESSION(e, e));
 }
 
 static expr_ty
 _set_attribute_context(Parser *p, expr_ty e, expr_context_ty ctx)
 {
     return _PyAST_Attribute(e->v.Attribute.value, e->v.Attribute.attr,
-                            ctx, EXTRA_EXPR(e, e));
+                            ctx, EXTRA_EXPRESSION(e, e));
 }
 
 static expr_ty
@@ -312,7 +312,7 @@ _set_starred_context(Parser *p, expr_ty e, expr_context_ty ctx)
     if (!inner) {
         return NULL;
     }
-    return _PyAST_Starred(inner, ctx, EXTRA_EXPR(e, e));
+    return _PyAST_Starred(inner, ctx, EXTRA_EXPRESSION(e, e));
 }
 
 /* Creates an `expr_ty` equivalent to `expr` but with `ctx` as context */
@@ -1004,6 +1004,34 @@ _PyPegen_raise_error_for_missing_comma(Parser *p, expr_ty a, expr_ty b)
     );
 }
 
+expr_ty
+_PyPegen_primary_with_none_aware(Parser *p, expr_ty a)
+{
+    switch (a->kind) {
+        case Attribute_kind:
+            if (_PyPegen_primary_with_none_aware(p, a->v.Attribute.value)) {
+                return a;
+            }
+            break;
+        case Subscript_kind:
+            if (_PyPegen_primary_with_none_aware(p, a->v.Subscript.value)) {
+                return a;
+            }
+            break;
+        case Call_kind:
+            if (_PyPegen_primary_with_none_aware(p, a->v.Call.func)) {
+                return a;
+            }
+            break;
+        case NoneAwareAttribute_kind:
+        case NoneAwareSubscript_kind:
+            return a;
+        default:
+            return NULL;
+    }
+    return NULL;
+}
+
 static ResultTokenWithMetadata *
 result_token_with_metadata(Parser *p, void *result, PyObject *metadata)
 {
@@ -1100,7 +1128,7 @@ _PyPegen_setup_full_format_spec(Parser *p, Token *colon, asdl_expr_seq *spec, in
     expr_ty res;
     Py_ssize_t n = asdl_seq_LEN(spec);
     if (n == 0 || (n == 1 && asdl_seq_GET(spec, 0)->kind == Constant_kind)) {
-        res = _PyAST_JoinedStr(spec, lineno, col_offset, end_lineno,
+        res = _PyAST_JoinedStr(spec, 0, lineno, col_offset, end_lineno,
                                     end_col_offset, p->arena);
     } else {
         res = _PyPegen_concatenate_strings(p, spec,
@@ -1183,6 +1211,10 @@ _PyPegen_get_expr_name(expr_ty e)
             return "conditional expression";
         case NamedExpr_kind:
             return "named expression";
+        case NoneAwareAttribute_kind:
+            return "none-aware expression";
+        case NoneAwareSubscript_kind:
+            return "none-aware subscript expression";
         default:
             PyErr_Format(PyExc_SystemError,
                          "unexpected expression in assignment %d (line %d)",
@@ -1206,7 +1238,7 @@ expr_ty _PyPegen_collect_call_seqs(Parser *p, asdl_expr_seq *a, asdl_seq *b,
     Py_ssize_t total_len = args_len;
 
     if (b == NULL) {
-        return _PyAST_Call(_PyPegen_dummy_name(p), a, NULL, lineno, col_offset,
+        return _PyAST_Call(_PyPegen_dummy_name(p), a, NULL, 0, lineno, col_offset,
                         end_lineno, end_col_offset, arena);
 
     }
@@ -1238,7 +1270,7 @@ expr_ty _PyPegen_collect_call_seqs(Parser *p, asdl_expr_seq *a, asdl_seq *b,
         asdl_seq_SET(args, i, asdl_seq_GET(starreds, i - args_len));
     }
 
-    return _PyAST_Call(_PyPegen_dummy_name(p), args, keywords, lineno,
+    return _PyAST_Call(_PyPegen_dummy_name(p), args, keywords, 0, lineno,
                        col_offset, end_lineno, end_col_offset, arena);
 }
 
@@ -1256,7 +1288,36 @@ _PyPegen_get_invalid_target(expr_ty e, TARGETS_TYPE targets_type)
         if (targets_type == SINGLE_TARGETS && e->kind == Name_kind) {
             return NULL;
         }
-        return e->kind == Attribute_kind || e->kind == Subscript_kind ? NULL : e;
+        if (e->kind == Attribute_kind) {
+            return _PyPegen_get_invalid_target(e->v.Attribute.value, PRIMARY_TARGETS);
+        }
+        if (e->kind == Subscript_kind) {
+            return _PyPegen_get_invalid_target(e->v.Subscript.value, PRIMARY_TARGETS);
+        }
+        return e;
+    }
+
+    if (targets_type == PRIMARY_TARGETS) {
+        if (e->group == 1) {
+            return NULL;
+        }
+        switch (e->kind) {
+            case Name_kind:
+                return NULL;
+            case Attribute_kind:
+                return _PyPegen_get_invalid_target(e->v.Attribute.value, PRIMARY_TARGETS);
+            case Subscript_kind:
+                return _PyPegen_get_invalid_target(e->v.Subscript.value, PRIMARY_TARGETS);
+            case Call_kind:
+                return _PyPegen_get_invalid_target(e->v.Call.func, PRIMARY_TARGETS);
+            case NoneAwareAttribute_kind:
+            case NoneAwareSubscript_kind:
+                // NoneAwareAttribute and NoneAwareSubscript are invalid
+                // in target expressions.
+                return e;
+            default:
+                return NULL;
+        }
     }
 
 #define VISIT_CONTAINER(CONTAINER, TYPE) do { \
@@ -1301,9 +1362,11 @@ _PyPegen_get_invalid_target(expr_ty e, TARGETS_TYPE targets_type)
             }
             return e;
         case Name_kind:
-        case Subscript_kind:
-        case Attribute_kind:
             return NULL;
+        case Subscript_kind:
+            return _PyPegen_get_invalid_target(e->v.Subscript.value, PRIMARY_TARGETS);
+        case Attribute_kind:
+            return _PyPegen_get_invalid_target(e->v.Attribute.value, PRIMARY_TARGETS);
         default:
             return e;
     }
@@ -1380,7 +1443,7 @@ _PyPegen_decode_fstring_part(Parser* p, int is_raw, expr_ty constant, Token* tok
         Py_DECREF(str);
         return NULL;
     }
-    return _PyAST_Constant(str, NULL, constant->lineno, constant->col_offset,
+    return _PyAST_Constant(str, NULL, 0, constant->lineno, constant->col_offset,
                            constant->end_lineno, constant->end_col_offset,
                            p->arena);
 }
@@ -1479,7 +1542,7 @@ _PyPegen_template_str(Parser *p, Token *a, asdl_expr_seq *raw_expressions, Token
     if (resized_exprs == NULL) {
         return NULL;
     }
-    return _PyAST_TemplateStr(resized_exprs, a->lineno, a->col_offset,
+    return _PyAST_TemplateStr(resized_exprs, 0, a->lineno, a->col_offset,
                               b->end_lineno, b->end_col_offset,
                               p->arena);
 }
@@ -1491,7 +1554,7 @@ _PyPegen_joined_str(Parser *p, Token* a, asdl_expr_seq* raw_expressions, Token*b
     if (resized_exprs == NULL) {
         return NULL;
     }
-    return _PyAST_JoinedStr(resized_exprs, a->lineno, a->col_offset,
+    return _PyAST_JoinedStr(resized_exprs, 0, a->lineno, a->col_offset,
                             b->end_lineno, b->end_col_offset,
                             p->arena);
 }
@@ -1520,7 +1583,7 @@ expr_ty _PyPegen_decoded_constant_from_token(Parser* p, Token* tok) {
         Py_DECREF(str);
         return NULL;
     }
-    return _PyAST_Constant(str, NULL, tok->lineno, tok->col_offset,
+    return _PyAST_Constant(str, NULL, 0, tok->lineno, tok->col_offset,
                            tok->end_lineno, tok->end_col_offset,
                            p->arena);
 }
@@ -1553,7 +1616,7 @@ expr_ty _PyPegen_constant_from_token(Parser* p, Token* tok) {
         Py_DECREF(str);
         return NULL;
     }
-    return _PyAST_Constant(str, NULL, tok->lineno, tok->col_offset,
+    return _PyAST_Constant(str, NULL, 0, tok->lineno, tok->col_offset,
                            tok->end_lineno, tok->end_col_offset,
                            p->arena);
 }
@@ -1579,7 +1642,8 @@ expr_ty _PyPegen_constant_from_string(Parser* p, Token* tok) {
             return NULL;
         }
     }
-    return _PyAST_Constant(s, kind, tok->lineno, tok->col_offset, tok->end_lineno, tok->end_col_offset, p->arena);
+    return _PyAST_Constant(s, kind, 0, tok->lineno, tok->col_offset,
+                           tok->end_lineno, tok->end_col_offset, p->arena);
 }
 
 static int
@@ -1672,16 +1736,15 @@ expr_ty _PyPegen_interpolation(Parser *p, expr_ty expression, Token *debug, Resu
 
     expr_ty interpolation = _PyAST_Interpolation(
         expression, final_exprstr, conversion_val, format ? (expr_ty) format->result : NULL,
-        lineno, col_offset, end_lineno,
-        end_col_offset, arena
+        0, lineno, col_offset, end_lineno, end_col_offset, arena
     );
 
     if (!interpolation || !debug) {
         return interpolation;
     }
 
-    expr_ty debug_text = _PyAST_Constant(debug_metadata, NULL, lineno, col_offset + 1, debug_end_line,
-                                            debug_end_offset - 1, p->arena);
+    expr_ty debug_text = _PyAST_Constant(debug_metadata, NULL, 0, lineno, col_offset + 1,
+                                         debug_end_line, debug_end_offset - 1, p->arena);
     if (!debug_text) {
         return NULL;
     }
@@ -1692,7 +1755,7 @@ expr_ty _PyPegen_interpolation(Parser *p, expr_ty expression, Token *debug, Resu
     }
     asdl_seq_SET(values, 0, debug_text);
     asdl_seq_SET(values, 1, interpolation);
-    return _PyAST_JoinedStr(values, lineno, col_offset, debug_end_line, debug_end_offset, p->arena);
+    return _PyAST_JoinedStr(values, 0, lineno, col_offset, debug_end_line, debug_end_offset, p->arena);
 }
 
 expr_ty _PyPegen_formatted_value(Parser *p, expr_ty expression, Token *debug, ResultTokenWithMetadata *conversion,
@@ -1702,8 +1765,7 @@ expr_ty _PyPegen_formatted_value(Parser *p, expr_ty expression, Token *debug, Re
 
     expr_ty formatted_value = _PyAST_FormattedValue(
         expression, conversion_val, format ? (expr_ty) format->result : NULL,
-        lineno, col_offset, end_lineno,
-        end_col_offset, arena
+        0, lineno, col_offset, end_lineno, end_col_offset, arena
     );
 
     if (!formatted_value || !debug) {
@@ -1729,8 +1791,8 @@ expr_ty _PyPegen_formatted_value(Parser *p, expr_ty expression, Token *debug, Re
         debug_end_offset = end_col_offset;
         debug_metadata = closing_brace->metadata;
     }
-    expr_ty debug_text = _PyAST_Constant(debug_metadata, NULL, lineno, col_offset + 1, debug_end_line,
-                                            debug_end_offset - 1, p->arena);
+    expr_ty debug_text = _PyAST_Constant(debug_metadata, NULL, 0, lineno, col_offset + 1,
+                                         debug_end_line, debug_end_offset - 1, p->arena);
     if (!debug_text) {
         return NULL;
     }
@@ -1741,7 +1803,7 @@ expr_ty _PyPegen_formatted_value(Parser *p, expr_ty expression, Token *debug, Re
     }
     asdl_seq_SET(values, 0, debug_text);
     asdl_seq_SET(values, 1, formatted_value);
-    return _PyAST_JoinedStr(values, lineno, col_offset, debug_end_line, debug_end_offset, p->arena);
+    return _PyAST_JoinedStr(values, 0, lineno, col_offset, debug_end_line, debug_end_offset, p->arena);
 }
 
 static expr_ty
@@ -1794,7 +1856,7 @@ _build_concatenated_bytes(Parser *p, asdl_expr_seq *strings, int lineno,
         Py_DECREF(res);
         return NULL;
     }
-    return _PyAST_Constant(res, kind, lineno, col_offset, end_lineno, end_col_offset, p->arena);
+    return _PyAST_Constant(res, kind, 0, lineno, col_offset, end_lineno, end_col_offset, p->arena);
 }
 
 static expr_ty
@@ -1839,7 +1901,7 @@ _build_concatenated_unicode(Parser *p, asdl_expr_seq *strings, int lineno,
         Py_DECREF(final);
         return NULL;
     }
-    return _PyAST_Constant(final, kind, lineno, col_offset,
+    return _PyAST_Constant(final, kind, 0, lineno, col_offset,
                            end_lineno, end_col_offset, arena);
 }
 
@@ -1976,7 +2038,8 @@ _build_concatenated_str(Parser *p, asdl_expr_seq *strings,
                     Py_DECREF(concat_str);
                     return NULL;
                 }
-                elem = _PyAST_Constant(concat_str, kind, first_elem->lineno,
+                elem = _PyAST_Constant(concat_str, kind,
+                                       0, first_elem->lineno,
                                        first_elem->col_offset,
                                        last_elem->end_lineno,
                                        last_elem->end_col_offset, p->arena);
@@ -2009,7 +2072,7 @@ _build_concatenated_joined_str(Parser *p, asdl_expr_seq *strings,
     if (!values) {
         return NULL;
     }
-    return _PyAST_JoinedStr(values, lineno, col_offset, end_lineno, end_col_offset, p->arena);
+    return _PyAST_JoinedStr(values, 0, lineno, col_offset, end_lineno, end_col_offset, p->arena);
 }
 
 expr_ty
@@ -2022,7 +2085,7 @@ _PyPegen_concatenate_tstrings(Parser *p, asdl_expr_seq *strings,
     if (!values) {
         return NULL;
     }
-    return _PyAST_TemplateStr(values, lineno, col_offset, end_lineno,
+    return _PyAST_TemplateStr(values, 0, lineno, col_offset, end_lineno,
         end_col_offset, arena);
 }
 
@@ -2136,6 +2199,323 @@ _warn_relative_import_of_lazy(Parser *p, asdl_seq *dots, expr_ty module)
                                        info.module);
     Py_DECREF(msg);
     return res;
+}
+
+static expr_ty
+_copy_boolop(Parser *p, expr_ty e) {
+    assert(e->kind == BoolOp_kind);
+    return _PyAST_BoolOp(e->v.BoolOp.op, e->v.BoolOp.values,
+                         EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_namedexpr(Parser *p, expr_ty e) {
+    assert(e->kind == NamedExpr_kind);
+    return _PyAST_NamedExpr(e->v.NamedExpr.target, e->v.NamedExpr.value,
+                            EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_binop(Parser *p, expr_ty e) {
+    assert(e->kind == BinOp_kind);
+    return _PyAST_BinOp(e->v.BinOp.left, e->v.BinOp.op, e->v.BinOp.right,
+                        EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_unaryop(Parser *p, expr_ty e) {
+    assert(e->kind == UnaryOp_kind);
+    return _PyAST_UnaryOp(e->v.UnaryOp.op, e->v.UnaryOp.operand, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_lambda(Parser *p, expr_ty e) {
+    assert(e->kind == Lambda_kind);
+    return _PyAST_Lambda(e->v.Lambda.args, e->v.Lambda.body, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_ifexp(Parser *p, expr_ty e) {
+    assert(e->kind == IfExp_kind);
+    return _PyAST_IfExp(e->v.IfExp.test, e->v.IfExp.body, e->v.IfExp.orelse,
+                        EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_dict(Parser *p, expr_ty e) {
+    assert(e->kind == Dict_kind);
+    return _PyAST_Dict(e->v.Dict.keys, e->v.Dict.values, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_set(Parser *p, expr_ty e) {
+    assert(e->kind == Set_kind);
+    return _PyAST_Set(e->v.Set.elts, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_listcomp(Parser *p, expr_ty e) {
+    assert(e->kind == ListComp_kind);
+    return _PyAST_ListComp(e->v.ListComp.elt, e->v.ListComp.generators,
+                           EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_setcomp(Parser *p, expr_ty e) {
+    assert(e->kind == SetComp_kind);
+    return _PyAST_SetComp(e->v.SetComp.elt, e->v.SetComp.generators,
+                          EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_dictcomp(Parser *p, expr_ty e) {
+    assert(e->kind == DictComp_kind);
+    return _PyAST_DictComp(e->v.DictComp.key, e->v.DictComp.value,
+                           e->v.DictComp.generators, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_generatorexp(Parser *p, expr_ty e) {
+    assert(e->kind == GeneratorExp_kind);
+    return _PyAST_GeneratorExp(e->v.GeneratorExp.elt,
+                               e->v.GeneratorExp.generators,
+                               EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_noneawareattribute(Parser *p, expr_ty e) {
+    assert(e->kind == NoneAwareAttribute_kind);
+    return _PyAST_NoneAwareAttribute(e->v.NoneAwareAttribute.value,
+                                     e->v.NoneAwareAttribute.attr,
+                                     EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_noneawaresubscript(Parser *p, expr_ty e) {
+    assert(e->kind == NoneAwareSubscript_kind);
+    return _PyAST_NoneAwareSubscript(e->v.NoneAwareSubscript.value,
+                                     e->v.NoneAwareSubscript.slice,
+                                     EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_await(Parser *p, expr_ty e) {
+    assert(e->kind == Await_kind);
+    return _PyAST_Await(e->v.Await.value, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_yield(Parser *p, expr_ty e) {
+    assert(e->kind == Yield_kind);
+    return _PyAST_Yield(e->v.Yield.value, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_yieldfrom(Parser *p, expr_ty e) {
+    assert(e->kind == YieldFrom_kind);
+    return _PyAST_YieldFrom(e->v.YieldFrom.value, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_compare(Parser *p, expr_ty e) {
+    assert(e->kind == Compare_kind);
+    return _PyAST_Compare(e->v.Compare.left, e->v.Compare.ops,
+                          e->v.Compare.comparators, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_call(Parser *p, expr_ty e) {
+    assert(e->kind == Call_kind);
+    return _PyAST_Call(e->v.Call.func, e->v.Call.args, e->v.Call.keywords,
+                       EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_formattedvalue(Parser *p, expr_ty e) {
+    assert(e->kind == FormattedValue_kind);
+    return _PyAST_FormattedValue(e->v.FormattedValue.value,
+                                 e->v.FormattedValue.conversion,
+                                 e->v.FormattedValue.format_spec,
+                                 EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_interpolation(Parser *p, expr_ty e) {
+    assert(e->kind == Interpolation_kind);
+    return _PyAST_Interpolation(e->v.Interpolation.value,
+                                e->v.Interpolation.str,
+                                e->v.Interpolation.conversion,
+                                e->v.Interpolation.format_spec,
+                                EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_joinedstr(Parser *p, expr_ty e) {
+    assert(e->kind == JoinedStr_kind);
+    return _PyAST_JoinedStr(e->v.JoinedStr.values, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_templatestr(Parser *p, expr_ty e) {
+    assert(e->kind == TemplateStr_kind);
+    return _PyAST_TemplateStr(e->v.TemplateStr.values, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_constant(Parser *p, expr_ty e) {
+    assert(e->kind == Constant_kind);
+    return _PyAST_Constant(e->v.Constant.value, e->v.Constant.kind, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_attribute(Parser *p, expr_ty e) {
+    assert(e->kind == Attribute_kind);
+    return _PyAST_Attribute(e->v.Attribute.value, e->v.Attribute.attr,
+                            e->v.Attribute.ctx, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_subscript(Parser *p, expr_ty e) {
+    assert(e->kind == Subscript_kind);
+    return _PyAST_Subscript(e->v.Subscript.value, e->v.Subscript.slice,
+                            e->v.Subscript.ctx, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_starred(Parser *p, expr_ty e) {
+    assert(e->kind == Starred_kind);
+    return _PyAST_Starred(e->v.Starred.value, e->v.Starred.ctx, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_name(Parser *p, expr_ty e) {
+    assert(e->kind == Name_kind);
+    return _PyAST_Name(e->v.Name.id, e->v.Name.ctx, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_list(Parser *p, expr_ty e) {
+    assert(e->kind == List_kind);
+    return _PyAST_List(e->v.List.elts, e->v.List.ctx, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_tuple(Parser *p, expr_ty e) {
+    assert(e->kind == Tuple_kind);
+    return _PyAST_Tuple(e->v.Tuple.elts, e->v.Tuple.ctx, EXTRA_EXPRESSION(e, e));
+}
+
+static expr_ty
+_copy_slice(Parser *p, expr_ty e) {
+    assert(e->kind == Slice_kind);
+    return _PyAST_Slice(e->v.Slice.lower, e->v.Slice.upper, e->v.Slice.step,
+                        EXTRA_EXPRESSION(e, e));
+}
+
+
+
+expr_ty
+_PyPegen_set_group(Parser *p, expr_ty exp) {
+    assert(exp != NULL);
+
+    expr_ty new = NULL;
+    switch (exp->kind) {
+        case BoolOp_kind:
+            new = _copy_boolop(p, exp);
+            break;
+        case NamedExpr_kind:
+            new = _copy_namedexpr(p, exp);
+            break;
+        case BinOp_kind:
+            new = _copy_binop(p, exp);
+            break;
+        case UnaryOp_kind:
+            new = _copy_unaryop(p, exp);
+            break;
+        case Lambda_kind:
+            new = _copy_lambda(p, exp);
+            break;
+        case IfExp_kind:
+            new = _copy_ifexp(p, exp);
+            break;
+        case Dict_kind:
+            new = _copy_dict(p, exp);
+            break;
+        case Set_kind:
+            new = _copy_set(p, exp);
+            break;
+        case ListComp_kind:
+            new = _copy_listcomp(p, exp);
+            break;
+        case SetComp_kind:
+            new = _copy_setcomp(p, exp);
+            break;
+        case DictComp_kind:
+            new = _copy_dictcomp(p, exp);
+            break;
+        case GeneratorExp_kind:
+            new = _copy_generatorexp(p, exp);
+            break;
+        case NoneAwareAttribute_kind:
+            new = _copy_noneawareattribute(p, exp);
+            break;
+        case NoneAwareSubscript_kind:
+            new = _copy_noneawaresubscript(p, exp);
+            break;
+        case Await_kind:
+            new = _copy_await(p, exp);
+            break;
+        case Yield_kind:
+            new = _copy_yield(p, exp);
+            break;
+        case YieldFrom_kind:
+            new = _copy_yieldfrom(p, exp);
+            break;
+        case Compare_kind:
+            new = _copy_compare(p, exp);
+            break;
+        case Call_kind:
+            new = _copy_call(p, exp);
+            break;
+        case FormattedValue_kind:
+            new = _copy_formattedvalue(p, exp);
+            break;
+        case Interpolation_kind:
+            new = _copy_interpolation(p, exp);
+            break;
+        case JoinedStr_kind:
+            new = _copy_joinedstr(p, exp);
+            break;
+        case TemplateStr_kind:
+            new = _copy_templatestr(p, exp);
+            break;
+        case Constant_kind:
+            new = _copy_constant(p, exp);
+            break;
+        case Attribute_kind:
+            new = _copy_attribute(p, exp);
+            break;
+        case Subscript_kind:
+            new = _copy_subscript(p, exp);
+            break;
+        case Starred_kind:
+            new = _copy_starred(p, exp);
+            break;
+        case Name_kind:
+            new = _copy_name(p, exp);
+            break;
+        case List_kind:
+            new = _copy_list(p, exp);
+            break;
+        case Tuple_kind:
+            new = _copy_tuple(p, exp);
+            break;
+        case Slice_kind:
+            new = _copy_slice(p, exp);
+            break;
+    }
+    new->group = 1;
+    return new;
 }
 
 stmt_ty

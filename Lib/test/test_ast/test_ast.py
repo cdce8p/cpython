@@ -999,6 +999,16 @@ class AST_Tests(unittest.TestCase):
         with self.assertRaises(SyntaxError):
             ast.parse(code, feature_version=(3, 13))
 
+    def test_none_aware_attribute_access_feature_version(self):
+        ast.parse("a?.b", feature_version=(3, 16))
+        with self.assertRaises(SyntaxError):
+            ast.parse("a?.b", feature_version=(3, 15))
+
+    def test_none_aware_subscript_feature_version(self):
+        ast.parse("a?[b]", feature_version=(3, 16))
+        with self.assertRaises(SyntaxError):
+            ast.parse("a?[b]", feature_version=(3, 15))
+
     def test_conditional_context_managers_parse_with_low_feature_version(self):
         # regression test for gh-115881
         ast.parse('with (x() if y else z()): ...', feature_version=(3, 8))
@@ -1123,6 +1133,7 @@ class AST_Tests(unittest.TestCase):
             FACTOR = enum.auto()          # unary '+', '-', '~'
             POWER = enum.auto()           # '**'
             AWAIT = enum.auto()           # 'await'
+            GROUP = enum.auto()
             ATOM = enum.auto()
             def next(self):
                 try:
@@ -1300,6 +1311,77 @@ class AST_Tests(unittest.TestCase):
             self.assertEqual(wm.filename, filename)
             self.assertIs(wm.category, SyntaxWarning)
 
+    def test_group_attribute(self):
+        # Test attributes are copied correctly when setting group attribute
+        tests = [
+            "a or b",  # BoolOp
+            # NamedExpr
+            "a + b",  # BinOp
+            "-a",  # UnaryOp
+            "lambda a: a",  # Lambda
+            "a if b else c",  # IfExp
+            "{'a': b}",  # Dict
+            "{'a', 'b'}",  # Set
+            "[a for a in (1, 2) if True]",  # ListComp
+            "{a for a in (1, 2) if True}",  # SetComp
+            "{a: b for a, b in ((1, 1), (2, 2)) if True}",  # DictComp
+            "(a for a in (1, 2) if True)",  # GeneratorExpr
+            "a?.b",  # NoneAwareAttribute
+            "a?[b]",  # NoneAwareSubscript
+            "await a",  # Await
+            "yield a", # Yield
+            "yield from a", # YieldFrom
+            "a < b",  # Compare
+            "func(a, b=2)",  # Call
+            # FormattedValue
+            # Interpolation
+            "f'Hello'", # JoinedStr
+            "t'Hello'", # TemplateStr
+            "True",  # Constant
+            "a.b",  # Attribute
+            "a[b]",  # Subscript
+            # Starred
+            "a",  # Name
+            "[1, 2]",  # List
+            "(1, 2)",  # Tuple
+            # Slice
+        ]
+
+        def compare_ast_nodes(exp, exp_group):
+            self.assertEqual(exp.group, 0)
+            self.assertEqual(exp_group.group, 1)
+            for attr in exp._fields:
+                val = getattr(exp, attr)
+                val_group = getattr(exp, attr)
+                if isinstance(val, list):
+                    self.assertEqual(len(val), len(val_group))
+                    if len(val) > 0:
+                        self.assertEqual(
+                            val[0].__class__.__qualname__,
+                            val_group[0].__class__.__qualname__,
+                        )
+                elif val is not None:
+                    self.assertEqual(
+                        val.__class__.__qualname__,
+                        val_group.__class__.__qualname__,
+                    )
+                else:
+                    self.assertEqual(val, val_group)
+
+        for code in tests:
+            with self.subTest(code=code):
+                tree = ast.parse(code)
+                tree_group = ast.parse(f"({code}).a")
+                exp = tree.body[0].value
+                exp_group = tree_group.body[0].value.value
+                compare_ast_nodes(exp, exp_group)
+
+        with self.subTest(msg="NamedExpr"):
+            tree = ast.parse("func(a := b)")
+            tree_group = ast.parse("func((a := b))")
+            exp = tree.body[0].value.args[0]
+            exp_group = tree_group.body[0].value.args[0]
+            compare_ast_nodes(exp, exp_group)
 
 class CopyTests(unittest.TestCase):
     """Test copying and pickling AST nodes."""
@@ -1689,11 +1771,11 @@ class ASTHelpers_Test(unittest.TestCase):
         )
         self.assertEqual(ast.dump(node, include_attributes=True),
             "Module(body=[Expr(value=Call(func=Name(id='spam', "
-            "lineno=1, col_offset=0, end_lineno=1, end_col_offset=4), "
-            "args=[Name(id='eggs', lineno=1, col_offset=5, "
+            "group=0, lineno=1, col_offset=0, end_lineno=1, end_col_offset=4), "
+            "args=[Name(id='eggs', group=0, lineno=1, col_offset=5, "
             "end_lineno=1, end_col_offset=9), Constant(value='and cheese', "
-            "lineno=1, col_offset=11, end_lineno=1, end_col_offset=23)], "
-            "lineno=1, col_offset=0, end_lineno=1, end_col_offset=24), "
+            "group=0, lineno=1, col_offset=11, end_lineno=1, end_col_offset=23)], "
+            "group=0, lineno=1, col_offset=0, end_lineno=1, end_col_offset=24), "
             "lineno=1, col_offset=0, end_lineno=1, end_col_offset=24)])"
         )
 
@@ -1724,6 +1806,7 @@ Module(
          value=Call(
             func=Name(
                id='spam',
+               group=0,
                lineno=1,
                col_offset=0,
                end_lineno=1,
@@ -1731,16 +1814,19 @@ Module(
             args=[
                Name(
                   id='eggs',
+                  group=0,
                   lineno=1,
                   col_offset=5,
                   end_lineno=1,
                   end_col_offset=9),
                Constant(
                   value='and cheese',
+                  group=0,
                   lineno=1,
                   col_offset=11,
                   end_lineno=1,
                   end_col_offset=23)],
+            group=0,
             lineno=1,
             col_offset=0,
             end_lineno=1,
@@ -1893,8 +1979,8 @@ Module(
 
         check_text(
             "def a(b: int = 0, *, c): ...",
-            empty="Module(body=[FunctionDef(name='a', args=arguments(args=[arg(arg='b', annotation=Name(id='int', lineno=1, col_offset=9, end_lineno=1, end_col_offset=12), lineno=1, col_offset=6, end_lineno=1, end_col_offset=12)], kwonlyargs=[arg(arg='c', lineno=1, col_offset=21, end_lineno=1, end_col_offset=22)], kw_defaults=[None], defaults=[Constant(value=0, lineno=1, col_offset=15, end_lineno=1, end_col_offset=16)]), body=[Expr(value=Constant(value=Ellipsis, lineno=1, col_offset=25, end_lineno=1, end_col_offset=28), lineno=1, col_offset=25, end_lineno=1, end_col_offset=28)], lineno=1, col_offset=0, end_lineno=1, end_col_offset=28)])",
-            full="Module(body=[FunctionDef(name='a', args=arguments(posonlyargs=[], args=[arg(arg='b', annotation=Name(id='int', ctx=Load(), lineno=1, col_offset=9, end_lineno=1, end_col_offset=12), lineno=1, col_offset=6, end_lineno=1, end_col_offset=12)], kwonlyargs=[arg(arg='c', lineno=1, col_offset=21, end_lineno=1, end_col_offset=22)], kw_defaults=[None], defaults=[Constant(value=0, lineno=1, col_offset=15, end_lineno=1, end_col_offset=16)]), body=[Expr(value=Constant(value=Ellipsis, lineno=1, col_offset=25, end_lineno=1, end_col_offset=28), lineno=1, col_offset=25, end_lineno=1, end_col_offset=28)], decorator_list=[], type_params=[], lineno=1, col_offset=0, end_lineno=1, end_col_offset=28)], type_ignores=[])",
+            empty="Module(body=[FunctionDef(name='a', args=arguments(args=[arg(arg='b', annotation=Name(id='int', group=0, lineno=1, col_offset=9, end_lineno=1, end_col_offset=12), lineno=1, col_offset=6, end_lineno=1, end_col_offset=12)], kwonlyargs=[arg(arg='c', lineno=1, col_offset=21, end_lineno=1, end_col_offset=22)], kw_defaults=[None], defaults=[Constant(value=0, group=0, lineno=1, col_offset=15, end_lineno=1, end_col_offset=16)]), body=[Expr(value=Constant(value=Ellipsis, group=0, lineno=1, col_offset=25, end_lineno=1, end_col_offset=28), lineno=1, col_offset=25, end_lineno=1, end_col_offset=28)], lineno=1, col_offset=0, end_lineno=1, end_col_offset=28)])",
+            full="Module(body=[FunctionDef(name='a', args=arguments(posonlyargs=[], args=[arg(arg='b', annotation=Name(id='int', ctx=Load(), group=0, lineno=1, col_offset=9, end_lineno=1, end_col_offset=12), lineno=1, col_offset=6, end_lineno=1, end_col_offset=12)], kwonlyargs=[arg(arg='c', lineno=1, col_offset=21, end_lineno=1, end_col_offset=22)], kw_defaults=[None], defaults=[Constant(value=0, group=0, lineno=1, col_offset=15, end_lineno=1, end_col_offset=16)]), body=[Expr(value=Constant(value=Ellipsis, group=0, lineno=1, col_offset=25, end_lineno=1, end_col_offset=28), lineno=1, col_offset=25, end_lineno=1, end_col_offset=28)], decorator_list=[], type_params=[], lineno=1, col_offset=0, end_lineno=1, end_col_offset=28)], type_ignores=[])",
             include_attributes=True,
         )
 
@@ -1930,9 +2016,9 @@ Module(
         src = ast.parse('1 + 1', mode='eval')
         src.body.right = ast.copy_location(ast.Constant(2), src.body.right)
         self.assertEqual(ast.dump(src, include_attributes=True),
-            'Expression(body=BinOp(left=Constant(value=1, lineno=1, col_offset=0, '
+            'Expression(body=BinOp(left=Constant(value=1, group=0, lineno=1, col_offset=0, '
             'end_lineno=1, end_col_offset=1), op=Add(), right=Constant(value=2, '
-            'lineno=1, col_offset=4, end_lineno=1, end_col_offset=5), lineno=1, '
+            'group=0, lineno=1, col_offset=4, end_lineno=1, end_col_offset=5), group=0, lineno=1, '
             'col_offset=0, end_lineno=1, end_col_offset=5))'
         )
         func = ast.Name('spam', ast.Load())
@@ -1951,14 +2037,14 @@ Module(
         self.maxDiff = None
         self.assertEqual(ast.dump(src, include_attributes=True),
             "Module(body=[Expr(value=Call(func=Name(id='write', "
-            "lineno=1, col_offset=0, end_lineno=1, end_col_offset=5), "
-            "args=[Constant(value='spam', lineno=1, col_offset=6, end_lineno=1, "
-            "end_col_offset=12)], lineno=1, col_offset=0, end_lineno=1, "
+            "group=0, lineno=1, col_offset=0, end_lineno=1, end_col_offset=5), "
+            "args=[Constant(value='spam', group=0, lineno=1, col_offset=6, end_lineno=1, "
+            "end_col_offset=12)], group=0, lineno=1, col_offset=0, end_lineno=1, "
             "end_col_offset=13), lineno=1, col_offset=0, end_lineno=1, "
             "end_col_offset=13), Expr(value=Call(func=Name(id='spam', "
-            "lineno=1, col_offset=0, end_lineno=1, end_col_offset=0), "
-            "args=[Constant(value='eggs', lineno=1, col_offset=0, end_lineno=1, "
-            "end_col_offset=0)], lineno=1, col_offset=0, end_lineno=1, "
+            "group=0, lineno=1, col_offset=0, end_lineno=1, end_col_offset=0), "
+            "args=[Constant(value='eggs', group=0, lineno=1, col_offset=0, end_lineno=1, "
+            "end_col_offset=0)], group=0, lineno=1, col_offset=0, end_lineno=1, "
             "end_col_offset=0), lineno=1, col_offset=0, end_lineno=1, end_col_offset=0)])"
         )
 
@@ -1966,18 +2052,18 @@ Module(
         src = ast.parse('1 + 1', mode='eval')
         self.assertEqual(ast.increment_lineno(src, n=3), src)
         self.assertEqual(ast.dump(src, include_attributes=True),
-            'Expression(body=BinOp(left=Constant(value=1, lineno=4, col_offset=0, '
+            'Expression(body=BinOp(left=Constant(value=1, group=0, lineno=4, col_offset=0, '
             'end_lineno=4, end_col_offset=1), op=Add(), right=Constant(value=1, '
-            'lineno=4, col_offset=4, end_lineno=4, end_col_offset=5), lineno=4, '
+            'group=0, lineno=4, col_offset=4, end_lineno=4, end_col_offset=5), group=0, lineno=4, '
             'col_offset=0, end_lineno=4, end_col_offset=5))'
         )
         # issue10869: do not increment lineno of root twice
         src = ast.parse('1 + 1', mode='eval')
         self.assertEqual(ast.increment_lineno(src.body, n=3), src.body)
         self.assertEqual(ast.dump(src, include_attributes=True),
-            'Expression(body=BinOp(left=Constant(value=1, lineno=4, col_offset=0, '
+            'Expression(body=BinOp(left=Constant(value=1, group=0, lineno=4, col_offset=0, '
             'end_lineno=4, end_col_offset=1), op=Add(), right=Constant(value=1, '
-            'lineno=4, col_offset=4, end_lineno=4, end_col_offset=5), lineno=4, '
+            'group=0, lineno=4, col_offset=4, end_lineno=4, end_col_offset=5), group=0, lineno=4, '
             'col_offset=0, end_lineno=4, end_col_offset=5))'
         )
         src = ast.Call(
