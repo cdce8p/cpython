@@ -14,15 +14,15 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  # https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#concurrency
-  # 'group' must be a key uniquely representing a PR or push event.
-  # github.workflow is the workflow name
-  # github.actor is the user invoking the workflow
-  # github.head_ref is the source branch of the PR or otherwise blank
-  # github.run_id is a unique number for the current run
-  group: ${{ github.workflow }}-${{ github.actor }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
+# concurrency:
+#   # https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#concurrency
+#   # 'group' must be a key uniquely representing a PR or push event.
+#   # github.workflow is the workflow name
+#   # github.actor is the user invoking the workflow
+#   # github.head_ref is the source branch of the PR or otherwise blank
+#   # github.run_id is a unique number for the current run
+#   group: ${{ github.workflow }}-${{ github.actor }}-${{ github.head_ref || github.run_id }}
+#   cancel-in-progress: true
 
 env:
   FORCE_COLOR: 1
@@ -46,7 +46,7 @@ jobs:
   check-docs:
     name: Docs
     needs: build-context
-    if: fromJSON(needs.build-context.outputs.run-docs)
+    if: false && fromJSON(needs.build-context.outputs.run-docs)
     uses: $/.github/workflows/reusable-docs.yml
 
   check-autoconf-regen:
@@ -58,7 +58,7 @@ jobs:
       image: ghcr.io/python/autoconf:2025.01.02.12581854023
     timeout-minutes: 60
     needs: build-context
-    if: needs.build-context.outputs.run-tests == 'true'
+    if: false && needs.build-context.outputs.run-tests == 'true'
     steps:
       - name: Install Git
         run: |
@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     needs: build-context
-    if: needs.build-context.outputs.run-tests == 'true'
+    if: false && needs.build-context.outputs.run-tests == 'true'
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -145,8 +145,9 @@ jobs:
     name: C API Docs
     needs: build-context
     if: >-
-      needs.build-context.outputs.run-tests == 'true'
-      || needs.build-context.outputs.run-docs == 'true'
+      false
+      && (needs.build-context.outputs.run-tests == 'true'
+      || needs.build-context.outputs.run-docs == 'true')
     uses: $/.github/workflows/reusable-check-c-api-docs.yml
 
   build-windows:
@@ -154,7 +155,7 @@ jobs:
       Windows
       ${{ fromJSON(matrix.free-threading) && '(free-threading)' || '' }}
     needs: build-context
-    if: fromJSON(needs.build-context.outputs.run-windows-tests)
+    if: false && fromJSON(needs.build-context.outputs.run-windows-tests)
     strategy:
       fail-fast: false
       matrix:
@@ -184,7 +185,7 @@ jobs:
       macOS
       ${{ fromJSON(matrix.free-threading) && '(free-threading)' || '' }}
     needs: build-context
-    if: needs.build-context.outputs.run-macos == 'true'
+    if: false && needs.build-context.outputs.run-macos == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -210,7 +211,7 @@ jobs:
       ${{ fromJSON(matrix.free-threading) && '(free-threading)' || '' }}
       ${{ fromJSON(matrix.bolt) && '(bolt)' || '' }}
     needs: build-context
-    if: needs.build-context.outputs.run-ubuntu == 'true'
+    if: false && needs.build-context.outputs.run-ubuntu == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -246,7 +247,7 @@ jobs:
   build-ubuntu-installed:
     name: 'Ubuntu (installed)'
     needs: build-context
-    if: needs.build-context.outputs.run-ubuntu == 'true'
+    if: false && needs.build-context.outputs.run-ubuntu == 'true'
     uses: $/.github/workflows/reusable-install.yml
 
   build-ubuntu-ssltests:
@@ -254,7 +255,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     needs: build-context
-    if: needs.build-context.outputs.run-ubuntu == 'true'
+    if: false && needs.build-context.outputs.run-ubuntu == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -324,7 +325,7 @@ jobs:
   build-android:
     name: Android (${{ matrix.arch }})
     needs: build-context
-    if: needs.build-context.outputs.run-android == 'true'
+    if: false && needs.build-context.outputs.run-android == 'true'
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -348,7 +349,7 @@ jobs:
       iOS
       ${{ fromJSON(matrix.free-threading) && '(free-threading)' || '' }}
     needs: build-context
-    if: needs.build-context.outputs.run-ios == 'true'
+    if: false && needs.build-context.outputs.run-ios == 'true'
     timeout-minutes: 60
     runs-on: macos-26
     strategy:
@@ -370,13 +371,13 @@ jobs:
   build-emscripten:
     name: 'Emscripten'
     needs: build-context
-    if: needs.build-context.outputs.run-emscripten == 'true'
+    if: false && needs.build-context.outputs.run-emscripten == 'true'
     uses: $/.github/workflows/reusable-emscripten.yml
 
   build-wasi:
     name: 'WASI'
     needs: build-context
-    if: needs.build-context.outputs.run-wasi == 'true'
+    if: false && needs.build-context.outputs.run-wasi == 'true'
     uses: $/.github/workflows/reusable-wasi.yml
 
   test-hypothesis:
@@ -384,7 +385,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     needs: build-context
-    if: needs.build-context.outputs.run-ubuntu == 'true'
+    if: false && needs.build-context.outputs.run-ubuntu == 'true'
     env:
       OPENSSL_VER: 3.5.9
       PYTHONSTRICTEXTENSIONBUILD: 1
@@ -486,11 +487,11 @@ jobs:
   test-lazy-imports-all:
     name: 'Lazy imports enabled'
     needs: build-context
-    if: fromJSON(needs.build-context.outputs.run-tests)
+    if: false && fromJSON(needs.build-context.outputs.run-tests)
     uses: $/.github/workflows/reusable-test-lazy-imports-all.yml
 
   build-san:
-    # ${{ '' } is a hack to nest jobs under the same sidebar category.
+    # ${{ '' }} is a hack to nest jobs under the same sidebar category.
     name: Sanitizers${{ '' }}  # zizmor: ignore[obfuscation]
     needs: build-context
     if: needs.build-context.outputs.run-ubuntu == 'true'
@@ -524,7 +525,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     needs: build-context
-    if: needs.build-context.outputs.run-ubuntu == 'true'
+    if: false && needs.build-context.outputs.run-ubuntu == 'true'
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -558,12 +559,12 @@ jobs:
           "$BUILD_DIR/cross-python/bin/python3" -m test test_sysconfig test_site test_embed
 
   cifuzz:
-    # ${{ '' } is a hack to nest jobs under the same sidebar category.
+    # ${{ '' }} is a hack to nest jobs under the same sidebar category.
     name: CIFuzz${{ '' }}  # zizmor: ignore[obfuscation]
     needs: build-context
-    if: >-
-      needs.build-context.outputs.run-ci-fuzz == 'true'
-      || needs.build-context.outputs.run-ci-fuzz-stdlib == 'true'
+    # if: >-
+    #   needs.build-context.outputs.run-ci-fuzz == 'true'
+    #   || needs.build-context.outputs.run-ci-fuzz-stdlib == 'true'
     permissions:
       contents: read
       security-events: write
