@@ -2483,7 +2483,7 @@ optimize_basic_block(PyObject *const_cache, basicblock *bb, PyObject *consts,
                     case JUMP:
                     case JUMP_IF_NONE:
                         i -= jump_thread(bb, inst, target, JUMP_IF_NONE);
-                        break;
+                        continue;
                     case JUMP_IF_NOT_NONE:
                         // No need to check for loops here, a block's b_next
                         // cannot point to itself.
@@ -2498,7 +2498,7 @@ optimize_basic_block(PyObject *const_cache, basicblock *bb, PyObject *consts,
                     case JUMP:
                     case JUMP_IF_NOT_NONE:
                         i -= jump_thread(bb, inst, target, JUMP_IF_NOT_NONE);
-                        break;
+                        continue;
                     case JUMP_IF_NONE:
                         // No need to check for loops here, a block's b_next
                         // cannot point to itself.
