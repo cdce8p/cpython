@@ -3677,7 +3677,7 @@ convert_pseudo_conditional_jumps(cfg_builder *g)
                 };
                 RETURN_IF_ERROR(basicblock_insert_instruction(b, i++, &to_bool));
             }
-            if (instr->i_opcode == JUMP_IF_NONE || instr->i_opcode == JUMP_IF_NOT_NONE) {
+            else if (instr->i_opcode == JUMP_IF_NONE || instr->i_opcode == JUMP_IF_NOT_NONE) {
                 assert(i == b->b_iused - 1);
                 instr->i_opcode = instr->i_opcode == JUMP_IF_NONE ?
                                           POP_JUMP_IF_NONE : POP_JUMP_IF_NOT_NONE;
