@@ -2490,7 +2490,7 @@ optimize_basic_block(PyObject *const_cache, basicblock *bb, PyObject *consts,
                         assert(inst->i_target != inst->i_target->b_next);
                         inst->i_target = inst->i_target->b_next;
                         i--;
-                        break;
+                        continue;
                 }
                 break;
             case JUMP_IF_NOT_NONE:
@@ -2505,7 +2505,7 @@ optimize_basic_block(PyObject *const_cache, basicblock *bb, PyObject *consts,
                         assert(inst->i_target != inst->i_target->b_next);
                         inst->i_target = inst->i_target->b_next;
                         i--;
-                        break;
+                        continue;
                 }
                 break;
             case POP_JUMP_IF_FALSE:
